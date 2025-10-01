@@ -1,0 +1,42 @@
+# Champi STT Voice Assistant Configuration
+# ==========================================
+
+# STT Provider Configuration
+stt:
+  provider: "whisperlive"  # STT provider: whisperlive, openai, deepgram
+
+  # Provider-specific settings (for WhisperLive)
+  model_size: "base"  # tiny, base, small, medium, large-v2, large-v3
+  device: "cpu"  # cpu, cuda
+  language: "en"  # Language code or null for auto-detect
+
+# Wake Word Configuration
+wakeword:
+  engine: "porcupine"  # Wake word engine: porcupine, vosk
+  keywords:
+    - "jarvis"  # Built-in Porcupine keywords: jarvis, computer, porcupine, etc.
+  sensitivity: 0.5  # 0.0 (least sensitive) to 1.0 (most sensitive)
+  access_key: null  # Picovoice access key (get from https://console.picovoice.ai)
+
+# Command Configuration
+commands:
+  file: null  # Path to commands YAML file (optional)
+  enable_builtin: true  # Enable built-in commands (time, date, web search, etc.)
+
+# Service Configuration
+service:
+  continuous_mode: true  # Keep listening after each command
+  auto_start: false  # Auto-start service on system boot
+  max_recording_duration: 10.0  # Maximum command recording duration (seconds)
+
+  # Logging
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_file: null  # Log file path (null = console only)
+
+  # Directories
+  config_dir: "~/.config/champi-stt"
+  cache_dir: "~/.cache/champi-stt"
+
+# Usage:
+# ------
+# champi-stt assistant start --config assistant_config.yaml

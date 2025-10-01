@@ -1,0 +1,101 @@
+# Champi STT Voice Commands Configuration
+# ========================================
+
+# Exact phrase matching commands
+exact:
+
+  # Smart Home Commands
+  "turn on lights":
+    type: "api"
+    url: "http://192.168.1.100/api/lights/on"
+    method: "POST"
+    description: "Turn on the lights"
+
+  "turn off lights":
+    type: "api"
+    url: "http://192.168.1.100/api/lights/off"
+    method: "POST"
+    description: "Turn off the lights"
+
+  # Application Commands
+  "open browser":
+    type: "shell"
+    command: "firefox"
+    description: "Open Firefox browser"
+
+  "open terminal":
+    type: "shell"
+    command: "gnome-terminal"
+    description: "Open terminal"
+
+  # System Commands
+  "lock screen":
+    type: "shell"
+    command: "loginctl lock-session"
+    description: "Lock the screen"
+
+  # Custom Python Commands
+  "show system info":
+    type: "python"
+    function: "champi_stt.assistant.commands.builtin.get_system_info"
+    description: "Display system information"
+
+# Pattern matching commands (regex)
+patterns:
+
+  # Volume Control
+  "set volume to (?P<level>\\d+)":
+    type: "shell"
+    command: "pactl set-sink-volume @DEFAULT_SINK@ {level}%"
+    description: "Set system volume"
+
+  "volume (?P<level>\\d+)":
+    type: "shell"
+    command: "pactl set-sink-volume @DEFAULT_SINK@ {level}%"
+    description: "Set system volume (short form)"
+
+  # Web Search
+  "search for (?P<query>.+)":
+    type: "python"
+    function: "champi_stt.assistant.commands.builtin.web_search"
+    description: "Search the web"
+
+  "google (?P<query>.+)":
+    type: "python"
+    function: "champi_stt.assistant.commands.builtin.web_search"
+    description: "Google search"
+
+  # URL Opening
+  "open (?P<url>https?://.+)":
+    type: "python"
+    function: "champi_stt.assistant.commands.builtin.open_url"
+    description: "Open URL in browser"
+
+  # Application Launching
+  "launch (?P<app_name>\\w+)":
+    type: "python"
+    function: "champi_stt.assistant.commands.builtin.open_application"
+    description: "Launch application"
+
+# Command Types:
+# --------------
+# 1. shell: Execute shell command
+#    - command: Shell command string (supports {param} formatting)
+#    - timeout: Command timeout in seconds (optional, default: 30)
+#
+# 2. api: HTTP API call
+#    - url: API endpoint URL
+#    - method: HTTP method (GET, POST, PUT, DELETE)
+#    - headers: HTTP headers (optional)
+#    - data: Request body (optional)
+#    - timeout: Request timeout (optional, default: 30)
+#
+# 3. python: Python function call
+#    - function: Dotted path to function (e.g., "module.function")
+#    - args: List of arguments (optional)
+
+# Pattern Matching:
+# ----------------
+# Use Python regex with named groups: (?P<name>pattern)
+# Named groups become function/command parameters
+# Example: "set {device} to {value}" -> set_device(device="lights", value="on")
