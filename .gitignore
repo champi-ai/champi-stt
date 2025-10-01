@@ -1,0 +1,113 @@
+.external/
+!.external/repos.txt
+
+# Claude workspace
+.claude/
+
+# MCP configuration
+.mcp/
+.mcp.json.local
+.mcp.json
+
+# Environment configuration
+.env.local
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+*.cover
+*.py,cover
+
+# Virtual environments
+venv/
+env/
+.venv/
+test-env/
+test-pkg-env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+logs
+*.err
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+champi_stt.egg-info/
+.eggs/
+*.whl
+
+# Test artifacts
+test_output/
+*.mp3
+*.wav
+*.pcm
+.aider*
+
+# Voice MCP specific
+voice-mcp_recordings/
+debug_recordings/
+
+# Documentation build
+docs/_build/
+docs/promote/
+
+# Strategic/Private documents
+docs/mcp_champi-brand/
+
+# Local configuration
+.claude/settings.local.json
+
+# Node modules (for livekit frontend)
+node_modules/
+.npm/
+
+# Misc
+.cache/
+*.bak
+*.orig
+social
+recover-mcp_champi-promote/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+workflow.db
+
+# Runtime files
+*.pid
+*.lock
