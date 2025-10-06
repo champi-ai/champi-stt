@@ -1,0 +1,297 @@
+[project]
+name = "champi-stt"
+version = "0.1.0"
+description = "Multi-provider speech-to-text library with voice assistant features"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    {name = "Divagnz", email = "oscar.liguori.bagnis@gmail.com"}
+]
+license = {text = "MIT"}
+keywords = ["stt", "speech-to-text", "whisper", "voice-assistant", "wake-word", "voice-commands"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    # All dependencies from champi
+    "uv",
+    "fastmcp",
+    "numpy",
+    "sounddevice",
+    "scipy",
+    "pydub",
+    "simpleaudio",
+    "httpx",
+    "webrtcvad",
+    "unidecode",
+    "espeak-phonemizer",
+    "tiktoken",
+    "loguru",
+    "openai",
+    "matplotlib",
+    "mutagen",
+    "psutil",
+    "espeakng-loader",
+    "kokoro",
+    "misaki[en,ja,ko,zh]",
+    "spacy",
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+    "inflect",
+    "phonemizer-fork",
+    "av",
+    "text2num",
+    "soundfile",
+    "aiofiles",
+    "tqdm",
+    "mcp[cli]",
+    "faster-whisper",
+    "ctranslate2",
+    "tokenizers",
+    "onnxruntime",
+    "imgui-bundle",
+    "pyglm",
+    "uv-build>=0.7.21",
+    "vulture>=2.14",
+    "torch",
+    "torchaudio",
+    "blinker>=1.9.0",
+    "awaitlet>=0.0.1",
+    "rich>=14.0.0",
+    "prompt-toolkit>=3.0.52",
+    "typer>=0.16.0",
+    "pypdf2>=3.0.1",
+    "beautifulsoup4>=4.13.5",
+    "requests>=2.28.1",
+    "textual>=5.3.0",
+    "champi-signals",
+
+    # Additional champi-stt specific
+    "librosa>=0.10.0",
+    "click>=8.0.0",
+    "pyyaml>=6.0.0",
+    "aiohttp>=3.8.0",
+]
+
+[project.optional-dependencies]
+# Wake word engines
+porcupine = ["pvporcupine>=3.0.0"]
+vosk = ["vosk>=0.3.45"]
+
+# Development tools
+dev = [
+    "build",
+    "twine",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "bandit[toml]>=1.7.0",
+    "detect-secrets>=1.4.0",
+]
+
+# Test tools
+test = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-mock",
+]
+
+# Full installation (all wake word engines)
+all = [
+    "pvporcupine>=3.0.0",
+    "vosk>=0.3.45",
+]
+
+[project.urls]
+Homepage = "https://github.com/divagnz/champi-stt"
+Repository = "https://github.com/divagnz/champi-stt"
+Issues = "https://github.com/divagnz/champi-stt/issues"
+
+[project.scripts]
+champi-stt = "champi_stt.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/champi_stt"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# UV configuration (from champi)
+[tool.uv]
+package = true
+no-build-isolation = false
+managed = true
+
+[tool.uv.sources]
+champi-signals = { path = "../champi_signals/dist/champi_signals-0.1.0-py3-none-any.whl" }
+
+# Linting and formatting
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hatch
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+# Ruff configuration for linting and formatting
+target-version = "py312"
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "I",    # isort
+    "N",    # pep8-naming
+    "C90",  # mccabe
+    "RUF",  # Ruff-specific rules
+]
+
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*.py" = [
+    # at least this three should be fine in tests:
+    "S101", # asserts allowed in tests...
+    "ARG",  # Unused function args -> fixtures nevertheless are functionally relevant...
+    "FBT",  # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+    # The below are debateable
+    "PLR2004", # Magic value used in comparison, ...
+    "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["champi_stt"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "faster_whisper.*",
+    "sounddevice.*",
+    "webrtcvad.*",
+    "pvporcupine.*",
+    "vosk.*",
+    "librosa.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/examples/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.bandit]
+exclude_dirs = ["tests", "examples"]
+skips = ["B101", "B601"]
+
+[tool.scripts]
+# Security scanning
+security = [
+  "bandit -r src/champi_stt/ --severity-level medium",
+  "./gitleaks detect --source . --verbose"
+]
+security-full = [
+  "bandit -r src/champi_stt/ -f json",
+  "./gitleaks detect --source . --verbose"
+]
+
+# Development tools
+lint = "ruff check src/champi_stt/"
+format = "ruff format src/champi_stt/"
+test = "pytest tests/"
+clean-security = "rm -f gitleaks.tar.gz && rm -f gitleaks"
+
+[dependency-groups]
+dev = [
+    "bandit>=1.8.6",
+]
+
+# PyTorch CUDA support
+[[tool.uv.index]]
+url = "https://download.pytorch.org/whl/cu129"
