@@ -1,0 +1,61 @@
+audio:
+  input_device: 'USB Condenser Microphone: Audio (hw:0,0)'
+commands:
+  enable_builtin: true
+  file: null
+ipc:
+  memory_prefix: champi_assistant
+  ui_poll_rate_hz: 60
+  ui_window_x: 50
+  ui_window_y: 50
+service:
+  auto_start: false
+  cache_dir: /mnt/raid_0_drive/.cache/champi-stt
+  command_silence_timeout_ms: 2500
+  config_dir: /mnt/raid_0_drive/.config/champi-stt
+  continuous_mode: true
+  enable_speaker_identification: false
+  enable_visualizer: false
+  enable_wake_indicator: false
+  log_file: null
+  log_level: ERROR
+  max_recording_duration: 100000.0
+  speaker_identification_threshold: 0.75
+stt:
+  audio_format: wav
+  batch_size: 8
+  beam_size: 5
+  best_of: 5
+  cache_dir: /mnt/raid_0_drive/.cache/whisper_cache
+  compression_ratio_threshold: 2.4
+  compute_type: int8
+  cpu_threads: 0
+  device: cuda
+  disable_silence_detection: false
+  enable_events: true
+  event_emit_interval: 1.0
+  initial_silence_grace_period: 3.0
+  language: en
+  log_file: null
+  log_level: ERROR
+  log_prob_threshold: -1.0
+  min_recording_duration: 0.3
+  model_size: large-v3
+  no_speech_threshold: 0.6
+  provider: whisperlive
+  sample_rate: 16000
+  save_transcriptions: false
+  silence_threshold_ms: 800
+  task: transcribe
+  temperature: 0.0
+  transcriptions_dir: /mnt/raid_0_drive/.cache/champi-sst/transcriptions
+  vad_aggressiveness: 2.0
+  vad_chunk_duration_ms: 30
+  vad_filter: true
+  word_timestamps: false
+wakeword:
+  access_key: null
+  engine: whisper
+  keywords:
+  - hey_jarvis
+  sensitivity: 0.5

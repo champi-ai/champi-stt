@@ -66,6 +66,10 @@ class WhisperLiveConfig:
     save_transcriptions: bool = False
     transcriptions_dir: str = "~/.cache/mcp-champi/transcriptions"
 
+    # Logging
+    log_level: str = "INFO"
+    log_file: str | None = None
+
     def __post_init__(self):
         """Post-initialization validation"""
         # Validate model size
@@ -258,6 +262,12 @@ class WhisperLiveConfig:
             config.save_transcriptions = env_value.lower() in ["true", "1", "yes", "on"]
         if env_value := os.environ.get("WHISPERLIVE_TRANSCRIPTIONS_DIR"):
             config.transcriptions_dir = env_value
+
+        # Logging
+        if env_value := os.environ.get("CHAMPI_LOG_LEVEL"):
+            config.log_level = env_value
+        if env_value := os.environ.get("CHAMPI_LOG_FILE"):
+            config.log_file = env_value
 
         return config
 

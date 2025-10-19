@@ -6,7 +6,7 @@ Handles model loading, caching, and device optimization without global state.
 import asyncio
 import hashlib
 import json
-import logging
+# import logging - replaced with loguru
 import os
 import time
 from datetime import datetime
@@ -23,7 +23,7 @@ from champi_stt.providers.whisperlive.enums import ModelEvents, LifecycleEvents
 from champi_stt.providers.whisperlive.exceptions import WhisperModelError
 from champi_signals import EventProcessor
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class DeviceManager:

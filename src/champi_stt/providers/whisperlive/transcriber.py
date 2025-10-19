@@ -8,7 +8,7 @@ Refactored to remove global state and use async patterns with event emission.
 
 import asyncio
 import io
-import logging
+# import logging - replaced with loguru
 import os
 import tempfile
 import time
@@ -25,7 +25,7 @@ from champi_stt.providers.whisperlive.exceptions import WhisperTranscriptionErro
 from champi_signals import EventProcessor
 from champi_stt.providers.whisperlive.models import ModelManager
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class WhisperLiveTranscriber:

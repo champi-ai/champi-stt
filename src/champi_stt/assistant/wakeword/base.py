@@ -6,9 +6,18 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Optional, Any
 import numpy as np
-import logging
+# import logging - replaced with loguru
 
-logger = logging.getLogger(__name__)
+from loguru import logger
+
+
+@dataclass
+class WakeWordEvent:
+    """Wake word detection event data."""
+
+    keyword: str  # The detected wake word
+    timestamp: float  # Unix timestamp of detection
+    confidence: float = 1.0  # Detection confidence score (0.0-1.0)
 
 
 @dataclass
@@ -179,3 +188,6 @@ class BaseWakeWordEngine(ABC):
 
 # Import asyncio at module level
 import asyncio
+
+# Alias for backwards compatibility with tests
+BaseWakeWordDetector = BaseWakeWordEngine

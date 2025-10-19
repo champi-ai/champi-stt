@@ -3,14 +3,14 @@ Command action executors
 """
 
 import asyncio
-import logging
+# import logging - replaced with loguru
 import subprocess
 from enum import Enum
 from dataclasses import dataclass
 from typing import Any, Optional
 import json
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class ActionType(Enum):

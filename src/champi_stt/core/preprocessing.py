@@ -9,12 +9,10 @@ Provides reusable audio preprocessing functions:
 """
 
 import asyncio
-import logging
 from typing import Any
 
 import numpy as np
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 async def normalize_audio(audio_data: np.ndarray) -> np.ndarray:

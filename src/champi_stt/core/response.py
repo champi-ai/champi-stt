@@ -4,10 +4,8 @@ Generic response formatting utilities for all STT providers.
 Provides standardized response formatting across different providers.
 """
 
-import logging
 from typing import Any
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 def format_response(

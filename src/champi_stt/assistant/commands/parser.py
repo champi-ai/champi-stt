@@ -2,7 +2,8 @@
 Command parser for intent extraction
 """
 
-import logging
+# import logging - replaced with loguru
+from dataclasses import dataclass
 from typing import Optional, Any
 import yaml
 import json
@@ -11,7 +12,17 @@ from pathlib import Path
 from champi_stt.assistant.commands.registry import CommandRegistry
 from champi_stt.assistant.commands.executor import CommandExecutor, CommandAction, ActionType
 
-logger = logging.getLogger(__name__)
+from loguru import logger
+
+
+@dataclass
+class CommandMatch:
+    """Represents a matched command with its parameters."""
+
+    command_name: str  # Name/identifier of the matched command
+    matched_text: str  # The text that was matched
+    confidence: float  # Match confidence score (0.0-1.0)
+    parameters: dict[str, Any]  # Extracted parameters from the match
 
 
 class CommandParser:

@@ -11,12 +11,12 @@ This module provides reusable audio functionality:
 import asyncio
 import dataclasses
 import queue
-import logging
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import sounddevice as sd
+from loguru import logger
 
 # Optional webrtcvad for silence detection
 try:
@@ -26,7 +26,14 @@ except ImportError:
     webrtcvad = None
     VAD_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+
+@dataclasses.dataclass
+class AudioFormat:
+    """Audio format specification."""
+
+    sample_rate: int = 16000  # Sample rate in Hz
+    channels: int = 1  # Number of audio channels
+    sample_width: int = 2  # Sample width in bytes (2 = 16-bit)
 
 
 @dataclasses.dataclass
@@ -38,6 +45,28 @@ class AudioDevice:
     chunk_size: int
     input_channels: int
     output_channels: int
+
+
+def list_input_devices() -> list[dict[str, Any]]:
+    """
+    List all available audio input devices.
+
+    Returns:
+        List of input device dictionaries with keys: index, name, channels, sample_rate
+    """
+    devices = sd.query_devices()
+    input_devices = []
+
+    for device in devices:
+        if device["max_input_channels"] > 0:
+            input_devices.append({
+                "index": device["index"],
+                "name": device["name"],
+                "channels": device["max_input_channels"],
+                "sample_rate": int(device["default_samplerate"]),
+            })
+
+    return input_devices
 
 
 def get_audio_device(device_name: str) -> AudioDevice:
@@ -382,3 +411,127 @@ async def load_audio_from_file(
 
     logger.debug(f"Loaded audio from {file_path}: shape={audio_data.shape}")
     return audio_data
+
+
+class AudioCapture:
+    """Simple audio capture class for recording audio from microphone."""
+
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        channels: int = 1,
+        device_name: str | None = None
+    ):
+        """
+        Initialize audio capture.
+
+        Args:
+            sample_rate: Sample rate for recording
+            channels: Number of audio channels
+            device_name: Name of audio input device (None = default)
+        """
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.device_name = device_name
+        self._chunks: list[np.ndarray] = []
+        self._is_recording = False
+
+    async def start(self) -> None:
+        """Start audio capture."""
+        self._chunks = []
+        self._is_recording = True
+        logger.debug("Audio capture started")
+
+    async def record(self, duration: float) -> np.ndarray:
+        """
+        Record audio for a specified duration.
+
+        Args:
+            duration: Recording duration in seconds
+
+        Returns:
+            Audio data as numpy array
+        """
+        return await record_audio(duration, self.device_name, self.sample_rate)
+
+    async def record_with_vad(
+        self,
+        max_duration: float,
+        **vad_kwargs
+    ) -> np.ndarray:
+        """
+        Record audio with VAD-based automatic stopping.
+
+        Args:
+            max_duration: Maximum recording duration
+            **vad_kwargs: Additional VAD parameters
+
+        Returns:
+            Audio data as numpy array
+        """
+        return await record_audio_with_vad(
+            max_duration,
+            self.device_name,
+            self.sample_rate,
+            **vad_kwargs
+        )
+
+    async def stop(self) -> None:
+        """Stop audio capture."""
+        self._is_recording = False
+        logger.debug("Audio capture stopped")
+
+    def get_recording(self) -> np.ndarray:
+        """
+        Get the captured audio data.
+
+        Returns:
+            Concatenated audio chunks as numpy array
+        """
+        if not self._chunks:
+            return np.array([])
+        return np.concatenate(self._chunks)
+
+
+def resample_audio(audio_data: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
+    """
+    Resample audio to target sample rate.
+
+    Args:
+        audio_data: Input audio data
+        orig_sr: Original sample rate
+        target_sr: Target sample rate
+
+    Returns:
+        Resampled audio data
+    """
+    if orig_sr == target_sr:
+        return audio_data
+
+    from scipy import signal
+
+    target_length = int(len(audio_data) * target_sr / orig_sr)
+    audio_float = audio_data.astype(np.float32)
+    resampled = signal.resample(audio_float, target_length)
+
+    # Convert back to original dtype
+    if audio_data.dtype == np.int16:
+        return resampled.astype(np.int16)
+    return resampled
+
+
+def normalize_audio(audio_data: np.ndarray) -> np.ndarray:
+    """
+    Normalize audio data to range [-1.0, 1.0].
+
+    Args:
+        audio_data: Input audio data
+
+    Returns:
+        Normalized audio data
+    """
+    max_val = np.max(np.abs(audio_data))
+    if max_val == 0:
+        return audio_data
+
+    return audio_data / max_val

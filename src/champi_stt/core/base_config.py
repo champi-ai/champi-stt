@@ -41,6 +41,10 @@ class BaseSTTConfig(ABC):
     enable_events: bool = True
     event_emit_interval: float = 1.0
 
+    # Logging
+    log_level: str = "INFO"
+    log_file: str | None = None
+
     @classmethod
     @abstractmethod
     def from_env(cls) -> "BaseSTTConfig":
@@ -90,3 +94,7 @@ class BaseSTTConfig(ABC):
             trans_path = Path(os.path.expanduser(self.transcriptions_dir))
             trans_path.mkdir(parents=True, exist_ok=True)
             self.transcriptions_dir = str(trans_path)
+
+
+# Alias for backwards compatibility with tests
+BaseProviderConfig = BaseSTTConfig

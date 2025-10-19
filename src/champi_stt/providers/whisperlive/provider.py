@@ -10,7 +10,7 @@ and no global state.
 import asyncio
 import contextlib
 import dataclasses
-import logging
+# import logging - replaced with loguru
 import queue
 import tempfile
 from pathlib import Path
@@ -42,7 +42,7 @@ except ImportError:
     webrtcvad = None
     VAD_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclasses.dataclass
@@ -65,32 +65,35 @@ class WhisperLiveSTTProvider:
 
     _instance = None
 
-    def __new__(cls, _logger: logging.Logger = None, config: WhisperLiveConfig | None = None):
+    def __new__(cls, _logger=None, config: WhisperLiveConfig | None = None):
         """Singleton pattern implementation"""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, _logger: logging.Logger = None, config: WhisperLiveConfig | None = None):
+    def __init__(self, _logger=None, config: WhisperLiveConfig | None = None):
         """Initialize singleton instance"""
         if hasattr(self, "_initialized") and self._initialized:
             return
-        self._logger = _logger if _logger else logger
         self.config = config or WhisperLiveConfig.from_env()
+
+        # Configure logging with config level
+        from champi_stt.core.logging import configure_logging
+        configure_logging(level=self.config.log_level, log_file=self.config.log_file)
         # Note: Directory validation moved to initialize() method
 
         self.transcriber: WhisperLiveTranscriber | None = None
         self._initialized = False
         self._stt_status: LifecycleEvents = LifecycleEvents.UNINITIALIZED.value
 
-        self._logger.debug(f"WhisperLive STT provider created with model: {self.config.model_size}")
+        logger.debug(f"WhisperLive STT provider created with model: {self.config.model_size}")
     
     class Meta:
         event_type = 'lifecycle'
         signal_manager = STTSignalManager()
 
     @classmethod
-    async def get_instance(cls, _logger: logging.Logger = None, config: WhisperLiveConfig | None = None) -> "WhisperLiveSTTProvider":
+    async def get_instance(cls, _logger=None, config: WhisperLiveConfig | None = None) -> "WhisperLiveSTTProvider":
         """Get singleton instance"""
         return cls(_logger=_logger, config=config)
 
@@ -139,10 +142,10 @@ class WhisperLiveSTTProvider:
                 data={"initialized": True, "device": self.config.device}
             )
 
-            self._logger.info(LoggingStrings.PROVIDER_INITIALIZED.value)
+            logger.info(LoggingStrings.PROVIDER_INITIALIZED.value)
 
         except FileNotFoundError as e:
-            self._logger.error(f"Required files not found: {e}")
+            logger.error(f"Required files not found: {e}")
             self.Meta.signal_manager.lifecycle.send(
                 self,
                 event_type="lifecycle",
@@ -152,7 +155,7 @@ class WhisperLiveSTTProvider:
             raise WhisperFileError(f"Required files not found: {e}") from e
 
         except Exception as e:
-            self._logger.error(LoggingStrings.FAILED_TO_INITIALIZE.value.format(e))
+            logger.error(LoggingStrings.FAILED_TO_INITIALIZE.value.format(e))
             self.Meta.signal_manager.lifecycle.send(
                 self,
                 event_type="lifecycle",
@@ -191,8 +194,8 @@ class WhisperLiveSTTProvider:
             raise RuntimeError(LoggingStrings.PROVIDER_NOT_INITIALIZED.value)
 
         try:
-            self._logger.info(f"WhisperLive transcribe called with format: {response_format}")
-            self._logger.info(f"Audio data type: {type(audio_data)}")
+            logger.info(f"WhisperLive transcribe called with format: {response_format}")
+            logger.info(f"Audio data type: {type(audio_data)}")
             
 
             # Prepare transcription parameters
@@ -209,26 +212,26 @@ class WhisperLiveSTTProvider:
             # Transcribe based on input type
             if isinstance(audio_data, str):
                 # File path
-                self._logger.info(f"Transcribing from file: {audio_data}")
+                logger.info(f"Transcribing from file: {audio_data}")
                 result = await self.transcriber.transcribe_audio(audio_data, **transcribe_params)
             elif isinstance(audio_data, np.ndarray):
                 # Numpy array
-                self._logger.info(f"Transcribing numpy array: shape={audio_data.shape}, dtype={audio_data.dtype}")
+                logger.info(f"Transcribing numpy array: shape={audio_data.shape}, dtype={audio_data.dtype}")
                 result = await self.transcriber.transcribe_numpy(audio_data, **transcribe_params)
             else:
                 # Bytes - save to temp file
-                self._logger.info(f"Transcribing bytes data: length={len(audio_data) if hasattr(audio_data, '__len__') else 'unknown'}")
+                logger.info(f"Transcribing bytes data: length={len(audio_data) if hasattr(audio_data, '__len__') else 'unknown'}")
                 result = await self._transcribe_bytes(audio_data, transcribe_params)
 
             # Log raw transcription result
-            self._logger.info(f"Raw transcription result: {result}")
-            self._logger.info(f"Result type: {type(result)}")
+            logger.info(f"Raw transcription result: {result}")
+            logger.info(f"Result type: {type(result)}")
 
             # Format response based on requested format
             return self._format_response(result, response_format)
 
         except Exception as e:
-            self._logger.error(LoggingStrings.TRANSCRIPTION_FAILED.value.format(e))
+            logger.error(LoggingStrings.TRANSCRIPTION_FAILED.value.format(e))
             raise
 
     async def translate(
@@ -286,18 +289,18 @@ class WhisperLiveSTTProvider:
         """Format transcription response based on requested format."""
         if response_format == ResponseFormat.JSON.value:
             formatted_result = {"text": result["text"]}
-            self._logger.info(f"Formatted JSON response: {formatted_result}")
+            logger.info(f"Formatted JSON response: {formatted_result}")
             return formatted_result
         elif response_format == ResponseFormat.TEXT.value:
             text_result = result["text"]
-            self._logger.info(f"Formatted text response: '{text_result}'")
+            logger.info(f"Formatted text response: '{text_result}'")
             return text_result
         elif response_format == ResponseFormat.VERBOSE_JSON.value:
             verbose_result = self._format_verbose_json_response(result)
-            self._logger.info(f"Formatted verbose JSON response: {verbose_result}")
+            logger.info(f"Formatted verbose JSON response: {verbose_result}")
             return verbose_result
         else:
-            self._logger.info(f"Returning raw result: {result}")
+            logger.info(f"Returning raw result: {result}")
             return result
 
     def _format_verbose_json_response(self, result: dict[str, Any]) -> dict[str, Any]:
@@ -413,12 +416,12 @@ class WhisperLiveSTTProvider:
                 Path(expanded_trans_dir).mkdir(parents=True, exist_ok=True)
                 self.config.transcriptions_dir = expanded_trans_dir
 
-            self._logger.debug(
+            logger.debug(
                 f"Directories validated - Cache: {self.config.cache_dir}, "
                 f"Transcriptions: {self.config.transcriptions_dir if self.config.save_transcriptions else 'disabled'}"
             )
         except Exception as e:
-            self._logger.error(f"Failed to create directories: {e}")
+            logger.error(f"Failed to create directories: {e}")
             raise WhisperFileError(f"Directory creation failed: {e}") from e
 
     def get_default_cache_dir(self) -> str:
@@ -472,7 +475,7 @@ class WhisperLiveSTTProvider:
             output_channels=device_raw["max_output_channels"],
         )
 
-        self._logger.debug(f"Using audio device: {_device}")
+        logger.debug(f"Using audio device: {_device}")
         return _device
 
     async def record_audio(self, duration: float) -> np.ndarray:
@@ -484,7 +487,7 @@ class WhisperLiveSTTProvider:
         Returns:
             Audio data as numpy array
         """
-        self._logger.debug(LoggingStrings.RECORDING_AUDIO.value.format(duration))
+        logger.debug(LoggingStrings.RECORDING_AUDIO.value.format(duration))
 
 
         try:
@@ -508,18 +511,18 @@ class WhisperLiveSTTProvider:
             await loop.run_in_executor(None, sd.wait)
 
             flattened = recording.flatten()
-            self._logger.debug(LoggingStrings.AUDIO_RECORDED.value.format(len(flattened), duration))
+            logger.debug(LoggingStrings.AUDIO_RECORDED.value.format(len(flattened), duration))
 
 
             # Calculate RMS level for debugging
             if hasattr(self.config, 'debug') and self.config.debug:
                 rms = np.sqrt(np.mean(flattened.astype(float) ** 2))
-                self._logger.debug(f"RMS level: {rms:.2f}")
+                logger.debug(f"RMS level: {rms:.2f}")
 
             return flattened
 
         except Exception as e:
-            self._logger.error(LoggingStrings.RECORDING_FAILED.value.format(e))
+            logger.error(LoggingStrings.RECORDING_FAILED.value.format(e))
             return np.array([])
 
     async def record_audio_with_silence_detection(
@@ -535,16 +538,16 @@ class WhisperLiveSTTProvider:
             Audio data as numpy array
         """
         if not VAD_AVAILABLE or self.config.disable_silence_detection or disable_silence_detection:
-            self._logger.debug("Using fixed duration recording")
+            logger.debug("Using fixed duration recording")
             return await self.record_audio(max_duration)
 
-        self._logger.debug(LoggingStrings.RECORDING_WITH_VAD.value.format(max_duration))
+        logger.debug(LoggingStrings.RECORDING_WITH_VAD.value.format(max_duration))
         
         try:
             return await self._record_with_vad(max_duration)
         except Exception as e:
-            self._logger.error(LoggingStrings.VAD_INITIALIZATION_FAILED.value.format(e))
-            self._logger.debug("Falling back to fixed duration recording")
+            logger.error(LoggingStrings.VAD_INITIALIZATION_FAILED.value.format(e))
+            logger.debug("Falling back to fixed duration recording")
             return await self.record_audio(max_duration)
 
     async def _record_with_vad(self, max_duration: float) -> np.ndarray:
@@ -572,7 +575,7 @@ class WhisperLiveSTTProvider:
         audio_queue = queue.Queue(maxsize=-1)
         def audio_callback(indata, frames, time, status):
             if status:
-                self._logger.warning(f"Audio stream status: {status}")
+                logger.warning(f"Audio stream status: {status}")
             audio_queue.put(indata.copy())
 
         try:
@@ -587,9 +590,9 @@ class WhisperLiveSTTProvider:
                 blocksize=_mic_device.chunk_size,
             )
 
-            self._logger.debug(f"Audio stream {mic_stream}")
+            logger.debug(f"Audio stream {mic_stream}")
             with mic_stream:
-                self._logger.debug("Audio stream started")
+                logger.debug("Audio stream started")
                 while recording_duration < max_duration and not stop_recording:
                     try:
                         chunk = await asyncio.get_running_loop().run_in_executor(
@@ -640,7 +643,7 @@ class WhisperLiveSTTProvider:
 
                             except ImportError:
                                 # Fallback to decimation if scipy not available
-                                self._logger.warning("scipy not available, using decimation fallback for VAD")
+                                logger.warning("scipy not available, using decimation fallback for VAD")
                                 downsample_ratio = device_rate // vad_sample_rate
                                 decimated_chunk = chunk_flat[::downsample_ratio]
                                 if len(decimated_chunk) >= vad_chunk_samples:
@@ -661,21 +664,21 @@ class WhisperLiveSTTProvider:
 
                         # Debug VAD chunk properties
                         chunk_rms = np.sqrt(np.mean(vad_chunk.astype(float) ** 2))
-                        self._logger.debug(f"VAD chunk: {len(vad_chunk)} samples, RMS: {chunk_rms:.2f}, max: {np.max(np.abs(vad_chunk))}")
+                        logger.debug(f"VAD chunk: {len(vad_chunk)} samples, RMS: {chunk_rms:.2f}, max: {np.max(np.abs(vad_chunk))}")
 
                         try:
                             is_speech = vad.is_speech(chunk_bytes, vad_sample_rate)
                             if is_speech:
-                                self._logger.debug(f"🗣️ SPEECH detected! RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}")
+                                logger.debug(f"🗣️ SPEECH detected! RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}")
                             else:
-                                self._logger.debug(f"🤫 No speech detected, RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}")
+                                logger.debug(f"🤫 No speech detected, RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}")
                         except Exception as vad_e:
-                            self._logger.warning(f"VAD error: {vad_e}, treating as speech")
+                            logger.warning(f"VAD error: {vad_e}, treating as speech")
                             is_speech = True
 
                         if is_speech:
                             # if not speech_detected:
-                            #     self._logger.debug(LoggingStrings.SPEECH_DETECTED_START.value)
+                            #     logger.debug(LoggingStrings.SPEECH_DETECTED_START.value)
                             speech_detected = True
                             silence_duration_ms = 0
                         else:
@@ -689,34 +692,34 @@ class WhisperLiveSTTProvider:
                         #     speech_detected
                         #     and recording_duration >= self.config.min_recording_duration
                         # ) and silence_duration_ms >= self.config.silence_threshold_ms:
-                        #     self._logger.debug(LoggingStrings.SILENCE_DETECTED_STOP.value.format(recording_duration))
+                        #     logger.debug(LoggingStrings.SILENCE_DETECTED_STOP.value.format(recording_duration))
                         #     stop_recording = True
 
                         # if (
                         #     not speech_detected
                         #     and recording_duration >= self.config.initial_silence_grace_period
                         # ):
-                        #     self._logger.debug(LoggingStrings.NO_SPEECH_DETECTED.value.format(self.config.initial_silence_grace_period))
+                        #     logger.debug(LoggingStrings.NO_SPEECH_DETECTED.value.format(self.config.initial_silence_grace_period))
                         #     stop_recording = True
 
                     except queue.Empty:
                         continue
                     except Exception as e:
-                        self._logger.error(f"Error processing audio chunk: {e}")
+                        logger.error(f"Error processing audio chunk: {e}")
                         break
 
             # Concatenate all chunks
             if chunks:
                 full_recording = np.concatenate(chunks)
-                self._logger.debug(LoggingStrings.AUDIO_RECORDED.value.format(len(full_recording), recording_duration))
+                logger.debug(LoggingStrings.AUDIO_RECORDED.value.format(len(full_recording), recording_duration))
                 return full_recording
             else:
-                self._logger.warning(LoggingStrings.EMPTY_AUDIO_CHUNKS.value)
+                logger.warning(LoggingStrings.EMPTY_AUDIO_CHUNKS.value)
                 return np.array([])
 
         except Exception as e:
-            self._logger.error(f"Recording with VAD failed: {e}")
-            self._logger.debug("Falling back to fixed duration recording")
+            logger.error(f"Recording with VAD failed: {e}")
+            logger.debug("Falling back to fixed duration recording")
             return await self.record_audio(max_duration)
 
     async def speech_to_text(
@@ -738,21 +741,21 @@ class WhisperLiveSTTProvider:
         """
         try:
             if not self.is_loaded:
-                self._logger.error(LoggingStrings.MODEL_NOT_LOADED.value)
+                logger.error(LoggingStrings.MODEL_NOT_LOADED.value)
                 return None
 
-            self._logger.info("Using integrated WhisperLive STT")
+            logger.info("Using integrated WhisperLive STT")
             
 
-            self._logger.info(f"Sending audio data to WhisperLive: shape={audio_data.shape}, dtype={audio_data.dtype}")
-            self._logger.info(f"Using sample rate: {self.config.sample_rate} Hz for WhisperLive")
+            logger.info(f"Sending audio data to WhisperLive: shape={audio_data.shape}, dtype={audio_data.dtype}")
+            logger.info(f"Using sample rate: {self.config.sample_rate} Hz for WhisperLive")
 
             # Use the actual device sample rate for transcription, not config sample rate
             device_name = self.config.input_device or WhisperStrings.USB_MIC_DEVICE.value
             audio_device = self.get_audio_device(device_name)
             actual_sample_rate = audio_device.sample_rate
 
-            self._logger.info(f"Transcribing with sample rate: {actual_sample_rate} Hz (not config: {self.config.sample_rate})")
+            logger.info(f"Transcribing with sample rate: {actual_sample_rate} Hz (not config: {self.config.sample_rate})")
             try:
                 result = await self.transcribe(
                     audio_data=audio_data,
@@ -760,29 +763,29 @@ class WhisperLiveSTTProvider:
                     sample_rate=actual_sample_rate  # Use actual device sample rate
                 )
             except Exception as e:
-                self._logger.error(f"Transcription failed: {e}")
+                logger.error(f"Transcription failed: {e}")
 
             # Enhanced logging for debugging STT responses
-            self._logger.info(f"Raw WhisperLive STT response: {result}")
-            self._logger.info(f"Response type: {type(result)}")
+            logger.info(f"Raw WhisperLive STT response: {result}")
+            logger.info(f"Response type: {type(result)}")
 
             if isinstance(result, dict):
-                self._logger.info(f"Dict keys: {list(result.keys())}")
+                logger.info(f"Dict keys: {list(result.keys())}")
                 if "text" in result:
                     text = result["text"].strip()
-                    self._logger.debug(f"Extracted text from dict: '{text}'")
+                    logger.debug(f"Extracted text from dict: '{text}'")
                 else:
-                    self._logger.warning(f"No 'text' key in response dict. Available keys: {list(result.keys())}")
+                    logger.warning(f"No 'text' key in response dict. Available keys: {list(result.keys())}")
                     text = None
             elif isinstance(result, str):
                 text = result.strip()
-                self._logger.info(f"Direct string response: '{text}'")
+                logger.info(f"Direct string response: '{text}'")
             else:
-                self._logger.info(f"Unexpected response type: {type(result)}, value: {result}")
+                logger.info(f"Unexpected response type: {type(result)}, value: {result}")
                 text = None
 
             if text:
-                self._logger.info(f"✓ WhisperLive STT result: '{text}' (length: {len(text)})")
+                logger.info(f"✓ WhisperLive STT result: '{text}' (length: {len(text)})")
 
                 # Save transcription using provider's save method
                 from datetime import datetime
@@ -796,14 +799,14 @@ class WhisperLiveSTTProvider:
 
                 return text
             else:
-                self._logger.warning(LoggingStrings.EMPTY_TRANSCRIPTION.value.format(result))
+                logger.warning(LoggingStrings.EMPTY_TRANSCRIPTION.value.format(result))
                 return None
 
         except Exception as e:
             import traceback
-            self._logger.error(LoggingStrings.TRANSCRIPTION_FAILED.value.format(e))
-            self._logger.error(f"WhisperLive STT exception traceback: {traceback.format_exc()}")
-            self._logger.debug(
+            logger.error(LoggingStrings.TRANSCRIPTION_FAILED.value.format(e))
+            logger.error(f"WhisperLive STT exception traceback: {traceback.format_exc()}")
+            logger.debug(
                 f"Audio data info - shape: {audio_data.shape if audio_data is not None else 'None'}, "
                 f"dtype: {audio_data.dtype if audio_data is not None else 'None'}"
             )
@@ -817,7 +820,7 @@ class WhisperLiveSTTProvider:
             self.transcriber = None
         
         self._initialized = False
-        self._logger.debug(LoggingStrings.PROVIDER_UNLOADED.value)
+        logger.debug(LoggingStrings.PROVIDER_UNLOADED.value)
 
 
 if __name__ == "__main__":

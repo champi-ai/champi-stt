@@ -3,11 +3,11 @@ Command registry for voice commands
 """
 
 import re
-import logging
+# import logging - replaced with loguru
 from typing import Callable, Any, Optional
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass
@@ -129,7 +129,11 @@ class CommandRegistry:
 
         return False
 
-    async def execute(self, transcription: str) -> Optional[Any]:
+    async def execute(
+        self,
+        transcription: str,
+        context: Optional[dict[str, Any]] = None
+    ) -> Optional[Any]:
         """
         Execute command based on transcription.
 
@@ -137,11 +141,13 @@ class CommandRegistry:
 
         Args:
             transcription: Transcribed user speech
+            context: Optional context dict (e.g., speaker info, timestamp, etc.)
 
         Returns:
             Result from command handler, or None if no match
         """
         text = transcription.lower().strip()
+        context = context or {}
 
         logger.debug(f"Matching command for: '{text}'")
 
@@ -149,14 +155,14 @@ class CommandRegistry:
         if text in self._exact_commands:
             command = self._exact_commands[text]
             logger.info(f"✓ Matched exact command: '{command.phrase}'")
-            return await self._execute_handler(command.handler, {})
+            return await self._execute_handler(command.handler, context)
 
         # Try pattern matching
         for pattern, command in self._pattern_commands:
             match = pattern.match(text)
             if match:
                 logger.info(f"✓ Matched pattern command: '{command.phrase}'")
-                kwargs = match.groupdict()
+                kwargs = {**match.groupdict(), **context}
                 return await self._execute_handler(command.handler, kwargs)
 
         logger.debug(f"No command matched for: '{text}'")
