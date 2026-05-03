@@ -129,11 +129,18 @@ class AssistantSignalProcessor:
                 if ack_seq < expected_ack:
                     # Reader hasn't processed previous signal yet - potential signal loss
                     missed_count = expected_ack - ack_seq
-                    logger.warning(
-                        f"⚠️  Potential signal loss for {item.signal_type.name}: "
-                        f"Reader at seq {ack_seq}, writing seq {item.seq_num} "
-                        f"({missed_count} signals may be skipped)"
-                    )
+                    # Only warn if significant signal loss (>3 signals)
+                    if missed_count > 3:
+                        logger.warning(
+                            f"⚠️  Potential signal loss for {item.signal_type.name}: "
+                            f"Reader at seq {ack_seq}, writing seq {item.seq_num} "
+                            f"({missed_count} signals may be skipped)"
+                        )
+                    else:
+                        logger.debug(
+                            f"Reader slightly behind for {item.signal_type.name}: "
+                            f"{missed_count} signals pending"
+                        )
 
                 # Pack signal data into binary struct
                 try:

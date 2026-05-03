@@ -1,6 +1,6 @@
 [project]
 name = "champi-stt"
-version = "0.1.0"
+version = "0.0.1"
 description = "Multi-provider speech-to-text library with voice assistant features"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -49,6 +49,8 @@ dependencies = [
     "onnxruntime",
     "imgui-bundle",
     "pyglm",
+    "PyOpenGL",
+    "pygltflib",
     "uv-build>=0.7.21",
     "vulture>=2.14",
     "torch",
@@ -68,6 +70,8 @@ dependencies = [
     "aiohttp>=3.8.0",
     "openwakeword>=0.4.0",
     "resemblyzer>=0.1.1",
+    "opencv-python>=4.12.0.88",
+    "torchvision==0.23.0",
 ]
 
 [project.optional-dependencies]
@@ -240,6 +244,13 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+addopts = "-v --tb=short --cov=src/champi_stt --cov-report=term --cov-report=html"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "visual: marks tests that require visual inspection"
+]
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
@@ -277,9 +288,30 @@ clean-security = "rm -f gitleaks.tar.gz && rm -f gitleaks"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.8.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.0.0",
+    "commitizen>=3.0.0",
+    "detect-secrets>=1.4.0",
     "bandit>=1.8.6",
 ]
 
 # PyTorch CUDA support
 [[tool.uv.index]]
 url = "https://download.pytorch.org/whl/cu129"
+
+# Commitizen configuration for semantic versioning
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version",
+    "src/champi_stt/__init__.py:__version__"
+]
+changelog_file = "CHANGELOG.md"
+changelog_incremental = true
+update_changelog_on_bump = true

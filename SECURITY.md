@@ -83,15 +83,15 @@ uv pip install --upgrade champi-stt
     memory_prefix: "myapp_assistant"  # Unique prefix
   ```
 
-- **Clean up orphaned regions**:
-  ```bash
-  champi-stt ipc cleanup
-  ```
+Clean up orphaned regions:
+```bash
+champi-stt ipc cleanup
+```
 
-- **Monitor shared memory**:
-  ```bash
-  champi-stt ipc status
-  ```
+Monitor shared memory:
+```bash
+champi-stt ipc status
+```
 
 #### 4. Network Security
 
@@ -198,20 +198,25 @@ def process_command(command: str) -> None:
 
 #### 4. Dependency Security
 
-- **Keep dependencies updated**:
-  ```bash
-  uv pip list --outdated
-  uv pip install --upgrade <package>
-  ```
+List outdated dependencies:
+```bash
+uv pip list --outdated
+```
 
-- **Security scanning**:
-  ```bash
-  # Scan with bandit
-  bandit -r src/champi_stt/ --severity-level medium
+Upgrade package:
+```bash
+uv pip install --upgrade <package>
+```
 
-  # Scan for secrets
-  detect-secrets scan
-  ```
+Scan with bandit:
+```bash
+bandit -r src/champi_stt/ --severity-level medium
+```
+
+Scan for secrets:
+```bash
+detect-secrets scan
+```
 
 #### 5. Error Handling
 
@@ -282,11 +287,13 @@ Before deploying Champi STT:
 
 ### Pre-commit Hooks
 
+Install pre-commit:
 ```bash
-# Install pre-commit
 pre-commit install
+```
 
-# Run all hooks manually
+Run all hooks manually:
+```bash
 pre-commit run --all-files
 ```
 
@@ -297,11 +304,13 @@ Includes:
 
 ### Manual Security Scan
 
+Security audit:
 ```bash
-# Security audit
 bandit -r src/champi_stt/ -f json -o security-report.json
+```
 
-# Secrets scan
+Secrets scan:
+```bash
 detect-secrets scan --baseline .secrets.baseline
 ```
 

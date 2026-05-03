@@ -23,6 +23,8 @@ class AssistantSignalType(IntEnum):
     TRANSCRIBING = 4
     EXECUTING = 5
     ERROR = 6
+    SHUTDOWN = 7  # Signal UI to close gracefully
+    AUDIO_LEVEL = 8  # Real-time audio level data for visual effects
 
 
 # Binary struct formats for each signal type
@@ -38,6 +40,12 @@ EXECUTING_STRUCT = struct.Struct(
 ERROR_STRUCT = struct.Struct(
     f"=QB{MAX_ERROR_SIZE}s{MAX_TEXT_SIZE}s"
 )  # seq, signal_type, error_message, error_type
+SHUTDOWN_STRUCT = struct.Struct(
+    f"=QB{MAX_STATE_SIZE}s"
+)  # seq, signal_type, reason
+AUDIO_LEVEL_STRUCT = struct.Struct(
+    "=QBdd?"
+)  # seq, signal_type, rms_db, dominant_freq, is_speaking
 
 # ACK struct: seq_num(Q) - sequence number the reader processed
 ACK_STRUCT = struct.Struct("=Q")
@@ -115,6 +123,20 @@ def pack_signal(signal_type: AssistantSignalType, seq_num: int, **kwargs) -> byt
             signal_type.value,
             _pad_string(error_message, MAX_ERROR_SIZE),
             _pad_string(error_type, MAX_TEXT_SIZE),
+        )
+
+    elif signal_type == AssistantSignalType.SHUTDOWN:
+        reason = kwargs.get("reason", "normal")
+        return SHUTDOWN_STRUCT.pack(
+            seq_num, signal_type.value, _pad_string(reason, MAX_STATE_SIZE)
+        )
+
+    elif signal_type == AssistantSignalType.AUDIO_LEVEL:
+        rms_db = kwargs.get("rms_db", 0.0)
+        dominant_freq = kwargs.get("dominant_freq", 0.0)
+        is_speaking = kwargs.get("is_speaking", False)
+        return AUDIO_LEVEL_STRUCT.pack(
+            seq_num, signal_type.value, rms_db, dominant_freq, is_speaking
         )
 
     else:
@@ -196,6 +218,28 @@ def unpack_signal(data: bytes) -> SignalData:
             },
         )
 
+    elif signal_type == AssistantSignalType.SHUTDOWN:
+        _, _, reason_bytes = SHUTDOWN_STRUCT.unpack(data[: SHUTDOWN_STRUCT.size])
+        return SignalData(
+            signal_type=signal_type,
+            seq_num=seq_num,
+            data={"reason": _unpad_string(reason_bytes)},
+        )
+
+    elif signal_type == AssistantSignalType.AUDIO_LEVEL:
+        _, _, rms_db, dominant_freq, is_speaking = AUDIO_LEVEL_STRUCT.unpack(
+            data[: AUDIO_LEVEL_STRUCT.size]
+        )
+        return SignalData(
+            signal_type=signal_type,
+            seq_num=seq_num,
+            data={
+                "rms_db": rms_db,
+                "dominant_freq": dominant_freq,
+                "is_speaking": is_speaking,
+            },
+        )
+
     else:
         raise ValueError(f"Unknown signal type: {signal_type}")
 
@@ -216,6 +260,8 @@ def get_struct_size(signal_type: AssistantSignalType) -> int:
         AssistantSignalType.TRANSCRIBING: TRANSCRIBING_STRUCT,
         AssistantSignalType.EXECUTING: EXECUTING_STRUCT,
         AssistantSignalType.ERROR: ERROR_STRUCT,
+        AssistantSignalType.SHUTDOWN: SHUTDOWN_STRUCT,
+        AssistantSignalType.AUDIO_LEVEL: AUDIO_LEVEL_STRUCT,
     }
     return struct_map[signal_type].size
 
@@ -325,4 +371,32 @@ def unpack_executing(data: bytes) -> SignalData:
 
 def unpack_error(data: bytes) -> SignalData:
     """Unpack ERROR signal."""
+    return unpack_signal(data)
+
+
+def pack_shutdown(seq_num: int, reason: str) -> bytes:
+    """Pack SHUTDOWN signal."""
+    return pack_signal(AssistantSignalType.SHUTDOWN, seq_num, reason=reason)
+
+
+def pack_audio_level(
+    seq_num: int, rms_db: float, dominant_freq: float, is_speaking: bool
+) -> bytes:
+    """Pack AUDIO_LEVEL signal."""
+    return pack_signal(
+        AssistantSignalType.AUDIO_LEVEL,
+        seq_num,
+        rms_db=rms_db,
+        dominant_freq=dominant_freq,
+        is_speaking=is_speaking,
+    )
+
+
+def unpack_shutdown(data: bytes) -> SignalData:
+    """Unpack SHUTDOWN signal."""
+    return unpack_signal(data)
+
+
+def unpack_audio_level(data: bytes) -> SignalData:
+    """Unpack AUDIO_LEVEL signal."""
     return unpack_signal(data)

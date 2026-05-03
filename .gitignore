@@ -111,3 +111,25 @@ workflow.db
 # Runtime files
 *.pid
 *.lock
+
+# ImGui state files
+imgui.ini
+imgui_app_window.ini
+
+# Screenshots and test images
+*.png
+*.jpg
+*.jpeg
+
+# Jupyter notebooks  
+*.ipynb
+
+# Python version manager files
+.python-version
+
+# Large 3D model assets (keep only compressed formats)
+src/assets/energy_sphere/Energy_Sphere.blend
+src/assets/energy_sphere/Energy_Sphere.fbx
+src/assets/energy_sphere/Energy_Sphere.obj
+src/assets/energy_sphere/Energy_Sphere.ply
+src/assets/energy_sphere/Energy_Sphere.stl

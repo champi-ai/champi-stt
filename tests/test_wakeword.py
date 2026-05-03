@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from champi_stt.assistant.wakeword.base import (
-    BaseWakeWordDetector,
+    BaseWakeWordEngine,
     WakeWordConfig,
     WakeWordEvent,
 )
@@ -59,7 +59,7 @@ class TestWakeWordConfig:
             WakeWordConfig(keywords=[])
 
 
-class ConcreteDetector(BaseWakeWordDetector):
+class ConcreteDetector(BaseWakeWordEngine):
     """Concrete detector for testing."""
 
     async def initialize(self) -> None:
@@ -82,8 +82,8 @@ class ConcreteDetector(BaseWakeWordDetector):
         return None
 
 
-class TestBaseWakeWordDetector:
-    """Tests for BaseWakeWordDetector abstract class."""
+class TestBaseWakeWordEngine:
+    """Tests for BaseWakeWordEngine abstract class."""
 
     def test_detector_initialization(self):
         """Test detector initialization."""

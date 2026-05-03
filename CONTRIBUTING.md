@@ -22,14 +22,22 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/champi-stt.git
-   cd champi-stt
-   ```
+
+Clone your fork:
+```bash
+git clone https://github.com/YOUR_USERNAME/champi-stt.git
+```
+
+Navigate to directory:
+```bash
+cd champi-stt
+```
+
 3. **Add upstream remote**:
-   ```bash
-   git remote add upstream https://github.com/divagnz/champi-stt.git
-   ```
+
+```bash
+git remote add upstream https://github.com/divagnz/champi-stt.git
+```
 
 ## Development Setup
 
@@ -41,31 +49,50 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Initial Setup
 
+Install UV if not already installed:
 ```bash
-# Install UV if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-# Create and activate virtual environment
+Create virtual environment:
+```bash
 uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
 
-# Install dependencies
+Activate virtual environment:
+```bash
+source .venv/bin/activate
+```
+
+Note: On Windows use:
+```bash
+.venv\Scripts\activate
+```
+
+Install dependencies:
+```bash
 uv pip install -e ".[dev,test]"
+```
 
-# Install pre-commit hooks
+Install pre-commit hooks:
+```bash
 pre-commit install
 ```
 
 ### Install Additional Dependencies
 
+For wake word detection:
 ```bash
-# For wake word detection
 uv pip install openwakeword
+```
 
-# For speaker identification
+For speaker identification:
+```bash
 uv pip install resemblyzer
+```
 
-# For GPU support (optional)
+For GPU support (optional):
+```bash
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu129
 ```
 
@@ -123,14 +150,18 @@ ipc_config, causing settings to be ignored.
 
 We use **Ruff** for linting and **Black** for formatting:
 
+Format code:
 ```bash
-# Format code
 uv run ruff format src/champi_stt/
+```
 
-# Lint code
+Lint code:
+```bash
 uv run ruff check src/champi_stt/
+```
 
-# Auto-fix lint issues
+Auto-fix lint issues:
+```bash
 uv run ruff check --fix src/champi_stt/
 ```
 
@@ -180,17 +211,23 @@ uv run ruff check --fix src/champi_stt/
 
 ### Running Tests
 
+Run all tests:
 ```bash
-# Run all tests
 uv run pytest
+```
 
-# Run with coverage
+Run with coverage:
+```bash
 uv run pytest --cov=src/champi_stt --cov-report=html
+```
 
-# Run specific test file
+Run specific test file:
+```bash
 uv run pytest tests/test_ipc_shared_memory.py
+```
 
-# Run specific test
+Run specific test:
+```bash
 uv run pytest tests/test_ipc_shared_memory.py::TestSharedMemoryManager::test_create_regions
 ```
 
@@ -219,29 +256,38 @@ uv run pytest tests/test_ipc_shared_memory.py::TestSharedMemoryManager::test_cre
 ### Before Submitting
 
 1. **Update your fork**:
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
+
+Fetch upstream:
+```bash
+git fetch upstream
+```
+
+Rebase on main:
+```bash
+git rebase upstream/main
+```
 
 2. **Run pre-commit checks**:
-   ```bash
-   pre-commit run --all-files
-   ```
+
+```bash
+pre-commit run --all-files
+```
 
 3. **Run tests**:
-   ```bash
-   uv run pytest
-   ```
+
+```bash
+uv run pytest
+```
 
 4. **Update documentation** if needed
 
 ### Submitting PR
 
 1. **Push to your fork**:
-   ```bash
-   git push origin feat/your-feature
-   ```
+
+```bash
+git push origin feat/your-feature
+```
 
 2. **Create Pull Request** on GitHub
 
@@ -261,16 +307,28 @@ uv run pytest tests/test_ipc_shared_memory.py::TestSharedMemoryManager::test_cre
 ### After PR is Merged
 
 1. **Delete your branch**:
-   ```bash
-   git branch -d feat/your-feature
-   git push origin --delete feat/your-feature
-   ```
+
+Delete local branch:
+```bash
+git branch -d feat/your-feature
+```
+
+Delete remote branch:
+```bash
+git push origin --delete feat/your-feature
+```
 
 2. **Update your fork**:
-   ```bash
-   git checkout main
-   git pull upstream main
-   ```
+
+Checkout main:
+```bash
+git checkout main
+```
+
+Pull latest changes:
+```bash
+git pull upstream main
+```
 
 ## Reporting Bugs
 
@@ -325,24 +383,30 @@ Any other context or screenshots.
 
 ### Running Assistant Locally
 
+Create config:
 ```bash
-# Create config
 champi-stt assistant init-config
+```
 
-# Start assistant
+Start assistant:
+```bash
 champi-stt assistant start --config assistant_config.yaml
 ```
 
 ### Debugging IPC
 
+Check shared memory status:
 ```bash
-# Check shared memory status
 champi-stt ipc status
+```
 
-# Clean up orphaned regions
+Clean up orphaned regions:
+```bash
 champi-stt ipc cleanup
+```
 
-# Test UI standalone
+Test UI standalone:
+```bash
 champi-stt ipc test-ui
 ```
 

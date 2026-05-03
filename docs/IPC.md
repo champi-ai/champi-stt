@@ -381,14 +381,18 @@ memory_mgr.attach_regions()
 
 ### Environment Variables
 
+Memory namespace (default: "champi_assistant"):
 ```bash
-# Memory namespace (default: "champi_assistant")
 export CHAMPI_ASSISTANT_MEMORY_PREFIX="champi_assistant"
+```
 
-# Enable/disable UI subprocess (default: "true")
+Enable/disable UI subprocess (default: "true"):
+```bash
 export CHAMPI_ASSISTANT_UI_ENABLED="true"
+```
 
-# UI window position (default: 50, 50)
+UI window position (default: 50, 50):
+```bash
 export CHAMPI_ASSISTANT_UI_WINDOW_X="100"
 export CHAMPI_ASSISTANT_UI_WINDOW_Y="100"
 ```
@@ -435,8 +439,8 @@ logging.getLogger("champi_stt.assistant.ipc").setLevel(logging.DEBUG)
 
 UI logs are written to `{cache_dir}/ui.log`:
 
+Default location:
 ```bash
-# Default location
 tail -f ~/.cache/champi_stt/ui.log
 ```
 
@@ -461,11 +465,13 @@ tail -f ~/.cache/champi_stt/ui.log
 
 ### Manual Memory Inspection
 
+List shared memory regions (Linux):
 ```bash
-# List shared memory regions (Linux)
 ls -lh /dev/shm/ | grep champi_assistant
+```
 
-# Remove manually (if needed)
+Remove manually (if needed):
+```bash
 rm /dev/shm/champi_assistant_*
 ```
 
@@ -558,18 +564,22 @@ def test_signal_flow():
 
 ### Manual UI Testing
 
+Terminal 1 - Start daemon:
 ```bash
-# Terminal 1: Start daemon
 champi-stt assistant run
-
-# Terminal 2: Monitor UI logs
-tail -f ~/.cache/champi_stt/ui.log
-
-# Terminal 3: Trigger wake word
-champi-stt assistant test wake
-
-# Observe UI visual state changes
 ```
+
+Terminal 2 - Monitor UI logs:
+```bash
+tail -f ~/.cache/champi_stt/ui.log
+```
+
+Terminal 3 - Trigger wake word:
+```bash
+champi-stt assistant test wake
+```
+
+Then observe UI visual state changes.
 
 ---
 

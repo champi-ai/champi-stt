@@ -1246,20 +1246,30 @@ __all__ = [
 
 #### Step 1.1: Create GitHub Repository (30 minutes)
 
+Create repo on GitHub:
 ```bash
-# 1. Create repo on GitHub
 gh repo create champi-ipc --public --description "Shared memory IPC infrastructure"
+```
 
-# 2. Clone locally
+Clone locally:
+```bash
 git clone https://github.com/divagnz/champi-ipc.git
-cd champi-ipc
+```
 
-# 3. Create initial structure
+Navigate to directory:
+```bash
+cd champi-ipc
+```
+
+Create initial structure:
+```bash
 mkdir -p src/champi_ipc/{core,base,utils,cli}
 mkdir -p tests/{unit,integration}
 mkdir -p examples docs .github/workflows
+```
 
-# 4. Create __init__.py files
+Create __init__.py files:
+```bash
 touch src/champi_ipc/__init__.py
 touch src/champi_ipc/{core,base,utils,cli}/__init__.py
 touch tests/__init__.py
@@ -1431,11 +1441,19 @@ repos:
         args: ['--baseline', '.secrets.baseline']
 ```
 
-Install hooks:
+Install pre-commit:
 ```bash
 uv pip install pre-commit
+```
+
+Install hooks:
+```bash
 pre-commit install
-pre-commit run --all-files  # Test it works
+```
+
+Test it works:
+```bash
+pre-commit run --all-files
 ```
 
 #### Step 1.5: Setup CI/CD Workflows (90 minutes)
@@ -1863,21 +1881,39 @@ Thumbs.db
 
 #### Step 1.9: Initial Commit (10 minutes)
 
+Initialize git:
 ```bash
-# Initialize git
 git init
+```
+
+Add all files:
+```bash
 git add .
+```
+
+Initial commit:
+```bash
 git commit -m "chore: initial project structure"
+```
 
-# Create develop branch
+Create develop branch:
+```bash
 git branch develop
-git checkout develop
+```
 
-# Push to GitHub
+Checkout develop:
+```bash
+git checkout develop
+```
+
+Push to GitHub:
+```bash
 git push -u origin main
 git push -u origin develop
+```
 
-# Set up branch protection
+Set up branch protection:
+```bash
 gh api repos/divagnz/champi-ipc/branches/main/protection \
   --method PUT \
   --field required_status_checks[strict]=true \
@@ -1898,13 +1934,13 @@ gh api repos/divagnz/champi-ipc/branches/main/protection \
 
 This file is 100% identical, just copy it:
 
+Copy from champi:
 ```bash
-# Copy from champi
 cp /path/to/champi/mcp_champi/ipc_svc/signal_queue.py \
    src/champi_ipc/core/signal_queue.py
-
-# Add imports
 ```
+
+Then add imports as needed.
 
 Edit `src/champi_ipc/core/signal_queue.py`:
 ```python
@@ -2118,9 +2154,13 @@ if __name__ == "__main__":
     cli()
 ```
 
-Test it works:
+Test version:
 ```bash
 uv run champi-ipc --version
+```
+
+Test help:
+```bash
 uv run champi-ipc --help
 ```
 
@@ -2193,16 +2233,17 @@ def cleanup(prefix: str, signal_module: str, dry_run: bool):
         raise click.Abort()
 ```
 
-Test:
+Create test signal enum:
 ```bash
-# Create test signal enum
 cat > test_signals.py <<EOF
 from enum import IntEnum
 class TestSignals(IntEnum):
     SIGNAL_A = 1
 EOF
+```
 
-# Test dry run
+Test dry run:
+```bash
 uv run champi-ipc cleanup --prefix test_app --signal-module test_signals.TestSignals --dry-run
 ```
 
@@ -2278,9 +2319,13 @@ def status(prefix: str, output_json: bool):
         raise click.Abort()
 ```
 
-Test:
+Test status:
 ```bash
 uv run champi-ipc status --prefix test_app
+```
+
+Test status with JSON output:
+```bash
 uv run champi-ipc status --prefix test_app --json
 ```
 
@@ -2577,27 +2622,30 @@ Use the examples from Section 3.2 as templates.
 
 #### Step 2.17: Run Type Checking (30 minutes)
 
+Run mypy:
 ```bash
-# Run mypy
 uv run mypy src/champi_ipc/
-
-# Fix any type errors
-# Common issues:
-# - Missing return types
-# - Generic type parameters not properly constrained
-# - Optional types not handled
 ```
+
+Then fix any type errors. Common issues:
+- Missing return types
+- Generic type parameters not properly constrained
+- Optional types not handled
 
 #### Step 2.18: Run Linting (30 minutes)
 
+Run ruff:
 ```bash
-# Run ruff
 uv run ruff check src/champi_ipc/
+```
 
-# Auto-fix what's possible
+Auto-fix what's possible:
+```bash
 uv run ruff check --fix src/champi_ipc/
+```
 
-# Format with black
+Format with black:
+```bash
 uv run black src/champi_ipc/
 ```
 
@@ -2734,15 +2782,20 @@ uv run python examples/basic_usage.py
 
 #### Step 2.20: Run Full Test Suite (30 minutes)
 
+Run all tests with coverage:
 ```bash
-# Run all tests with coverage
 uv run pytest --cov=src/champi_ipc --cov-report=html --cov-report=term
+```
 
-# Check coverage report
-# Target: >90% coverage
+Target: >90% coverage
 
-# Run on multiple Python versions (if available)
+Run on Python 3.12:
+```bash
 uv run pytest --python 3.12
+```
+
+Run on Python 3.13:
+```bash
 uv run pytest --python 3.13
 ```
 
@@ -2965,42 +3018,60 @@ FileNotFoundError: [Errno 2] No such file or directory: '/dev/shm/my_app_signal_
 
 #### Step 3.4: Run Pre-commit Hooks (15 minutes)
 
+Run all pre-commit hooks:
 ```bash
-# Run all pre-commit hooks
 pre-commit run --all-files
+```
 
-# Fix any issues
-# Common: trailing whitespace, missing newlines
+Fix any issues (Common: trailing whitespace, missing newlines)
 
-# Commit fixes
+Commit fixes:
+```bash
 git add .
+```
+
+```bash
 git commit -m "chore: fix pre-commit issues"
 ```
 
 #### Step 3.5: Tag Release (10 minutes)
 
+Ensure all tests pass:
 ```bash
-# Ensure all tests pass
 uv run pytest
-
-# Tag version
-git tag -a v0.1.0 -m "Release version 0.1.0"
-git push origin v0.1.0
-
-# This triggers release workflow which publishes to PyPI
 ```
+
+Tag version:
+```bash
+git tag -a v0.1.0 -m "Release version 0.1.0"
+```
+
+Push tag:
+```bash
+git push origin v0.1.0
+```
+
+This triggers release workflow which publishes to PyPI.
 
 #### Step 3.6: Verify PyPI Release (15 minutes)
 
+Wait for GitHub Actions to complete:
 ```bash
-# Wait for GitHub Actions to complete
 gh run list
+```
 
-# Check release is on PyPI
+Check release is on PyPI:
+```bash
 pip search champi-ipc
+```
 
-# Test installation
+Test installation:
+```bash
 pip install champi-ipc==0.1.0
+```
+
+Verify import:
+```bash
 python -c "from champi_ipc import SharedMemoryManager; print('✅ Import successful')"
 ```
 

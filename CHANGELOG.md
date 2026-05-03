@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2025-10-21
+
 ### Added
 - Multi-provider STT architecture with abstract base classes
 - WhisperLive provider implementation (local, faster-whisper backend)
@@ -74,13 +76,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 - `wake_indicator_position` config field - UI position now configured via `ipc_ui_window_x` and `ipc_ui_window_y`
-
-## [0.1.0] - 2025-10-01
-
-### Added
-- Initial release
-- Multi-provider architecture foundation
-- WhisperLive provider
-- Voice assistant features
-- CLI interface
-- Documentation

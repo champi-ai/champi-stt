@@ -1,5 +1,5 @@
 audio:
-  input_device: 'USB Condenser Microphone: Audio (hw:0,0)'
+  input_device: 'USB Condenser Microphone: Audio (hw:2,0)'
 commands:
   enable_builtin: true
   file: null
@@ -10,23 +10,24 @@ ipc:
   ui_window_y: 50
 service:
   auto_start: false
-  cache_dir: /mnt/raid_0_drive/.cache/champi-stt
+  cache_dir: ~/.cache/champi-stt
   command_silence_timeout_ms: 2500
-  config_dir: /mnt/raid_0_drive/.config/champi-stt
+  config_dir: ~/.config/champi-stt
   continuous_mode: true
   enable_speaker_identification: false
   enable_visualizer: false
-  enable_wake_indicator: false
   log_file: null
-  log_level: ERROR
-  max_recording_duration: 100000.0
+  log_level: INFO
+  max_recording_duration: 10.0
   speaker_identification_threshold: 0.75
+  enable_wake_indicator: true
+
 stt:
   audio_format: wav
   batch_size: 8
   beam_size: 5
   best_of: 5
-  cache_dir: /mnt/raid_0_drive/.cache/whisper_cache
+  cache_dir: /mnt/raid_0_drive/mcp_projs/champi/mcp_champi/whisper_cache
   compression_ratio_threshold: 2.4
   compute_type: int8
   cpu_threads: 0
@@ -37,7 +38,7 @@ stt:
   initial_silence_grace_period: 3.0
   language: en
   log_file: null
-  log_level: ERROR
+  log_level: INFO
   log_prob_threshold: -1.0
   min_recording_duration: 0.3
   model_size: large-v3
@@ -48,14 +49,14 @@ stt:
   silence_threshold_ms: 800
   task: transcribe
   temperature: 0.0
-  transcriptions_dir: /mnt/raid_0_drive/.cache/champi-sst/transcriptions
+  transcriptions_dir: ~/.cache/mcp-champi/transcriptions
   vad_aggressiveness: 2.0
   vad_chunk_duration_ms: 30
   vad_filter: true
   word_timestamps: false
 wakeword:
   access_key: null
-  engine: whisper
+  engine: openwakeword
   keywords:
   - hey_jarvis
   sensitivity: 0.5

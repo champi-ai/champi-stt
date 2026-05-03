@@ -17,6 +17,7 @@ from champi_stt.assistant.ipc import (
     AssistantSignalType,
 )
 from champi_stt.assistant.ipc.signal_reader import AssistantSignalReader
+from champi_stt.assistant.ui.energy_sphere_renderer import EnergySphereRenderer
 
 
 @dataclass
@@ -46,10 +47,22 @@ class WakeIndicator:
         self.animation_time = 0.0
         self.impl = None
 
+        # Audio visualization
+        self.audio_rms_db = -60.0  # Current audio level in dB
+        self.audio_dominant_freq = 0.0  # Dominant frequency in Hz
+        self.audio_is_speaking = False  # Whether voice is detected
+
+        # Visibility control - once shown (after wake word), stay visible until explicit hide
+        self.ever_awake = False  # Has wake word been detected at least once?
+
         # IPC components
         self.memory_manager = memory_manager
         self.signal_reader = AssistantSignalReader(memory_manager)
         self._register_ipc_handlers()
+
+        # 3D rendering
+        self.sphere_renderer = None
+        self.use_3d_sphere = True  # Try to use 3D model, fallback to 2D if fails
 
     def _register_ipc_handlers(self):
         """Register IPC signal handlers."""
@@ -71,16 +84,35 @@ class WakeIndicator:
         self.signal_reader.register_handler(
             AssistantSignalType.ERROR, self._on_error
         )
+        self.signal_reader.register_handler(
+            AssistantSignalType.SHUTDOWN, self._on_shutdown
+        )
+        self.signal_reader.register_handler(
+            AssistantSignalType.AUDIO_LEVEL, self._on_audio_level
+        )
 
     def _on_state_change(self, signal_data):
         """Handle STATE_CHANGE signal from IPC."""
-        self.status.state = signal_data.data.get("state", "idle")
-        logger.debug(f"UI: state_change - {self.status.state}")
+        new_state = signal_data.data.get("state", "idle")
+        self.status.state = new_state
+        logger.debug(f"UI: state_change - {new_state}")
+
+        # Once wake word has been detected, stay visible
+        # Only hide on explicit idle or error states that end the session
+        if self.ever_awake:
+            # Stay visible during listening_for_wake after being awake
+            pass
+        else:
+            # Before first wake word, stay hidden
+            if new_state in ["idle", "listening_for_wake", "initializing"]:
+                self._hide_window()
 
     def _on_wake_detected(self, signal_data):
         """Handle WAKE_DETECTED signal from IPC."""
         self.status.state = "awake"
         self.status.wake_word = signal_data.data.get("wake_word", "")
+        self.ever_awake = True  # Mark that wake word has been detected
+        self._show_window()  # Ensure window is visible
         logger.debug(f"UI: wake_detected - {self.status.wake_word}")
 
     def _on_recording(self, signal_data):
@@ -108,6 +140,22 @@ class WakeIndicator:
         self.status.error_message = signal_data.data.get("error_message", "")
         logger.debug(f"UI: error - {self.status.error_message}")
 
+    def _on_shutdown(self, signal_data):
+        """Handle SHUTDOWN signal from IPC."""
+        reason = signal_data.data.get("reason", "unknown")
+        logger.info(f"🛑 UI: shutdown requested - reason: {reason}")
+        self.running = False
+
+    def _on_audio_level(self, signal_data):
+        """Handle AUDIO_LEVEL signal from IPC."""
+        self.audio_rms_db = signal_data.data.get("rms_db", -60.0)
+        self.audio_dominant_freq = signal_data.data.get("dominant_freq", 0.0)
+        self.audio_is_speaking = signal_data.data.get("is_speaking", False)
+        logger.debug(
+            f"UI: audio_level - {self.audio_rms_db:.1f}dB, "
+            f"{self.audio_dominant_freq:.0f}Hz, speaking={self.audio_is_speaking}"
+        )
+
     def init_window(self):
         """Initialize GLFW window."""
         if not glfw.init():
@@ -118,6 +166,7 @@ class WakeIndicator:
         glfw.window_hint(hint=glfw.DECORATED, value=glfw.FALSE)
         glfw.window_hint(hint=glfw.FLOATING, value=glfw.TRUE)
         glfw.window_hint(hint=glfw.TRANSPARENT_FRAMEBUFFER, value=glfw.TRUE)
+        glfw.window_hint(hint=glfw.VISIBLE, value=glfw.FALSE)  # Start hidden
 
         self.window = glfw.create_window(
             width=150, height=150, title="Assistant Wake Indicator", monitor=None, share=None
@@ -144,53 +193,140 @@ class WakeIndicator:
         style.window_rounding = 12.0
         style.alpha = 1
 
-    def render_status_circle(self, center_x: float, center_y: float, radius: float):
-        """Render animated status circle."""
-        draw_list = imgui.get_window_draw_list()
+        # Initialize 3D energy sphere renderer
+        if self.use_3d_sphere:
+            try:
+                self.sphere_renderer = EnergySphereRenderer()
+                if self.sphere_renderer.load_model():
+                    self.sphere_renderer.setup_gl()
+                    logger.info("✅ 3D energy sphere renderer initialized")
+                else:
+                    logger.warning("⚠️  Failed to load 3D model, using 2D fallback")
+                    self.sphere_renderer = None
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to initialize 3D renderer: {e}, using 2D fallback")
+                self.sphere_renderer = None
 
+    def _show_window(self):
+        """Show the window."""
+        if self.window:
+            glfw.show_window(self.window)
+
+    def _hide_window(self):
+        """Hide the window."""
+        if self.window:
+            glfw.hide_window(self.window)
+
+    def render_status_circle(self, center_x: float, center_y: float, radius: float):
+        """Render animated status circle/sphere with audio-responsive effects."""
         # Color and animation based on state
         if self.status.state == "awake":
-            base_color = imgui.IM_COL32(51, 204, 51, 255)  # Green
+            base_color_imgui = imgui.IM_COL32(51, 204, 51, 255)  # Green
+            base_color_rgb = (0.2, 0.8, 0.2)
             pulse_speed = 8
         elif self.status.state == "recording":
-            base_color = imgui.IM_COL32(204, 51, 51, 255)  # Red
+            base_color_imgui = imgui.IM_COL32(204, 51, 51, 255)  # Red
+            base_color_rgb = (0.8, 0.2, 0.2)
             pulse_speed = 6
         elif self.status.state == "transcribing":
-            base_color = imgui.IM_COL32(51, 102, 204, 255)  # Blue
+            base_color_imgui = imgui.IM_COL32(51, 102, 204, 255)  # Blue
+            base_color_rgb = (0.2, 0.4, 0.8)
             pulse_speed = 4
         elif self.status.state == "executing":
-            base_color = imgui.IM_COL32(204, 204, 51, 255)  # Yellow
+            base_color_imgui = imgui.IM_COL32(204, 204, 51, 255)  # Yellow
+            base_color_rgb = (0.8, 0.8, 0.2)
             pulse_speed = 5
         elif self.status.state == "error":
-            base_color = imgui.IM_COL32(204, 51, 51, 255)  # Red (flash)
+            base_color_imgui = imgui.IM_COL32(204, 51, 51, 255)  # Red (flash)
+            base_color_rgb = (0.8, 0.2, 0.2)
             pulse_speed = 10
         else:  # idle
-            base_color = imgui.IM_COL32(100, 100, 100, 255)  # Gray
+            base_color_imgui = imgui.IM_COL32(100, 100, 100, 255)  # Gray
+            base_color_rgb = (0.4, 0.4, 0.4)
             pulse_speed = 2
 
-        # Animate radius for active states
+        # Calculate audio-based pulsing (decibel-driven)
+        # Map dB from [-60, 0] to [0, 1] for pulse intensity
+        audio_intensity = max(0.0, min(1.0, (self.audio_rms_db + 60.0) / 60.0))
+
+        # Calculate frequency-based squeezing (tone-driven)
+        # Low frequencies (100-300Hz) -> wider (x-axis stretch)
+        # High frequencies (1000-3000Hz) -> taller (y-axis stretch)
+        if self.audio_dominant_freq > 0:
+            # Normalize frequency to [0, 1] range
+            # Low: 100Hz=0, Mid: 500Hz=0.5, High: 2000Hz=1
+            freq_normalized = (self.audio_dominant_freq - 100) / 1900.0
+            freq_normalized = max(0.0, min(1.0, freq_normalized))
+
+            # Low freq = x stretch, high freq = y stretch
+            x_squeeze = 1.0 + (1.0 - freq_normalized) * 0.3  # 1.0-1.3
+            y_squeeze = 1.0 + freq_normalized * 0.3  # 1.0-1.3
+        else:
+            x_squeeze = 1.0
+            y_squeeze = 1.0
+
+        # Animate radius for active states with audio influence
         if self.status.state in ["awake", "recording", "error"]:
+            # Base pulse animation
             pulse = math.sin(self.animation_time * pulse_speed) * 0.4 + 1.0
+
+            # Add audio-driven pulse when speaking
+            if self.audio_is_speaking and audio_intensity > 0.1:
+                pulse += audio_intensity * 0.3
+
             animated_radius = radius * pulse
         else:
             animated_radius = radius
 
-        # Draw filled circle
-        draw_list.add_circle_filled(
-            center=imgui.ImVec2(center_x, center_y),
-            radius=animated_radius,
-            col=base_color,
-        )
+        # 3D rendering is now handled in main render loop before ImGui
+        # This method only handles 2D fallback when 3D is not available
+        if self.sphere_renderer and self.sphere_renderer.model_loaded:
+            # 3D rendering is active, skip 2D fallback
+            return
 
-        # Draw border for active states
-        if self.status.state != "idle":
-            border_color = imgui.IM_COL32(255, 255, 255, 255)
-            draw_list.add_circle(
+        # 2D fallback rendering
+        draw_list = imgui.get_window_draw_list()
+
+        # Draw ellipse with frequency-based squeezing (instead of circle)
+        # ImGui doesn't have ellipse, so we approximate with multiple segments
+        if x_squeeze != 1.0 or y_squeeze != 1.0:
+            # Draw custom ellipse using path
+            draw_list.path_clear()
+            num_segments = 32
+            for i in range(num_segments + 1):
+                angle = (i / num_segments) * 2 * math.pi
+                x = center_x + math.cos(angle) * animated_radius * x_squeeze
+                y = center_y + math.sin(angle) * animated_radius * y_squeeze
+                draw_list.path_line_to(imgui.ImVec2(x, y))
+            draw_list.path_fill_convex(col=base_color)
+
+            # Draw border for active states
+            if self.status.state != "idle":
+                draw_list.path_clear()
+                for i in range(num_segments + 1):
+                    angle = (i / num_segments) * 2 * math.pi
+                    x = center_x + math.cos(angle) * (animated_radius + 2) * x_squeeze
+                    y = center_y + math.sin(angle) * (animated_radius + 2) * y_squeeze
+                    draw_list.path_line_to(imgui.ImVec2(x, y))
+                border_color = imgui.IM_COL32(255, 255, 255, 255)
+                draw_list.path_stroke(col=border_color, thickness=2, closed=True)
+        else:
+            # Standard circle when no squeezing
+            draw_list.add_circle_filled(
                 center=imgui.ImVec2(center_x, center_y),
-                radius=animated_radius + 2,
-                col=border_color,
-                thickness=2,
+                radius=animated_radius,
+                col=base_color,
             )
+
+            # Draw border for active states
+            if self.status.state != "idle":
+                border_color = imgui.IM_COL32(255, 255, 255, 255)
+                draw_list.add_circle(
+                    center=imgui.ImVec2(center_x, center_y),
+                    radius=animated_radius + 2,
+                    col=border_color,
+                    thickness=2,
+                )
 
     def render_ui(self):
         """Render the main UI."""
@@ -216,6 +352,61 @@ class WakeIndicator:
             )
             self._render_status_text(window_width)
         imgui.end()
+
+    def _render_3d_sphere(self):
+        """Render 3D sphere outside of ImGui context."""
+        # Get window dimensions
+        width, height = glfw.get_framebuffer_size(self.window)
+        center_x = width / 2
+        center_y = height / 2
+        radius = 50
+
+        # Calculate color based on state
+        state_colors = {
+            "listening_for_wake": (0.2, 0.2, 0.8),  # Blue
+            "awake": (0.2, 0.8, 0.2),  # Green
+            "recording": (0.8, 0.2, 0.2),  # Red
+            "transcribing": (0.8, 0.6, 0.2),  # Orange
+            "executing": (0.6, 0.2, 0.8),  # Purple
+            "error": (0.8, 0.0, 0.0),  # Bright red
+        }
+        base_color_rgb = state_colors.get(self.status.state, (0.5, 0.5, 0.5))
+
+        # Calculate audio-reactive parameters
+        audio_intensity = 0.0
+        if self.audio_is_speaking and self.audio_rms_db > -50:
+            db_normalized = min(1.0, (self.audio_rms_db + 50) / 30)  # -50dB to -20dB -> 0 to 1
+            audio_intensity = db_normalized
+
+        # Frequency-based squeezing
+        x_squeeze = 1.0
+        y_squeeze = 1.0
+        if self.audio_dominant_freq > 0:
+            freq_normalized = min(1.0, self.audio_dominant_freq / 2000.0)
+            x_squeeze = 1.0 + (1.0 - freq_normalized) * 0.3
+            y_squeeze = 1.0 + freq_normalized * 0.3
+
+        # Animate radius for active states
+        pulse_speed = 2.0
+        animated_radius = radius
+        if self.status.state in ["awake", "recording", "error"]:
+            pulse = math.sin(self.animation_time * pulse_speed) * 0.4 + 1.0
+            if self.audio_is_speaking and audio_intensity > 0.1:
+                pulse += audio_intensity * 0.3
+            animated_radius = radius * pulse
+
+        # Render the sphere
+        self.sphere_renderer.render(
+            center_x=center_x,
+            center_y=center_y,
+            radius=animated_radius,
+            window_width=width,
+            window_height=height,
+            audio_intensity=audio_intensity,
+            x_squeeze=x_squeeze,
+            y_squeeze=y_squeeze,
+            color=base_color_rgb,
+        )
 
     def _render_status_text(self, window_width: float):
         """Render status text information."""
@@ -254,7 +445,7 @@ class WakeIndicator:
 
         try:
             while self.running and not glfw.window_should_close(self.window):
-                # Poll IPC signals
+                # Poll IPC signals first (high priority)
                 self.signal_reader.poll_once()
 
                 # Poll GLFW events
@@ -263,15 +454,25 @@ class WakeIndicator:
 
                 self.animation_time = time.time()
 
+                # Clear buffer first
+                gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
+                # Render 3D content if available (before ImGui)
+                if self.sphere_renderer and self.sphere_renderer.model_loaded:
+                    try:
+                        self._render_3d_sphere()
+                    except Exception as e:
+                        logger.debug(f"3D pre-render failed: {e}")
+
+                # Then render ImGui UI on top
                 imgui.new_frame()
                 self.render_ui()
-
-                gl.glClear(gl.GL_COLOR_BUFFER_BIT)
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
                 glfw.swap_buffers(self.window)
 
-                time.sleep(1 / 60)  # 60 FPS
+                # Minimal sleep - poll IPC as fast as possible while keeping 60 FPS rendering
+                time.sleep(1 / 120)  # 120 Hz polling, but rendering still at 60 FPS
 
         except KeyboardInterrupt:
             logger.info("\n⚠️  Keyboard interrupt received")
@@ -284,6 +485,13 @@ class WakeIndicator:
 
         if hasattr(self, "signal_reader"):
             self.signal_reader.stop()
+
+        # Clean up 3D renderer
+        if hasattr(self, "sphere_renderer") and self.sphere_renderer:
+            try:
+                self.sphere_renderer.cleanup()
+            except Exception as e:
+                logger.warning(f"Error cleaning up 3D renderer: {e}")
 
         if hasattr(self, "impl"):
             self.impl.shutdown()

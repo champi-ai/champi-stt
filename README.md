@@ -23,11 +23,11 @@ A modular, extensible Python library for speech-to-text processing with support 
 - Unified interface across all providers
 
 ### 🔊 **Wake Word Detection**
-- **OpenWakeWord** (default, free and open source)
-  - 50+ pre-trained wake words (hey_jarvis, alexa, hey_mycroft, etc.)
-  - Custom model support
-  - Low-latency detection (~50ms)
-- **Vosk** with small models (alternative)
+- **WhisperWakeWordDetector** (default, uses WhisperLive STT)
+  - Continuous transcription-based detection
+  - Natural language wake phrase support
+  - Detects wake words in transcribed text
+  - Highly flexible - any phrase can be a wake word
 - Customizable sensitivity and keywords
 - No API keys required
 - Real-time audio streaming
@@ -75,9 +75,18 @@ uv pip install champi-stt
 
 ### Development Installation
 
+Clone repository:
 ```bash
 git clone https://github.com/divagnz/champi-stt.git
+```
+
+Navigate to directory:
+```bash
 cd champi-stt
+```
+
+Install dependencies:
+```bash
 uv sync --extra dev --extra all
 ```
 
@@ -161,44 +170,62 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
 
 ### Setup Development Environment
 
+Clone repository:
 ```bash
-# Clone repository
 git clone https://github.com/divagnz/champi-stt.git
+```
+
+Navigate to directory:
+```bash
 cd champi-stt
+```
 
-# Install with development dependencies
+Install with development dependencies:
+```bash
 uv sync --extra dev --extra all
+```
 
-# Install pre-commit hooks
+Install pre-commit hooks:
+```bash
 uv run pre-commit install
 ```
 
 ### Running Tests
 
+Run all tests:
 ```bash
-# Run all tests
 uv run pytest
+```
 
-# Run with coverage
+Run with coverage:
+```bash
 uv run pytest --cov=src/champi_stt --cov-report=term --cov-report=html
+```
 
-# Run specific test file
+Run specific test file:
+```bash
 uv run pytest tests/test_provider.py
 ```
 
 ### Code Quality
 
+Format code:
 ```bash
-# Format code
 uv run ruff format src/
+```
 
-# Lint code
+Lint code:
+```bash
 uv run ruff check src/
+```
 
-# Type checking
+Type checking:
+```bash
 uv run mypy src/
+```
 
-# Run all pre-commit hooks
+Run all pre-commit hooks:
+```bash
 uv run pre-commit run --all-files
 ```
 
@@ -217,11 +244,6 @@ champi-stt/
 │   ├── providers/             # STT implementations
 │   │   └── whisperlive/
 │   ├── assistant/             # Voice assistant
-<<<<<<< HEAD
-│   │   ├── wakeword/
-│   │   ├── commands/
-│   │   └── service/
-=======
 │   │   ├── wakeword/          # Wake word engines
 │   │   ├── commands/          # Command registry
 │   │   ├── service/           # Daemon service
@@ -233,7 +255,6 @@ champi-stt/
 │   │   │   └── signal_manager.py
 │   │   └── ui/                # Visual indicators
 │   │       └── wake_indicator_ui.py
->>>>>>> f798739 (Initial implementation of champi_stt speech-to-text system)
 │   └── cli.py                 # CLI interface
 ├── tests/                     # Test suite
 ├── .github/workflows/         # CI/CD workflows
@@ -274,15 +295,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 Built with:
-<<<<<<< HEAD
-- [faster-whisper](https://github.com/guillaumekln/faster-whisper)
-- [Porcupine](https://picovoice.ai/platform/porcupine/) by Picovoice
-- [WebRTC VAD](https://github.com/wiseman/py-webrtcvad)
-- [Click](https://click.pallets.com/)
-- [PyYAML](https://pyyaml.org/)
-=======
 - [faster-whisper](https://github.com/guillaumekln/faster-whisper) - High-performance Whisper transcription
-- [OpenWakeWord](https://github.com/dscripka/openWakeWord) - Open-source wake word detection
 - [champi-signals](https://github.com/divagnz/champi-signals) - Event-driven signal management
 - [imgui-bundle](https://github.com/pthom/imgui_bundle) - ImGui bindings for Python
 - [blinker](https://github.com/pallets-eco/blinker) - Fast Python signals/events
@@ -290,7 +303,6 @@ Built with:
 - [Click](https://click.pallets.com/) - CLI framework
 - [PyYAML](https://pyyaml.org/) - YAML configuration
 - [Resemblyzer](https://github.com/resemble-ai/Resemblyzer) - Speaker identification
->>>>>>> f798739 (Initial implementation of champi_stt speech-to-text system)
 
 ---
 

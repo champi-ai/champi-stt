@@ -141,7 +141,8 @@ async def record_audio(
                 samplerate=sample_rate,
                 channels=1,
                 dtype=np.int16,
-                device=device_id
+                device=device_id,
+                latency='high'  # Allow shared device access
             )
         )
         await loop.run_in_executor(None, sd.wait)
@@ -258,7 +259,7 @@ async def _record_with_vad_impl(
             mic_channels = 1
             mic_chunk_size = 1024
 
-        # Start audio stream
+        # Start audio stream with shared access
         mic_stream = sd.InputStream(
             samplerate=mic_sample_rate,
             channels=mic_channels,
@@ -266,6 +267,7 @@ async def _record_with_vad_impl(
             callback=audio_callback,
             blocksize=mic_chunk_size,
             device=mic_device_id,
+            latency='high',  # Allow shared device access
         )
 
         with mic_stream:
