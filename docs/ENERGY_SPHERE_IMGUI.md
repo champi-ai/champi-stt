@@ -75,25 +75,25 @@ if imgui.begin("Sphere Controls"):
     changed, value = imgui.slider_float("Pulse Speed", renderer.pulse_speed, 0.0, 5.0)
     if changed:
         renderer.pulse_speed = value
-    
+
     changed, value = imgui.slider_float("Pulse Intensity", renderer.pulse_intensity, 0.0, 2.0)
     if changed:
         renderer.pulse_intensity = value
-    
+
     # Color controls
     changed, value = imgui.slider_float("Hue", renderer.color_hue, 0.0, 1.0)
     if changed:
         renderer.color_hue = value
-    
+
     changed, value = imgui.slider_float("Saturation", renderer.color_saturation, 0.0, 1.0)
     if changed:
         renderer.color_saturation = value
-    
+
     # Effects
     changed, value = imgui.slider_float("Glow Strength", renderer.glow_strength, 0.0, 10.0)
     if changed:
         renderer.glow_strength = value
-    
+
     changed, value = imgui.slider_float("Jiggle Amount", renderer.jiggle_amount, 0.0, 1.0)
     if changed:
         renderer.jiggle_amount = value
@@ -110,7 +110,7 @@ renderer.pulse_intensity = 1.5
 renderer.glow_strength = 8.0
 renderer.jiggle_amount = 0.3
 
-# Calm preset  
+# Calm preset
 renderer.pulse_speed = 0.5
 renderer.pulse_intensity = 0.3
 renderer.glow_strength = 2.0

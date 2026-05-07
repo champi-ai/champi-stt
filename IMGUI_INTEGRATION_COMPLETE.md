@@ -61,7 +61,7 @@ from champi_stt.assistant.ui.energy_sphere_renderer import EnergySphereRenderer
 sphere = EnergySphereRenderer()
 
 # New
-from champi_stt.assistant.ui.energy_sphere_renderer_imgui import EnergySphereImGuiRenderer  
+from champi_stt.assistant.ui.energy_sphere_renderer_imgui import EnergySphereImGuiRenderer
 sphere = EnergySphereImGuiRenderer()
 
 # Same API for render()
@@ -91,7 +91,7 @@ python tests/test_3d_sphere_imgui.py
 
 ### Controls
 - **ESC** - Exit
-- **C** - Toggle control panel  
+- **C** - Toggle control panel
 - **Mouse** - Adjust sliders
 
 ### Try These
@@ -116,7 +116,7 @@ rgb = renderer.hue_to_rgb(0.66, 1.0)  # Blue at full saturation
 
 # Presets
 renderer.color_hue = 0.0   # Red
-renderer.color_hue = 0.33  # Green  
+renderer.color_hue = 0.33  # Green
 renderer.color_hue = 0.66  # Blue
 ```
 
@@ -197,7 +197,7 @@ All 7 Blender custom properties are integrated, tested, and documented.
 ## Questions?
 
 See `docs/ENERGY_SPHERE_IMGUI.md` for:
-- Detailed API documentation  
+- Detailed API documentation
 - Usage examples
 - Troubleshooting guide
 - Integration patterns

@@ -45,9 +45,9 @@ public:
         float glowStrength = 3.0f;
         float jiggleAmount = 0.0f;
     };
-    
+
     AnimationParams params;
-    
+
     bool Load(const std::string& filepath) {
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(filepath,
@@ -55,18 +55,18 @@ public:
             aiProcess_GenNormals |
             aiProcess_CalcTangentSpace
         );
-        
+
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
             std::cerr << "Assimp Error: " << importer.GetErrorString() << std::endl;
             return false;
         }
-        
+
         LoadCustomProperties(scene);
         ProcessNode(scene->mRootNode, scene);
-        
+
         return true;
     }
-    
+
 private:
     void LoadCustomProperties(const aiScene* scene) {
         if (scene->mMetaData) {

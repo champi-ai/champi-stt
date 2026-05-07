@@ -21,27 +21,27 @@ The sphere includes 7 animatable custom properties:
 1. **animation_time** (0.0 - ∞)
    - Global animation time counter
    - Drives all animated effects
-   
+
 2. **pulse_speed** (0.0 - 5.0)
    - Speed of pulsing animation
    - Multiplies with animation_time
-   
+
 3. **pulse_intensity** (0.0 - 2.0)
    - Strength of the pulse effect
    - 1.0 = default, 2.0 = extreme pulsing
-   
+
 4. **color_hue** (0.0 - 1.0)
    - Color hue in HSV color space
    - 0.0 = Red, 0.33 = Green, 0.66 = Blue
-   
+
 5. **color_saturation** (0.0 - 1.0)
    - Color saturation
    - 0.0 = Grayscale, 1.0 = Full color
-   
+
 6. **glow_strength** (0.0 - 10.0)
    - Intensity of the glow/emission effect
    - 3.0 = default, higher values = brighter glow
-   
+
 7. **jiggle_amount** (0.0 - 2.0)
    - Amount of noise-based vertex displacement
    - Creates organic, energy-like movement
@@ -145,29 +145,29 @@ import imgui
 if imgui.begin("Energy Sphere"):
     # Animation controls
     _, renderer.params.pulse_speed = imgui.slider_float(
-        "Pulse Speed", 
-        renderer.params.pulse_speed, 
+        "Pulse Speed",
+        renderer.params.pulse_speed,
         0.0, 5.0
     )
-    
+
     # Color controls
     _, renderer.params.color_hue = imgui.slider_float(
-        "Color Hue", 
-        renderer.params.color_hue, 
+        "Color Hue",
+        renderer.params.color_hue,
         0.0, 1.0
     )
-    
+
     # Show color preview
     color = renderer.params.get_color()
     imgui.color_button(
         "Color",
         imgui.ImVec4(color[0], color[1], color[2], 1.0)
     )
-    
+
     # Effects
     _, renderer.params.glow_strength = imgui.slider_float(
-        "Glow", 
-        renderer.params.glow_strength, 
+        "Glow",
+        renderer.params.glow_strength,
         0.0, 10.0
     )
 

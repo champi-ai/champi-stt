@@ -121,7 +121,7 @@ imgui_app_window.ini
 *.jpg
 *.jpeg
 
-# Jupyter notebooks  
+# Jupyter notebooks
 *.ipynb
 
 

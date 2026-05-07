@@ -114,7 +114,7 @@ The procedural energy material may need adjustment in some engines:
    - Adjust emission strength values
    - Use HDR rendering
 
-2. Procedural Textures: 
+2. Procedural Textures:
    - Blender's procedural textures (Voronoi, Noise, Wave) don't export
    - .blend file keeps procedural materials fully functional
    - Other formats use baked/simplified materials
