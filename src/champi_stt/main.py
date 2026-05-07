@@ -1,6 +1,7 @@
 """
 champi-stt CLI entry point
 """
+
 import asyncio
 import sys
 from pathlib import Path

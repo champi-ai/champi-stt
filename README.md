@@ -23,10 +23,14 @@ A modular, extensible Python library for speech-to-text processing with support 
 - Unified interface across all providers
 
 ### 🔊 **Wake Word Detection**
-- **Porcupine** by Picovoice (recommended)
-- **Vosk** with small models
+- **WhisperWakeWordDetector** (default, uses WhisperLive STT)
+  - Continuous transcription-based detection
+  - Natural language wake phrase support
+  - Detects wake words in transcribed text
+  - Highly flexible - any phrase can be a wake word
 - Customizable sensitivity and keywords
-- Low-latency detection
+- No API keys required
+- Real-time audio streaming
 
 ### 🎯 **Voice Command System**
 - Exact phrase matching
@@ -38,41 +42,52 @@ A modular, extensible Python library for speech-to-text processing with support 
 - YAML configuration
 - Built-in commands (time, web search, volume control, etc.)
 
+### 🎨 **IPC-Based Wake Indicator**
+- Real-time visual status indicator using GLFW/ImGui
+- Subprocess-based UI with shared memory IPC
+- Visual states:
+  - **IDLE** (gray) - Waiting for wake word
+  - **AWAKE** (green pulse) - Wake word detected
+  - **RECORDING** (red) - Recording command
+  - **TRANSCRIBING** (blue) - Processing speech
+  - **EXECUTING** (yellow) - Executing command
+  - **ERROR** (red flash) - Error occurred
+- Binary struct-based communication for low latency
+- Configurable memory namespace for isolation
+- Signal loss detection with ACK tracking
+
 ### 🤖 **Voice Assistant Service**
 - Continuous listening mode
 - System service/daemon support
 - Automatic silence detection (VAD)
-- Event-driven architecture
+- Event-driven architecture with blinker signals
+- Speaker identification using voice embeddings
 
 ---
 
 ## 📦 Installation
 
-### Basic Installation (WhisperLive only)
+### Basic Installation
 
 ```bash
-pip install champi-stt
-```
-
-### With Wake Word Support
-
-```bash
-# Porcupine (recommended)
-pip install champi-stt[porcupine]
-
-# Vosk
-pip install champi-stt[vosk]
-
-# All wake word engines
-pip install champi-stt[all]
+uv pip install champi-stt
 ```
 
 ### Development Installation
 
+Clone repository:
 ```bash
 git clone https://github.com/divagnz/champi-stt.git
+```
+
+Navigate to directory:
+```bash
 cd champi-stt
-pip install -e ".[dev,all]"
+```
+
+Install dependencies:
+```bash
+uv sync --extra dev --extra all
 ```
 
 ---
@@ -97,27 +112,43 @@ await provider.shutdown()
 
 ### 2. CLI Transcription
 
+#### Transcribe audio file
 ```bash
-# Transcribe audio file
-champi-stt transcribe audio.wav
+uv run champi-stt transcribe audio.wav
+```
 
-# With custom provider and format
-champi-stt transcribe audio.wav --provider whisperlive --format json
+#### With custom provider and format
+```bash
+uv run champi-stt transcribe audio.wav --provider whisperlive --format json
 ```
 
 ### 3. Voice Assistant
 
+#### Create configuration
 ```bash
-# Create configuration
-champi-stt assistant init-config --output config.yaml
+uv run champi-stt assistant init-config --output config.yaml
+```
 
-# Edit config.yaml with your settings
-# - Add your Porcupine access_key from https://console.picovoice.ai
-# - Choose wake words
-# - Configure STT provider
+#### Start voice assistant
+```bash
+uv run champi-stt assistant start --config config.yaml
+```
 
-# Start voice assistant
-champi-stt assistant start --config config.yaml
+### 4. Configuration
+
+**Environment Variables:**
+```bash
+# IPC Configuration
+export CHAMPI_ASSISTANT_MEMORY_PREFIX="champi_assistant"  # Shared memory namespace
+export CHAMPI_ASSISTANT_UI_ENABLED="true"                 # Enable/disable UI subprocess
+export CHAMPI_ASSISTANT_UI_WINDOW_X="50"                  # UI window X position (pixels)
+export CHAMPI_ASSISTANT_UI_WINDOW_Y="50"                  # UI window Y position (pixels)
+
+# General Configuration
+export CHAMPI_CONFIG_FILE="/path/to/config.yaml"          # Config file path
+export CHAMPI_STT_PROVIDER="whisperlive"                  # STT provider
+export CHAMPI_WAKEWORD_KEYWORDS="hey_jarvis,alexa"        # Wake words (comma-separated)
+export CHAMPI_LOG_LEVEL="INFO"                            # Logging level
 ```
 
 ---
@@ -139,45 +170,63 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
 
 ### Setup Development Environment
 
+Clone repository:
 ```bash
-# Clone repository
 git clone https://github.com/divagnz/champi-stt.git
+```
+
+Navigate to directory:
+```bash
 cd champi-stt
+```
 
-# Install with development dependencies
-pip install -e ".[dev,all]"
+Install with development dependencies:
+```bash
+uv sync --extra dev --extra all
+```
 
-# Install pre-commit hooks
-pre-commit install
+Install pre-commit hooks:
+```bash
+uv run pre-commit install
 ```
 
 ### Running Tests
 
+Run all tests:
 ```bash
-# Run all tests
-pytest
+uv run pytest
+```
 
-# Run with coverage
-pytest --cov=src/champi_stt --cov-report=term --cov-report=html
+Run with coverage:
+```bash
+uv run pytest --cov=src/champi_stt --cov-report=term --cov-report=html
+```
 
-# Run specific test file
-pytest tests/test_provider.py
+Run specific test file:
+```bash
+uv run pytest tests/test_provider.py
 ```
 
 ### Code Quality
 
+Format code:
 ```bash
-# Format code
-black src/
+uv run ruff format src/
+```
 
-# Lint code
-ruff check src/
+Lint code:
+```bash
+uv run ruff check src/
+```
 
-# Type checking
-mypy src/
+Type checking:
+```bash
+uv run mypy src/
+```
 
-# Run all pre-commit hooks
-pre-commit run --all-files
+Run all pre-commit hooks:
+```bash
+uv run pre-commit run --all-files
 ```
 
 ---
@@ -195,9 +244,17 @@ champi-stt/
 │   ├── providers/             # STT implementations
 │   │   └── whisperlive/
 │   ├── assistant/             # Voice assistant
-│   │   ├── wakeword/
-│   │   ├── commands/
-│   │   └── service/
+│   │   ├── wakeword/          # Wake word engines
+│   │   ├── commands/          # Command registry
+│   │   ├── service/           # Daemon service
+│   │   ├── ipc/               # IPC infrastructure
+│   │   │   ├── structs.py    # Binary signal definitions
+│   │   │   ├── shared_memory.py
+│   │   │   ├── signal_processor.py
+│   │   │   ├── signal_reader.py
+│   │   │   └── signal_manager.py
+│   │   └── ui/                # Visual indicators
+│   │       └── wake_indicator_ui.py
 │   └── cli.py                 # CLI interface
 ├── tests/                     # Test suite
 ├── .github/workflows/         # CI/CD workflows
@@ -238,11 +295,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 Built with:
-- [faster-whisper](https://github.com/guillaumekln/faster-whisper)
-- [Porcupine](https://picovoice.ai/platform/porcupine/) by Picovoice
-- [WebRTC VAD](https://github.com/wiseman/py-webrtcvad)
-- [Click](https://click.pallets.com/)
-- [PyYAML](https://pyyaml.org/)
+- [faster-whisper](https://github.com/guillaumekln/faster-whisper) - High-performance Whisper transcription
+- [champi-signals](https://github.com/divagnz/champi-signals) - Event-driven signal management
+- [imgui-bundle](https://github.com/pthom/imgui_bundle) - ImGui bindings for Python
+- [blinker](https://github.com/pallets-eco/blinker) - Fast Python signals/events
+- [WebRTC VAD](https://github.com/wiseman/py-webrtcvad) - Voice activity detection
+- [Click](https://click.pallets.com/) - CLI framework
+- [PyYAML](https://pyyaml.org/) - YAML configuration
+- [Resemblyzer](https://github.com/resemble-ai/Resemblyzer) - Speaker identification
 
 ---
 

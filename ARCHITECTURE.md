@@ -30,7 +30,16 @@ src/champi_stt/
 ├── assistant/                     # Voice assistant features
 │   ├── wakeword/                 # Wake word detection engines
 │   ├── commands/                 # Command registry and execution
-│   └── service/                  # System service/daemon
+│   ├── service/                  # System service/daemon
+│   ├── ipc/                      # IPC infrastructure
+│   │   ├── structs.py           # Binary signal definitions
+│   │   ├── shared_memory.py     # Shared memory manager
+│   │   ├── signal_processor.py  # Signal processor (blinker→shared memory)
+│   │   ├── signal_reader.py     # Signal reader (shared memory→UI)
+│   │   ├── signal_queue.py      # Thread-safe FIFO queue
+│   │   └── signal_manager.py    # Assistant signal manager
+│   └── ui/                       # Visual indicators
+│       └── wake_indicator_ui.py  # GLFW/ImGui wake indicator
 │
 ├── common/                        # Shared utilities
 │
@@ -71,12 +80,87 @@ provider = get_provider()
 provider = get_provider("whisperlive", model_size="base")
 ```
 
-### 4. **Voice Assistant Features** (Coming Soon)
+### 4. **Voice Assistant Features**
 
 Modular assistant features:
-- **Wake Word**: Porcupine, Vosk, Snowboy
-- **Commands**: Registry-based command execution
+- **Wake Word**: OpenWakeWord (default), Vosk (alternative)
+- **Commands**: Registry-based command execution with exact/regex matching
 - **Service**: System daemon for continuous listening
+- **IPC Infrastructure**: Shared memory communication for UI
+
+### 5. **IPC Infrastructure for Wake Indicator**
+
+The assistant uses a sophisticated IPC (Inter-Process Communication) system for real-time UI updates:
+
+#### Signal Flow Architecture
+```
+Daemon Process                           UI Subprocess
+├─ Blinker Signals                      ├─ SignalReader
+│  ├─ state                              │  └─ poll_once()
+│  ├─ processing                         │
+│  └─ error                              ├─ GLFW Window
+│                                        │  └─ Render visual states
+├─ SignalProcessor                       │
+│  ├─ Connect signals                    └─ ACK tracking
+│  ├─ FIFO Queue (100 items)
+│  └─ Pack to binary struct
+│
+├─ SharedMemoryManager
+│  ├─ Memory lanes (per signal type):
+│  │  ├─ champi_assistant_state_change
+│  │  ├─ champi_assistant_wake_detected
+│  │  ├─ champi_assistant_recording
+│  │  ├─ champi_assistant_transcribing
+│  │  ├─ champi_assistant_executing
+│  │  └─ champi_assistant_error
+│  └─ ACK regions (for signal loss detection)
+```
+
+#### Components
+
+1. **Signal Types (AssistantSignalType)**
+   - `STATE_CHANGE = 1` - Assistant state updates
+   - `WAKE_DETECTED = 2` - Wake word detection
+   - `RECORDING = 3` - Audio recording status
+   - `TRANSCRIBING = 4` - Transcription progress
+   - `EXECUTING = 5` - Command execution
+   - `ERROR = 6` - Error events
+
+2. **Binary Struct Serialization**
+   - Fixed-size structs for cross-process safety
+   - Sequence number tracking
+   - Padding for consistent sizes
+   - Example: `STATE_CHANGE_STRUCT = struct.Struct(f"=QB{MAX_STATE_SIZE}s")`
+
+3. **Memory Lane System**
+   - Each signal type gets dedicated memory region
+   - Data region: Contains packed signal struct
+   - ACK region: Tracks reader acknowledgment
+   - Configurable prefix for namespace isolation
+
+4. **Signal Processor**
+   - Bridges blinker signals to shared memory
+   - Thread-safe FIFO queue (100 max items)
+   - Data mappers for signal transformation
+   - ACK-based signal loss detection
+
+5. **UI Subprocess**
+   - GLFW-based OpenGL rendering
+   - 60 Hz polling rate
+   - Visual state indicators
+   - Standalone executable for testing
+
+#### Configuration
+
+Environment variables:
+- `CHAMPI_ASSISTANT_MEMORY_PREFIX` - Memory namespace (default: "champi_assistant")
+- `CHAMPI_ASSISTANT_UI_ENABLED` - Enable/disable UI (default: "true")
+
+Config fields:
+- `ipc_memory_prefix` - Shared memory prefix
+- `ipc_ui_window_x` - UI window X position
+- `ipc_ui_window_y` - UI window Y position
+- `ipc_ui_poll_rate_hz` - Signal polling rate
 
 ## Usage Examples
 

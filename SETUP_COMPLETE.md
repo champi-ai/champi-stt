@@ -80,14 +80,19 @@ All configured in `pyproject.toml` under `[project.optional-dependencies.dev]`
 ## 🚀 Next Steps
 
 ### 1. Initialize Pre-commit Hooks
+
+Install pre-commit hooks:
 ```bash
-# Install pre-commit hooks
 pre-commit install
+```
 
-# Install commit-msg hook for conventional commits
+Install commit-msg hook for conventional commits:
+```bash
 pre-commit install --hook-type commit-msg
+```
 
-# Run on all files to test
+Run on all files to test:
+```bash
 pre-commit run --all-files
 ```
 
@@ -101,11 +106,24 @@ For automated releases, add to GitHub repository secrets:
 - `PYPI_API_TOKEN`: PyPI API token for publishing
 
 ### 4. Create First Release
+
+Add all changes:
 ```bash
-# Using conventional commits, semver will be automatic
 git add .
+```
+
+Commit with conventional commit message:
+```bash
 git commit -m "feat: initial release with multi-provider STT and voice assistant"
+```
+
+Tag the release:
+```bash
 git tag v0.1.0
+```
+
+Push with tags:
+```bash
 git push origin master --tags
 ```
 
@@ -117,18 +135,24 @@ Sign up at [codecov.io](https://codecov.io) and add `CODECOV_TOKEN` to repositor
 ## 🛠️ Development Workflow
 
 ### Making Changes
+
+Create feature branch:
 ```bash
-# 1. Create feature branch
 git checkout -b feat/my-feature
+```
 
-# 2. Make changes
-# ... code changes ...
-
-# 3. Pre-commit runs automatically on commit
+Make your code changes, then stage them:
+```bash
 git add .
-git commit -m "feat: add amazing feature"
+```
 
-# 4. Push and create PR
+Commit (pre-commit runs automatically):
+```bash
+git commit -m "feat: add amazing feature"
+```
+
+Push and create PR:
+```bash
 git push origin feat/my-feature
 ```
 

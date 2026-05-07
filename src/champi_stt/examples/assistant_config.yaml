@@ -12,11 +12,11 @@ stt:
 
 # Wake Word Configuration
 wakeword:
-  engine: "porcupine"  # Wake word engine: porcupine, vosk
+  engine: "openwakeword"  # Wake word engine: openwakeword, porcupine, vosk
   keywords:
-    - "jarvis"  # Built-in Porcupine keywords: jarvis, computer, porcupine, etc.
+    - "hey_jarvis"  # OpenWakeWord models: hey_jarvis, alexa, etc.
   sensitivity: 0.5  # 0.0 (least sensitive) to 1.0 (most sensitive)
-  access_key: null  # Picovoice access key (get from https://console.picovoice.ai)
+  access_key: null  # Picovoice access key (only for Porcupine engine)
 
 # Command Configuration
 commands:
@@ -36,6 +36,19 @@ service:
   # Directories
   config_dir: "~/.config/champi-stt"
   cache_dir: "~/.cache/champi-stt"
+
+# IPC Configuration (Inter-Process Communication for Wake Indicator UI)
+ipc:
+  memory_prefix: "champi_assistant"  # Shared memory namespace (for isolation)
+  ui_window_x: 50  # UI window X position (pixels from left)
+  ui_window_y: 50  # UI window Y position (pixels from top)
+  ui_poll_rate_hz: 60  # Signal polling rate (Hz)
+
+  # Note: Can override via environment variables:
+  # export CHAMPI_ASSISTANT_MEMORY_PREFIX="champi_assistant"
+  # export CHAMPI_ASSISTANT_UI_WINDOW_X="100"
+  # export CHAMPI_ASSISTANT_UI_WINDOW_Y="100"
+  # export CHAMPI_ASSISTANT_UI_ENABLED="true"
 
 # Usage:
 # ------

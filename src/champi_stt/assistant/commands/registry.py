@@ -3,16 +3,19 @@ Command registry for voice commands
 """
 
 import re
-import logging
-from typing import Callable, Any, Optional
+from collections.abc import Callable
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+# import logging - replaced with loguru
+from typing import Any
+
+from loguru import logger
 
 
 @dataclass
 class Command:
     """Represents a registered voice command"""
+
     phrase: str  # Exact phrase or regex pattern
     handler: Callable  # Function to execute
     is_pattern: bool = False  # True if phrase is regex
@@ -20,7 +23,7 @@ class Command:
 
 
 class CommandRegistry:
-    """
+    r"""
     Registry for voice commands with exact and pattern matching.
 
     Examples:
@@ -41,10 +44,7 @@ class CommandRegistry:
         self._pattern_commands: list[tuple[re.Pattern, Command]] = []
 
     def register_exact(
-        self,
-        phrase: str,
-        handler: Callable,
-        description: str = ""
+        self, phrase: str, handler: Callable, description: str = ""
     ) -> None:
         """
         Register exact phrase match command.
@@ -63,19 +63,16 @@ class CommandRegistry:
             phrase=normalized_phrase,
             handler=handler,
             is_pattern=False,
-            description=description or f"Execute: {phrase}"
+            description=description or f"Execute: {phrase}",
         )
 
         self._exact_commands[normalized_phrase] = command
         logger.debug(f"Registered exact command: '{phrase}'")
 
     def register_pattern(
-        self,
-        pattern: str,
-        handler: Callable,
-        description: str = ""
+        self, pattern: str, handler: Callable, description: str = ""
     ) -> None:
-        """
+        r"""
         Register regex pattern command.
 
         Args:
@@ -96,7 +93,7 @@ class CommandRegistry:
             phrase=pattern,
             handler=handler,
             is_pattern=True,
-            description=description or f"Pattern: {pattern}"
+            description=description or f"Pattern: {pattern}",
         )
 
         self._pattern_commands.append((compiled_pattern, command))
@@ -121,7 +118,7 @@ class CommandRegistry:
             return True
 
         # Try pattern match
-        for i, (pattern, command) in enumerate(self._pattern_commands):
+        for i, (_pattern, command) in enumerate(self._pattern_commands):
             if command.phrase == phrase:
                 self._pattern_commands.pop(i)
                 logger.debug(f"Unregistered pattern command: '{phrase}'")
@@ -129,7 +126,9 @@ class CommandRegistry:
 
         return False
 
-    async def execute(self, transcription: str) -> Optional[Any]:
+    async def execute(
+        self, transcription: str, context: dict[str, Any] | None = None
+    ) -> Any | None:
         """
         Execute command based on transcription.
 
@@ -137,11 +136,13 @@ class CommandRegistry:
 
         Args:
             transcription: Transcribed user speech
+            context: Optional context dict (e.g., speaker info, timestamp, etc.)
 
         Returns:
             Result from command handler, or None if no match
         """
         text = transcription.lower().strip()
+        context = context or {}
 
         logger.debug(f"Matching command for: '{text}'")
 
@@ -149,24 +150,20 @@ class CommandRegistry:
         if text in self._exact_commands:
             command = self._exact_commands[text]
             logger.info(f"✓ Matched exact command: '{command.phrase}'")
-            return await self._execute_handler(command.handler, {})
+            return await self._execute_handler(command.handler, context)
 
         # Try pattern matching
         for pattern, command in self._pattern_commands:
             match = pattern.match(text)
             if match:
                 logger.info(f"✓ Matched pattern command: '{command.phrase}'")
-                kwargs = match.groupdict()
+                kwargs = {**match.groupdict(), **context}
                 return await self._execute_handler(command.handler, kwargs)
 
         logger.debug(f"No command matched for: '{text}'")
         return None
 
-    async def _execute_handler(
-        self,
-        handler: Callable,
-        kwargs: dict[str, Any]
-    ) -> Any:
+    async def _execute_handler(self, handler: Callable, kwargs: dict[str, Any]) -> Any:
         """
         Execute command handler (async or sync).
 
@@ -203,19 +200,23 @@ class CommandRegistry:
 
         # Add exact commands
         for phrase, command in self._exact_commands.items():
-            commands.append({
-                "type": "exact",
-                "phrase": phrase,
-                "description": command.description,
-            })
+            commands.append(
+                {
+                    "type": "exact",
+                    "phrase": phrase,
+                    "description": command.description,
+                }
+            )
 
         # Add pattern commands
-        for pattern, command in self._pattern_commands:
-            commands.append({
-                "type": "pattern",
-                "phrase": command.phrase,
-                "description": command.description,
-            })
+        for _pattern, command in self._pattern_commands:
+            commands.append(
+                {
+                    "type": "pattern",
+                    "phrase": command.phrase,
+                    "description": command.description,
+                }
+            )
 
         return commands
 

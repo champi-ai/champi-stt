@@ -11,13 +11,13 @@ Features:
 - YAML configuration loading
 """
 
-from champi_stt.assistant.commands.registry import CommandRegistry
-from champi_stt.assistant.commands.executor import CommandExecutor, CommandAction
+from champi_stt.assistant.commands.executor import CommandAction, CommandExecutor
 from champi_stt.assistant.commands.parser import CommandParser
+from champi_stt.assistant.commands.registry import CommandRegistry
 
 __all__ = [
-    "CommandRegistry",
-    "CommandExecutor",
     "CommandAction",
+    "CommandExecutor",
     "CommandParser",
+    "CommandRegistry",
 ]

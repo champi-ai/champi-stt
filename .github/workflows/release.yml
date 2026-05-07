@@ -2,42 +2,67 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'pyproject.toml'
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  build-and-publish:
+  release:
     runs-on: ubuntu-latest
+    # Skip if commit message starts with "bump:"
+    if: "!startsWith(github.event.head_commit.message, 'bump:')"
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Configure Git
         run: |
-          python -m pip install --upgrade pip
-          pip install build twine hatchling
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version and update changelog
+        id: cz
+        run: |
+          uv run cz bump --yes --changelog --changelog-to-stdout > RELEASE_NOTES.md || echo "NO_BUMP=true" >> $GITHUB_OUTPUT
+          echo "VERSION=$(uv run cz version --project)" >> $GITHUB_OUTPUT
+
+      - name: Push changes
+        if: steps.cz.outputs.NO_BUMP != 'true'
+        run: |
+          git push
+          git push --tags
 
       - name: Build package
-        run: python -m build
-
-      - name: Check package
-        run: twine check dist/*
-
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+        if: steps.cz.outputs.NO_BUMP != 'true'
+        run: uv build
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        if: steps.cz.outputs.NO_BUMP != 'true'
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.cz.outputs.VERSION }}
+          name: v${{ steps.cz.outputs.VERSION }}
+          body_path: RELEASE_NOTES.md
           files: dist/*
-          generate_release_notes: true
+          draft: false
+          prerelease: false

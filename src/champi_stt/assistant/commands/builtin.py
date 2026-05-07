@@ -2,14 +2,13 @@
 Built-in voice commands
 """
 
-import asyncio
-import logging
+# import logging - replaced with loguru
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
-
+from loguru import logger
 
 # Time and date commands
+
 
 async def say_time():
     """Say current time"""
@@ -29,6 +28,7 @@ async def say_date():
 
 # System commands
 
+
 async def shutdown_assistant():
     """Shutdown the voice assistant"""
     logger.info("Shutting down assistant...")
@@ -43,9 +43,11 @@ async def restart_assistant():
 
 # Information commands
 
+
 async def get_system_info():
     """Get system information"""
     import platform
+
     import psutil
 
     info = {
@@ -63,6 +65,7 @@ async def get_system_info():
 
 # Web commands
 
+
 async def web_search(query: str):
     """
     Perform web search.
@@ -71,6 +74,7 @@ async def web_search(query: str):
         query: Search query
     """
     import webbrowser
+
     search_url = f"https://www.google.com/search?q={query}"
     webbrowser.open(search_url)
     logger.info(f"Opening web search for: {query}")
@@ -85,12 +89,14 @@ async def open_url(url: str):
         url: URL to open
     """
     import webbrowser
+
     webbrowser.open(url)
     logger.info(f"Opening URL: {url}")
     return f"Opening {url}"
 
 
 # Application commands
+
 
 async def open_application(app_name: str):
     """
@@ -99,8 +105,8 @@ async def open_application(app_name: str):
     Args:
         app_name: Application name
     """
-    import subprocess
     import platform
+    import subprocess
 
     system = platform.system()
 
@@ -122,6 +128,7 @@ async def open_application(app_name: str):
 
 # Voice feedback
 
+
 async def say_hello():
     """Say hello"""
     return "Hello! How can I help you?"
@@ -138,6 +145,7 @@ async def say_thanks():
 
 
 # Media control
+
 
 async def set_volume(level: str):
     """
@@ -184,7 +192,9 @@ async def play_pause_media():
         if system == "Linux":
             subprocess.run(["playerctl", "play-pause"])
         elif system == "Darwin":
-            subprocess.run(["osascript", "-e", 'tell application "Spotify" to playpause'])
+            subprocess.run(
+                ["osascript", "-e", 'tell application "Spotify" to playpause']
+            )
         # Windows support can be added
 
         logger.info("Toggled play/pause")
@@ -196,6 +206,7 @@ async def play_pause_media():
 
 
 # Helper to register all built-in commands
+
 
 def register_builtin_commands(registry):
     """
@@ -224,30 +235,16 @@ def register_builtin_commands(registry):
     registry.register_exact("thanks", say_thanks, "Acknowledge thanks")
 
     # Pattern commands
+    registry.register_pattern(r"search for (?P<query>.+)", web_search, "Search the web")
     registry.register_pattern(
-        r"search for (?P<query>.+)",
-        web_search,
-        "Search the web"
+        r"open (?P<url>https?://.+)", open_url, "Open URL in browser"
     )
     registry.register_pattern(
-        r"open (?P<url>https?://.+)",
-        open_url,
-        "Open URL in browser"
+        r"open (?P<app_name>\w+)", open_application, "Open application"
     )
     registry.register_pattern(
-        r"open (?P<app_name>\w+)",
-        open_application,
-        "Open application"
+        r"set volume to (?P<level>\d+)", set_volume, "Set system volume"
     )
-    registry.register_pattern(
-        r"set volume to (?P<level>\d+)",
-        set_volume,
-        "Set system volume"
-    )
-    registry.register_pattern(
-        r"volume (?P<level>\d+)",
-        set_volume,
-        "Set system volume"
-    )
+    registry.register_pattern(r"volume (?P<level>\d+)", set_volume, "Set system volume")
 
     logger.info("✓ Built-in commands registered")

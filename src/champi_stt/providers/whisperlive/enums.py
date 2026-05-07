@@ -9,9 +9,9 @@ from enum import Enum, unique
 @unique
 class STTEventTypes(Enum):
     """Main event type categories for STT service"""
-    
+
     LIFECYCLE_EVENT = "lifecycle_event"
-    MODEL_EVENT = "model_event"  
+    MODEL_EVENT = "model_event"
     PROCESSING_EVENT = "processing_event"
     TELEMETRY_EVENT = "telemetry_event"
 
@@ -37,7 +37,7 @@ class LifecycleEvents(Enum):
 @unique
 class ModelEvents(Enum):
     """Model-related events"""
-    
+
     MODEL_LOADING = "model_loading"
     MODEL_LOADED = "model_loaded"
     MODEL_UNLOADED = "model_unloaded"
@@ -56,9 +56,9 @@ class ModelEvents(Enum):
 @unique
 class ProcessingEvents(Enum):
     """Audio processing and transcription events"""
-    
+
     AUDIO_RECEIVED = "audio_received"
-    AUDIO_PREPROCESSING = "audio_preprocessing" 
+    AUDIO_PREPROCESSING = "audio_preprocessing"
     AUDIO_NORMALIZED = "audio_normalized"
     TRANSCRIPTION_START = "transcription_start"
     TRANSCRIPTION_PROGRESS = "transcription_progress"
@@ -75,7 +75,7 @@ class ProcessingEvents(Enum):
 @unique
 class TelemetryEvents(Enum):
     """Metrics and telemetry events"""
-    
+
     METRICS_UPDATE = "metrics_update"
     PERFORMANCE_STATS = "performance_stats"
     USAGE_STATS = "usage_stats"
@@ -87,9 +87,9 @@ class TelemetryEvents(Enum):
 @unique
 class AudioFormat(Enum):
     """Supported audio input/output formats"""
-    
+
     WAV = "wav"
-    MP3 = "mp3" 
+    MP3 = "mp3"
     OPUS = "opus"
     FLAC = "flac"
     M4A = "m4a"
@@ -99,7 +99,7 @@ class AudioFormat(Enum):
 @unique
 class ModelSize(Enum):
     """WhisperLive supported model sizes"""
-    
+
     TINY = "tiny"
     TINY_EN = "tiny.en"
     BASE = "base"
@@ -116,12 +116,12 @@ class ModelSize(Enum):
     DISTIL_MEDIUM_EN = "distil-medium.en"
     DISTIL_LARGE_V2 = "distil-large-v2"
     DISTIL_LARGE_V3 = "distil-large-v3"
-    
+
     @classmethod
     def get_all_sizes(cls) -> list[str]:
         """Get all supported model sizes"""
         return [model.value for model in cls]
-    
+
     @classmethod
     def is_english_only(cls, model_size: str) -> bool:
         """Check if model is English-only"""
@@ -131,7 +131,7 @@ class ModelSize(Enum):
 @unique
 class DeviceType(Enum):
     """Supported compute devices"""
-    
+
     CPU = "cpu"
     CUDA = "cuda"
     AUTO = "auto"
@@ -140,7 +140,7 @@ class DeviceType(Enum):
 @unique
 class ComputeType(Enum):
     """Supported compute types for faster-whisper"""
-    
+
     FLOAT16 = "float16"
     FLOAT32 = "float32"
     INT8 = "int8"
@@ -153,7 +153,7 @@ class ComputeType(Enum):
 @unique
 class ResponseFormat(Enum):
     """Transcription response formats"""
-    
+
     JSON = "json"
     TEXT = "text"
     VERBOSE_JSON = "verbose_json"
@@ -165,7 +165,7 @@ class ResponseFormat(Enum):
 @unique
 class TaskType(Enum):
     """Whisper task types"""
-    
+
     TRANSCRIBE = "transcribe"
     TRANSLATE = "translate"
 
@@ -173,19 +173,19 @@ class TaskType(Enum):
 @unique
 class WhisperStrings(Enum):
     """Functional string constants used in WhisperLive STT service"""
-    
+
     # Cache filename patterns
     MODEL_CACHE_KEY = "whisperlive_{}.pkl"
     MODEL_METADATA_KEY = "whisperlive_{}.json"
-    
+
     # Device names
     PULSE_DEVICE = "pulse"
     USB_MIC_DEVICE = "USB Condenser Microphone"
-    
+
     # File extensions
     WAV_EXTENSION = ".wav"
     JSON_EXTENSION = ".json"
-    
+
     # Default directories
     DEFAULT_CACHE_DIR = "~/.cache/whisper-live/"
     DEFAULT_TRANSCRIPTIONS_DIR = "~/.cache/mcp-champi/transcriptions"
@@ -203,31 +203,35 @@ class LoggingStrings(Enum):
     PROVIDER_INITIALIZED = "WhisperLive STT provider initialized successfully"
     PROVIDER_UNLOADED = "WhisperLive STT provider unloaded"
     CACHED_MODEL_METADATA = "💾 WhisperLive model metadata saved for {}"
-    
-    # Model and device messages  
+
+    # Model and device messages
     DEVICE_AUTO_DETECTED = "Auto-detected device: {}, compute_type: {}"
     CUDA_FALLBACK_TO_CPU = "CUDA libraries incompatible, falling back to CPU: {}"
     MODEL_LOADED_TIME = "Model loaded in {:.2f}s"
     USING_CACHED_MODEL = "Using cached WhisperLive model: {}"
-    
+
     # Transcription and processing
     TRANSCRIBING_AUDIO = "🎤 Transcribing audio with WhisperLive"
-    TRANSCRIPTION_COMPLETED = "✓ WhisperLive transcription completed - Processing: {:.2f}s, RTF: {:.2f}"
+    TRANSCRIPTION_COMPLETED = (
+        "✓ WhisperLive transcription completed - Processing: {:.2f}s, RTF: {:.2f}"
+    )
     RECORDING_AUDIO = "🎤 Recording audio for {:.1f}s..."
     RECORDING_WITH_VAD = "🎤 Recording with silence detection (max {:.1f}s)..."
     SILENCE_DETECTED_STOP = "✓ Silence detected after {:.1f}s"
     SPEECH_DETECTED_START = "Speech detected, recording..."
     AUDIO_RECORDED = "✓ Recorded {} samples ({:.1f}s)"
-    
+
     # Language and voice detection
     LANGUAGE_DETECTED = "Detected language: {} (probability: {:.3f})"
-    LANGUAGE_DETECTION_SKIPPED = "Language detection skipped: {} (using English-only model)"
-    
+    LANGUAGE_DETECTION_SKIPPED = (
+        "Language detection skipped: {} (using English-only model)"
+    )
+
     # Directory and file operations
     DIRECTORIES_VALIDATED = "WhisperLive cache directory validated: {}"
     CACHE_DIR_CREATED = "Created WhisperLive cache directory: {}"
     TRANSCRIPTION_SAVED = "Transcription saved to: {}"
-    
+
     # Error messages
     CACHE_LOAD_FAILED = "Cache load failed: {}, loading fresh..."
     FAILED_TO_CACHE_MODEL = "Failed to cache model metadata: {}"
@@ -237,14 +241,14 @@ class LoggingStrings(Enum):
     AUDIO_PLAYBACK_FAILED = "Audio playback failed: {}"
     RECORDING_FAILED = "Recording failed: {}"
     VAD_INITIALIZATION_FAILED = "VAD initialization failed: {}"
-    
+
     # Warning messages
     NO_SPEECH_DETECTED = "No speech detected after {:.1f}s grace period"
     EMPTY_AUDIO_CHUNKS = "No audio chunks recorded"
     EMPTY_TRANSCRIPTION = "WhisperLive returned empty text. Raw response: {}"
     MODEL_FILE_NOT_FOUND = "Model file not found: {}"
     UNSUPPORTED_AUDIO_FORMAT = "Audio format '{}' not supported, using 'wav'"
-    
+
     # API response messages
     PROVIDER_NOT_INITIALIZED = "WhisperLive STT provider not initialized"
     MODEL_NOT_LOADED = "WhisperLive model not loaded"

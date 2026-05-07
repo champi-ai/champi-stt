@@ -3,18 +3,19 @@ Command action executors
 """
 
 import asyncio
-import logging
-import subprocess
-from enum import Enum
-from dataclasses import dataclass
-from typing import Any, Optional
-import json
 
-logger = logging.getLogger(__name__)
+# import logging - replaced with loguru
+import subprocess
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any
+
+from loguru import logger
 
 
 class ActionType(Enum):
     """Types of command actions"""
+
     SHELL = "shell"  # Execute shell command
     API = "api"  # HTTP API call
     PYTHON = "python"  # Python function call
@@ -23,9 +24,10 @@ class ActionType(Enum):
 @dataclass
 class CommandAction:
     """Represents a command action configuration"""
+
     type: ActionType
     value: Any  # Shell command, API URL, or Python function path
-    params: Optional[dict[str, Any]] = None  # Additional parameters
+    params: dict[str, Any] | None = None  # Additional parameters
 
 
 class CommandExecutor:
@@ -39,10 +41,7 @@ class CommandExecutor:
     """
 
     async def execute_shell(
-        self,
-        command: str,
-        timeout: int = 30,
-        **kwargs
+        self, command: str, timeout: int = 30, **kwargs
     ) -> dict[str, Any]:
         """
         Execute shell command.
@@ -71,14 +70,11 @@ class CommandExecutor:
         try:
             # Run command with timeout
             process = await asyncio.create_subprocess_shell(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
 
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=timeout
+                process.communicate(), timeout=timeout
             )
 
             result = {
@@ -89,34 +85,31 @@ class CommandExecutor:
             }
 
             if result["success"]:
-                logger.info(f"✓ Command executed successfully")
+                logger.info("✓ Command executed successfully")
             else:
                 logger.warning(f"Command failed with code {process.returncode}")
 
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"Command timed out after {timeout}s")
             return {
                 "success": False,
                 "error": "timeout",
-                "message": f"Command timed out after {timeout}s"
+                "message": f"Command timed out after {timeout}s",
             }
         except Exception as e:
             logger.error(f"Command execution failed: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     async def execute_api(
         self,
         url: str,
         method: str = "GET",
-        headers: Optional[dict] = None,
-        data: Optional[dict] = None,
+        headers: dict | None = None,
+        data: dict | None = None,
         timeout: int = 30,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """
         Execute HTTP API call.
@@ -138,57 +131,51 @@ class CommandExecutor:
         if kwargs:
             url = url.format(**kwargs)
             if data:
-                data = {k: v.format(**kwargs) if isinstance(v, str) else v
-                       for k, v in data.items()}
+                data = {
+                    k: v.format(**kwargs) if isinstance(v, str) else v
+                    for k, v in data.items()
+                }
 
         logger.info(f"Executing API call: {method} {url}")
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.request(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.request(
                     method,
                     url,
                     headers=headers,
                     json=data,
-                    timeout=aiohttp.ClientTimeout(total=timeout)
-                ) as response:
-                    result = {
-                        "success": response.status < 400,
-                        "status": response.status,
-                        "headers": dict(response.headers),
-                    }
+                    timeout=aiohttp.ClientTimeout(total=timeout),
+                ) as response,
+            ):
+                result = {
+                    "success": response.status < 400,
+                    "status": response.status,
+                    "headers": dict(response.headers),
+                }
 
-                    # Try to parse JSON response
-                    try:
-                        result["data"] = await response.json()
-                    except:
-                        result["data"] = await response.text()
+                # Try to parse JSON response
+                try:
+                    result["data"] = await response.json()
+                except Exception:
+                    result["data"] = await response.text()
 
-                    if result["success"]:
-                        logger.info(f"✓ API call successful: {response.status}")
-                    else:
-                        logger.warning(f"API call failed: {response.status}")
+                if result["success"]:
+                    logger.info(f"✓ API call successful: {response.status}")
+                else:
+                    logger.warning(f"API call failed: {response.status}")
 
-                    return result
+                return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"API call timed out after {timeout}s")
-            return {
-                "success": False,
-                "error": "timeout"
-            }
+            return {"success": False, "error": "timeout"}
         except Exception as e:
             logger.error(f"API call failed: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
-    async def execute_python(
-        self,
-        function_path: str,
-        **kwargs
-    ) -> Any:
+    async def execute_python(self, function_path: str, **kwargs) -> Any:
         """
         Execute Python function by import path.
 
@@ -213,18 +200,14 @@ class CommandExecutor:
             else:
                 result = func(**kwargs)
 
-            logger.info(f"✓ Function executed successfully")
+            logger.info("✓ Function executed successfully")
             return result
 
         except Exception as e:
             logger.error(f"Python function execution failed: {e}")
             raise
 
-    async def execute_action(
-        self,
-        action: CommandAction,
-        **kwargs
-    ) -> Any:
+    async def execute_action(self, action: CommandAction, **kwargs) -> Any:
         """
         Execute command action based on type.
 

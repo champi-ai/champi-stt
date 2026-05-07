@@ -11,33 +11,66 @@ This module provides reusable audio functionality:
 import asyncio
 import dataclasses
 import queue
-import logging
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import sounddevice as sd
+from loguru import logger
 
 # Optional webrtcvad for silence detection
 try:
     import webrtcvad
+
     VAD_AVAILABLE = True
 except ImportError:
     webrtcvad = None
     VAD_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+
+@dataclasses.dataclass
+class AudioFormat:
+    """Audio format specification."""
+
+    sample_rate: int = 16000  # Sample rate in Hz
+    channels: int = 1  # Number of audio channels
+    sample_width: int = 2  # Sample width in bytes (2 = 16-bit)
 
 
 @dataclasses.dataclass
 class AudioDevice:
     """Audio device configuration"""
+
     name: str
     device_id: str
     sample_rate: int
     chunk_size: int
     input_channels: int
     output_channels: int
+
+
+def list_input_devices() -> list[dict[str, Any]]:
+    """
+    List all available audio input devices.
+
+    Returns:
+        List of input device dictionaries with keys: index, name, channels, sample_rate
+    """
+    devices = sd.query_devices()
+    input_devices = []
+
+    for device in devices:
+        if device["max_input_channels"] > 0:
+            input_devices.append(
+                {
+                    "index": device["index"],
+                    "name": device["name"],
+                    "channels": device["max_input_channels"],
+                    "sample_rate": int(device["default_samplerate"]),
+                }
+            )
+
+    return input_devices
 
 
 def get_audio_device(device_name: str) -> AudioDevice:
@@ -76,9 +109,7 @@ def get_audio_device(device_name: str) -> AudioDevice:
 
 
 async def record_audio(
-    duration: float,
-    device_name: str | None = None,
-    sample_rate: int = 16000
+    duration: float, device_name: str | None = None, sample_rate: int = 16000
 ) -> np.ndarray:
     """
     Record audio from microphone for fixed duration.
@@ -112,8 +143,9 @@ async def record_audio(
                 samplerate=sample_rate,
                 channels=1,
                 dtype=np.int16,
-                device=device_id
-            )
+                device=device_id,
+                latency="high",  # Allow shared device access
+            ),
         )
         await loop.run_in_executor(None, sd.wait)
 
@@ -201,7 +233,6 @@ async def _record_with_vad_impl(
     chunks = []
     silence_duration_ms = 0
     recording_duration = 0
-    speech_detected = True
     stop_recording = False
     vad_buffer = []
 
@@ -229,7 +260,7 @@ async def _record_with_vad_impl(
             mic_channels = 1
             mic_chunk_size = 1024
 
-        # Start audio stream
+        # Start audio stream with shared access
         mic_stream = sd.InputStream(
             samplerate=mic_sample_rate,
             channels=mic_channels,
@@ -237,6 +268,7 @@ async def _record_with_vad_impl(
             callback=audio_callback,
             blocksize=mic_chunk_size,
             device=mic_device_id,
+            latency="high",  # Allow shared device access
         )
 
         with mic_stream:
@@ -266,7 +298,9 @@ async def _record_with_vad_impl(
 
                     # Resample to 16kHz for VAD if needed
                     if mic_sample_rate != vad_sample_rate:
-                        target_length = int(len(buffered_audio) * vad_sample_rate / mic_sample_rate)
+                        target_length = int(
+                            len(buffered_audio) * vad_sample_rate / mic_sample_rate
+                        )
                         buffered_float = buffered_audio.astype(np.float32)
                         resampled_float = signal.resample(buffered_float, target_length)
                         resampled_chunk = resampled_float.astype(np.int16)
@@ -276,13 +310,13 @@ async def _record_with_vad_impl(
                             vad_chunk = resampled_chunk[:vad_chunk_samples]
                         else:
                             vad_chunk = np.zeros(vad_chunk_samples, dtype=np.int16)
-                            vad_chunk[:len(resampled_chunk)] = resampled_chunk
+                            vad_chunk[: len(resampled_chunk)] = resampled_chunk
                     else:
                         if len(chunk_flat) >= vad_chunk_samples:
                             vad_chunk = chunk_flat[:vad_chunk_samples]
                         else:
                             vad_chunk = np.zeros(vad_chunk_samples, dtype=np.int16)
-                            vad_chunk[:len(chunk_flat)] = chunk_flat
+                            vad_chunk[: len(chunk_flat)] = chunk_flat
 
                     # VAD processing
                     chunk_bytes = vad_chunk.tobytes()
@@ -293,7 +327,6 @@ async def _record_with_vad_impl(
                         is_speech = True
 
                     if is_speech:
-                        speech_detected = True
                         silence_duration_ms = 0
                     else:
                         silence_duration_ms += vad_chunk_duration_ms
@@ -307,7 +340,9 @@ async def _record_with_vad_impl(
         # Concatenate all chunks
         if chunks:
             full_recording = np.concatenate(chunks)
-            logger.debug(f"✓ Recorded {len(full_recording)} samples ({recording_duration:.1f}s)")
+            logger.debug(
+                f"✓ Recorded {len(full_recording)} samples ({recording_duration:.1f}s)"
+            )
             return full_recording
         else:
             logger.warning("No audio chunks recorded")
@@ -318,10 +353,7 @@ async def _record_with_vad_impl(
         raise
 
 
-async def play_audio(
-    audio_data: np.ndarray,
-    sample_rate: int = 44100
-) -> None:
+async def play_audio(audio_data: np.ndarray, sample_rate: int = 44100) -> None:
     """
     Play audio data for verification.
 
@@ -341,16 +373,14 @@ async def play_audio(
     try:
         # Try PulseAudio device first
         await loop.run_in_executor(
-            None,
-            lambda: (sd.play(audio_data, sample_rate, device="pulse"), sd.wait())
+            None, lambda: (sd.play(audio_data, sample_rate, device="pulse"), sd.wait())
         )
     except Exception as pulse_error:
         logger.debug(f"PulseAudio failed: {pulse_error}, trying default device")
         try:
             # Fallback to default device
             await loop.run_in_executor(
-                None,
-                lambda: (sd.play(audio_data, sample_rate), sd.wait())
+                None, lambda: (sd.play(audio_data, sample_rate), sd.wait())
             )
         except Exception as default_error:
             logger.error(f"Audio playback failed: {default_error}")
@@ -360,8 +390,7 @@ async def play_audio(
 
 
 async def load_audio_from_file(
-    file_path: str | Path,
-    sample_rate: int = 16000
+    file_path: str | Path, sample_rate: int = 16000
 ) -> np.ndarray:
     """
     Load audio from file.
@@ -382,3 +411,120 @@ async def load_audio_from_file(
 
     logger.debug(f"Loaded audio from {file_path}: shape={audio_data.shape}")
     return audio_data
+
+
+class AudioCapture:
+    """Simple audio capture class for recording audio from microphone."""
+
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        channels: int = 1,
+        device_name: str | None = None,
+    ):
+        """
+        Initialize audio capture.
+
+        Args:
+            sample_rate: Sample rate for recording
+            channels: Number of audio channels
+            device_name: Name of audio input device (None = default)
+        """
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.device_name = device_name
+        self._chunks: list[np.ndarray] = []
+        self._is_recording = False
+
+    async def start(self) -> None:
+        """Start audio capture."""
+        self._chunks = []
+        self._is_recording = True
+        logger.debug("Audio capture started")
+
+    async def record(self, duration: float) -> np.ndarray:
+        """
+        Record audio for a specified duration.
+
+        Args:
+            duration: Recording duration in seconds
+
+        Returns:
+            Audio data as numpy array
+        """
+        return await record_audio(duration, self.device_name, self.sample_rate)
+
+    async def record_with_vad(self, max_duration: float, **vad_kwargs) -> np.ndarray:
+        """
+        Record audio with VAD-based automatic stopping.
+
+        Args:
+            max_duration: Maximum recording duration
+            **vad_kwargs: Additional VAD parameters
+
+        Returns:
+            Audio data as numpy array
+        """
+        return await record_audio_with_vad(
+            max_duration, self.device_name, self.sample_rate, **vad_kwargs
+        )
+
+    async def stop(self) -> None:
+        """Stop audio capture."""
+        self._is_recording = False
+        logger.debug("Audio capture stopped")
+
+    def get_recording(self) -> np.ndarray:
+        """
+        Get the captured audio data.
+
+        Returns:
+            Concatenated audio chunks as numpy array
+        """
+        if not self._chunks:
+            return np.array([])
+        return np.concatenate(self._chunks)
+
+
+def resample_audio(audio_data: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
+    """
+    Resample audio to target sample rate.
+
+    Args:
+        audio_data: Input audio data
+        orig_sr: Original sample rate
+        target_sr: Target sample rate
+
+    Returns:
+        Resampled audio data
+    """
+    if orig_sr == target_sr:
+        return audio_data
+
+    from scipy import signal
+
+    target_length = int(len(audio_data) * target_sr / orig_sr)
+    audio_float = audio_data.astype(np.float32)
+    resampled = signal.resample(audio_float, target_length)
+
+    # Convert back to original dtype
+    if audio_data.dtype == np.int16:
+        return resampled.astype(np.int16)
+    return resampled
+
+
+def normalize_audio(audio_data: np.ndarray) -> np.ndarray:
+    """
+    Normalize audio data to range [-1.0, 1.0].
+
+    Args:
+        audio_data: Input audio data
+
+    Returns:
+        Normalized audio data
+    """
+    max_val = np.max(np.abs(audio_data))
+    if max_val == 0:
+        return audio_data
+
+    return audio_data / max_val

@@ -2,16 +2,30 @@
 Command parser for intent extraction
 """
 
-import logging
-from typing import Optional, Any
-import yaml
+# import logging - replaced with loguru
 import json
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
+import yaml
+from loguru import logger
+
+from champi_stt.assistant.commands.executor import (
+    ActionType,
+    CommandExecutor,
+)
 from champi_stt.assistant.commands.registry import CommandRegistry
-from champi_stt.assistant.commands.executor import CommandExecutor, CommandAction, ActionType
 
-logger = logging.getLogger(__name__)
+
+@dataclass
+class CommandMatch:
+    """Represents a matched command with its parameters."""
+
+    command_name: str  # Name/identifier of the matched command
+    matched_text: str  # The text that was matched
+    confidence: float  # Match confidence score (0.0-1.0)
+    parameters: dict[str, Any]  # Extracted parameters from the match
 
 
 class CommandParser:
@@ -105,7 +119,9 @@ class CommandParser:
             timeout = action_config.get("timeout", 30)
 
             async def shell_handler(**kwargs):
-                return await self.executor.execute_shell(command, timeout=timeout, **kwargs)
+                return await self.executor.execute_shell(
+                    command, timeout=timeout, **kwargs
+                )
 
             return shell_handler
 
@@ -118,7 +134,12 @@ class CommandParser:
 
             async def api_handler(**kwargs):
                 return await self.executor.execute_api(
-                    url, method=method, headers=headers, data=data, timeout=timeout, **kwargs
+                    url,
+                    method=method,
+                    headers=headers,
+                    data=data,
+                    timeout=timeout,
+                    **kwargs,
                 )
 
             return api_handler

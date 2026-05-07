@@ -4,6 +4,7 @@ Base STT provider interface
 
 from abc import ABC, abstractmethod
 from typing import Any
+
 import numpy as np
 
 from champi_stt.core.base_config import BaseSTTConfig
@@ -138,9 +139,9 @@ class BaseSTTProvider(ABC):
         Returns:
             Path to saved file or None if saving disabled
         """
+        import asyncio
         from datetime import datetime
         from pathlib import Path
-        import asyncio
 
         if not self.config.save_transcriptions:
             return None
@@ -159,11 +160,13 @@ class BaseSTTProvider(ABC):
         # Build content
         content = []
         if metadata:
-            content.extend([
-                "=" * 50,
-                "TRANSCRIPTION METADATA",
-                "=" * 50,
-            ])
+            content.extend(
+                [
+                    "=" * 50,
+                    "TRANSCRIPTION METADATA",
+                    "=" * 50,
+                ]
+            )
             for key, value in metadata.items():
                 content.append(f"{key}: {value}")
             content.extend(["=" * 50, ""])
@@ -173,8 +176,7 @@ class BaseSTTProvider(ABC):
         # Write file
         file_content = "\n".join(content)
         await asyncio.get_running_loop().run_in_executor(
-            None,
-            lambda: filepath.write_text(file_content, encoding="utf-8")
+            None, lambda: filepath.write_text(file_content, encoding="utf-8")
         )
 
         return str(filepath)

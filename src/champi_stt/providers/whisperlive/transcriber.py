@@ -8,7 +8,8 @@ Refactored to remove global state and use async patterns with event emission.
 
 import asyncio
 import io
-import logging
+
+# import logging - replaced with loguru
 import os
 import tempfile
 import time
@@ -16,16 +17,20 @@ from typing import Any
 
 import numpy as np
 import sounddevice as sd
+from champi_signals import EventProcessor
 from faster_whisper import WhisperModel
+from loguru import logger
 
 from champi_stt.providers.whisperlive.config import WhisperLiveConfig
-from champi_stt.providers.whisperlive.enums import LoggingStrings, ProcessingEvents, LifecycleEvents, ModelEvents
+from champi_stt.providers.whisperlive.enums import (
+    LoggingStrings,
+)
 from champi_stt.providers.whisperlive.events import STTSignalManager
-from champi_stt.providers.whisperlive.exceptions import WhisperTranscriptionError, WhisperAudioError
-from champi_signals import EventProcessor
+from champi_stt.providers.whisperlive.exceptions import (
+    WhisperAudioError,
+    WhisperTranscriptionError,
+)
 from champi_stt.providers.whisperlive.models import ModelManager
-
-logger = logging.getLogger(__name__)
 
 
 class WhisperLiveTranscriber:
@@ -49,9 +54,9 @@ class WhisperLiveTranscriber:
             f"device={self.config.device}, "
             f"compute_type={self.config.compute_type}"
         )
-    
+
     class Meta:
-        event_type = 'processing'
+        event_type = "processing"
         signal_manager = STTSignalManager()
 
     async def initialize(self) -> None:
@@ -64,7 +69,7 @@ class WhisperLiveTranscriber:
             self,
             event_type="lifecycle",
             sub_event="transcriber_initialization_start",
-            data={"model_size": self.config.model_size}
+            data={"model_size": self.config.model_size},
         )
 
         # Initialize model manager
@@ -79,8 +84,8 @@ class WhisperLiveTranscriber:
             data={
                 "initialized": True,
                 "model_size": self.config.model_size,
-                "device": self.config.device
-            }
+                "device": self.config.device,
+            },
         )
 
         logger.debug("WhisperLive transcriber initialized successfully")
@@ -126,8 +131,8 @@ class WhisperLiveTranscriber:
             data={
                 "audio_type": type(audio).__name__,
                 "model_size": self.config.model_size,
-                "device": self.config.device
-            }
+                "device": self.config.device,
+            },
         )
 
         # Use config defaults if not provided
@@ -162,8 +167,8 @@ class WhisperLiveTranscriber:
             data={
                 "language": language,
                 "task": task,
-                "model_size": self.config.model_size
-            }
+                "model_size": self.config.model_size,
+            },
         )
 
         try:
@@ -204,8 +209,8 @@ class WhisperLiveTranscriber:
                     "duration": info.duration,
                     "processing_time": transcription_time,
                     "rtf": rtf,
-                    "segment_count": len(segment_list)
-                }
+                    "segment_count": len(segment_list),
+                },
             )
 
             # Emit telemetry event with performance metrics
@@ -226,8 +231,8 @@ class WhisperLiveTranscriber:
                     "beam_size": self.config.beam_size,
                     "batch_size": self.config.batch_size,
                     "vad_enabled": self.config.vad_filter,
-                    "word_timestamps": self.config.word_timestamps
-                }
+                    "word_timestamps": self.config.word_timestamps,
+                },
             )
 
             logger.debug(
@@ -245,7 +250,7 @@ class WhisperLiveTranscriber:
                 self,
                 event_type="processing",
                 sub_event="transcription_error",
-                data={"error": str(e), "audio_type": type(audio).__name__}
+                data={"error": str(e), "audio_type": type(audio).__name__},
             )
 
             raise WhisperTranscriptionError(f"Transcription failed: {e}") from e
@@ -253,7 +258,7 @@ class WhisperLiveTranscriber:
     def _process_segments(self, segments) -> list[dict[str, Any]]:
         """Process transcription segments asynchronously."""
         segment_list = []
-        
+
         for segment in segments:
             segment_data = {
                 "id": segment.id,
@@ -283,7 +288,9 @@ class WhisperLiveTranscriber:
         return segment_list
 
     async def play_audio(
-        self, audio: str | np.ndarray | io.BytesIO | io.BufferedReader, sample_rate: int = 44100
+        self,
+        audio: str | np.ndarray | io.BytesIO | io.BufferedReader,
+        sample_rate: int = 44100,
     ) -> None:
         """
         Play the audio data for verification purposes.
@@ -299,10 +306,7 @@ class WhisperLiveTranscriber:
             self,
             event_type="processing",
             sub_event="audio_playback_start",
-            data={
-                "audio_type": type(audio).__name__,
-                "sample_rate": sample_rate
-            }
+            data={"audio_type": type(audio).__name__, "sample_rate": sample_rate},
         )
 
         try:
@@ -318,8 +322,8 @@ class WhisperLiveTranscriber:
                     sub_event="audio_playback_complete",
                     data={
                         "duration": len(audio_data) / sample_rate,
-                        "sample_rate": sample_rate
-                    }
+                        "sample_rate": sample_rate,
+                    },
                 )
             else:
                 logger.error("Failed to load audio data for playback")
@@ -329,7 +333,7 @@ class WhisperLiveTranscriber:
                     self,
                     event_type="processing",
                     sub_event="audio_playback_error",
-                    data={"error": "Failed to load audio data"}
+                    data={"error": "Failed to load audio data"},
                 )
 
                 raise WhisperAudioError("Failed to load audio data for playback")
@@ -342,7 +346,7 @@ class WhisperLiveTranscriber:
                 self,
                 event_type="processing",
                 sub_event="audio_playback_error",
-                data={"error": str(e)}
+                data={"error": str(e)},
             )
 
             raise WhisperAudioError(f"Audio playback failed: {e}") from e
@@ -350,10 +354,11 @@ class WhisperLiveTranscriber:
     async def _load_audio_data(self, audio, sample_rate: int) -> np.ndarray | None:
         """Load audio data from various input types."""
         loop = asyncio.get_running_loop()
-        
+
         if isinstance(audio, str):
             # Load from file path
             import librosa
+
             audio_data, _ = await loop.run_in_executor(
                 None, lambda: librosa.load(audio, sr=sample_rate, mono=True)
             )
@@ -368,7 +373,7 @@ class WhisperLiveTranscriber:
         elif hasattr(audio, "read"):
             # File-like object
             import librosa
-            
+
             with tempfile.NamedTemporaryFile(suffix=".wav") as tmp:
                 content = await loop.run_in_executor(None, audio.read)
                 await loop.run_in_executor(None, tmp.write, content)
@@ -376,9 +381,11 @@ class WhisperLiveTranscriber:
                 audio_data, _ = await loop.run_in_executor(
                     None, lambda: librosa.load(tmp.name, sr=sample_rate, mono=True)
                 )
-                logger.debug(f"Loaded audio from file-like object, shape={audio_data.shape}")
+                logger.debug(
+                    f"Loaded audio from file-like object, shape={audio_data.shape}"
+                )
                 return audio_data
-        
+
         return None
 
     async def _play_audio_data(self, audio_data: np.ndarray, sample_rate: int) -> None:
@@ -389,33 +396,36 @@ class WhisperLiveTranscriber:
 
         # Play audio using sounddevice
         loop = asyncio.get_running_loop()
-        
+
         try:
             # Try PulseAudio device first (allows mixing with other apps)
             await loop.run_in_executor(
                 None,
-                lambda: (sd.play(audio_data, sample_rate, device="pulse"), sd.wait())
+                lambda: (sd.play(audio_data, sample_rate, device="pulse"), sd.wait()),
             )
         except Exception as pulse_error:
             logger.debug(f"PulseAudio device failed: {pulse_error}, trying default")
             try:
                 # Fallback to default device
                 await loop.run_in_executor(
-                    None,
-                    lambda: (sd.play(audio_data, sample_rate), sd.wait())
+                    None, lambda: (sd.play(audio_data, sample_rate), sd.wait())
                 )
             except Exception as default_error:
-                logger.error(LoggingStrings.AUDIO_PLAYBACK_FAILED.value.format(default_error))
+                logger.error(
+                    LoggingStrings.AUDIO_PLAYBACK_FAILED.value.format(default_error)
+                )
 
                 # Emit error event
                 self.Meta.signal_manager.processing.send(
                     self,
                     event_type="processing",
                     sub_event="audio_playback_error",
-                    data={"error": str(default_error), "device": "default"}
+                    data={"error": str(default_error), "device": "default"},
                 )
 
-                raise WhisperAudioError(f"Audio playback failed on default device: {default_error}") from default_error
+                raise WhisperAudioError(
+                    f"Audio playback failed on default device: {default_error}"
+                ) from default_error
 
         logger.debug("Audio playback completed")
 
@@ -445,8 +455,8 @@ class WhisperLiveTranscriber:
                 "shape": audio_data.shape,
                 "dtype": str(audio_data.dtype),
                 "sample_rate": sample_rate,
-                "duration": len(audio_data) / sample_rate
-            }
+                "duration": len(audio_data) / sample_rate,
+            },
         )
 
         # Emit preprocessing start event
@@ -457,8 +467,8 @@ class WhisperLiveTranscriber:
             data={
                 "original_sample_rate": sample_rate,
                 "target_sample_rate": 16000,
-                "needs_resampling": sample_rate != 16000
-            }
+                "needs_resampling": sample_rate != 16000,
+            },
         )
 
         # Ensure audio is in correct format for faster-whisper
@@ -472,11 +482,12 @@ class WhisperLiveTranscriber:
         # Resample if needed (faster-whisper expects 16kHz)
         if sample_rate != 16000:
             from scipy import signal
+
             audio_data = await asyncio.get_running_loop().run_in_executor(
                 None,
                 lambda: signal.resample(
                     audio_data, int(len(audio_data) * 16000 / sample_rate)
-                ).astype(np.float32)
+                ).astype(np.float32),
             )
 
         # Emit preprocessing complete event
@@ -487,8 +498,8 @@ class WhisperLiveTranscriber:
             data={
                 "final_shape": audio_data.shape,
                 "final_dtype": str(audio_data.dtype),
-                "final_sample_rate": 16000
-            }
+                "final_sample_rate": 16000,
+            },
         )
 
         return await self.transcribe_audio(audio_data, **kwargs)
@@ -517,17 +528,17 @@ class WhisperLiveTranscriber:
             sub_event="language_detection_start",
             data={
                 "audio_type": type(audio).__name__,
-                "model_size": self.config.model_size
-            }
+                "model_size": self.config.model_size,
+            },
         )
 
         try:
-
             # Execute language detection in thread pool
             loop = asyncio.get_running_loop()
 
             if isinstance(audio, str):
                 import librosa
+
                 audio_data, _ = await loop.run_in_executor(
                     None, lambda: librosa.load(audio, sr=44100, mono=True)
                 )
@@ -549,11 +560,13 @@ class WhisperLiveTranscriber:
                 data={
                     "language": language,
                     "probability": probability,
-                    "top_languages": all_probs[:5] if all_probs else []
-                }
+                    "top_languages": all_probs[:5] if all_probs else [],
+                },
             )
 
-            logger.debug(LoggingStrings.LANGUAGE_DETECTED.value.format(language, probability))
+            logger.debug(
+                LoggingStrings.LANGUAGE_DETECTED.value.format(language, probability)
+            )
 
             return result
 
@@ -565,7 +578,7 @@ class WhisperLiveTranscriber:
                 self,
                 event_type="processing",
                 sub_event="language_detection_error",
-                data={"error": str(e)}
+                data={"error": str(e)},
             )
 
             raise WhisperTranscriptionError(f"Language detection failed: {e}") from e
@@ -574,7 +587,7 @@ class WhisperLiveTranscriber:
         """Get information about the loaded model."""
         if not self._initialized:
             return {"status": "not_initialized"}
-        
+
         return await self.model_manager.get_model_info()
 
     async def clear_cache(self) -> None:
@@ -611,8 +624,8 @@ class WhisperLiveTranscriber:
             data={
                 "text_length": len(text),
                 "has_metadata": metadata is not None,
-                "prefix": prefix
-            }
+                "prefix": prefix,
+            },
         )
 
         try:
@@ -621,7 +634,8 @@ class WhisperLiveTranscriber:
 
             # Ensure directory exists
             await asyncio.get_running_loop().run_in_executor(
-                None, lambda: Path(transcriptions_dir).mkdir(parents=True, exist_ok=True)
+                None,
+                lambda: Path(transcriptions_dir).mkdir(parents=True, exist_ok=True),
             )
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -632,11 +646,13 @@ class WhisperLiveTranscriber:
 
             # Add metadata header if provided
             if metadata:
-                content.extend([
-                    "=" * 50,
-                    "TRANSCRIPTION METADATA",
-                    "=" * 50,
-                ])
+                content.extend(
+                    [
+                        "=" * 50,
+                        "TRANSCRIPTION METADATA",
+                        "=" * 50,
+                    ]
+                )
                 for key, value in metadata.items():
                     content.append(f"{key}: {value}")
                 content.extend(["=" * 50, ""])
@@ -647,8 +663,7 @@ class WhisperLiveTranscriber:
             # Write to file asynchronously
             file_content = "\n".join(content)
             await asyncio.get_running_loop().run_in_executor(
-                None,
-                lambda: filepath.write_text(file_content, encoding="utf-8")
+                None, lambda: filepath.write_text(file_content, encoding="utf-8")
             )
 
             logger.debug(LoggingStrings.TRANSCRIPTION_SAVED.value.format(filepath))
@@ -661,8 +676,8 @@ class WhisperLiveTranscriber:
                 data={
                     "filepath": str(filepath),
                     "filename": filename,
-                    "size_bytes": len(file_content.encode("utf-8"))
-                }
+                    "size_bytes": len(file_content.encode("utf-8")),
+                },
             )
 
             return str(filepath)
@@ -675,7 +690,7 @@ class WhisperLiveTranscriber:
                 self,
                 event_type="processing",
                 sub_event="transcription_save_error",
-                data={"error": str(e)}
+                data={"error": str(e)},
             )
 
             raise WhisperAudioError(f"Failed to save transcription: {e}") from e
@@ -688,7 +703,7 @@ class WhisperLiveTranscriber:
             self,
             event_type="lifecycle",
             sub_event="transcriber_shutdown_start",
-            data={"initialized": self._initialized}
+            data={"initialized": self._initialized},
         )
 
         if self.model_manager:
@@ -701,7 +716,7 @@ class WhisperLiveTranscriber:
             self,
             event_type="lifecycle",
             sub_event="transcriber_shutdown_complete",
-            data={"initialized": False}
+            data={"initialized": False},
         )
 
         logger.debug("WhisperLive transcriber shut down")
