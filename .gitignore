@@ -124,8 +124,6 @@ imgui_app_window.ini
 # Jupyter notebooks  
 *.ipynb
 
-# Python version manager files
-.python-version
 
 # Large 3D model assets (keep only compressed formats)
 src/assets/energy_sphere/Energy_Sphere.blend
