@@ -590,11 +590,20 @@ Then observe UI visual state changes.
 **Linux/macOS**:
 - Shared memory backed by `/dev/shm/` (Linux) or tmpfs (macOS)
 - Standard POSIX shared memory API
+- Full support, primary development target
 
 **Windows**:
-- Uses `multiprocessing.shared_memory` (Python 3.8+)
-- Backed by Windows shared memory objects
-- Same API, different underlying implementation
+- Uses `multiprocessing.shared_memory` (Python 3.8+, cross-platform)
+- Backed by Windows named shared memory objects
+- Same Python API, different underlying OS implementation
+- Signal-based communication not available; `AssistantSignalProcessor` uses threading only (no OS signals)
+- Tested via CI matrix but primary target is Linux
+
+### Thread Safety
+
+- `AssistantSignalReader.register_handler()` is protected by an internal lock and safe to call from any thread
+- `AssistantSignalProcessor.stop()` calls `disconnect_all()` before joining the thread
+- `AssistantSharedMemoryManager.create_regions()` rolls back all created regions if any step fails, preventing memory leaks on partial initialization
 
 ### Signal Manager Singleton Pattern
 
@@ -609,17 +618,22 @@ assert mgr1 is mgr2  # True
 
 ### ACK-Based Reliability
 
-The ACK system ensures no signals are lost:
+The ACK system provides best-effort delivery tracking:
 
 1. Writer increments sequence number on each write
 2. Reader tracks last ACK'd sequence number
-3. If gap detected (e.g., seq jumped from 5 to 8), reader logs warning
-4. Signals are NOT re-sent (fire-and-forget model)
+3. If gap detected (e.g., seq jumped from 5 to 8), reader logs a warning
+4. Signals are NOT re-sent — this is a fire-and-forget model
+
+**Known tradeoffs**:
+- Only the latest signal per type is held in shared memory; intermediate values are overwritten
+- The ACK gap warning can produce false positives if the reader polls slower than the writer emits
+- ACK is written after handler dispatch regardless of handler success — a failed handler will not cause the signal to be re-delivered
 
 **Why fire-and-forget?**
 - UI is for visual feedback only
 - Missing one frame of animation is acceptable
-- Critical state is always re-sent on next change
+- Critical state (e.g. current daemon state) is always re-sent on the next state change
 
 ---
 

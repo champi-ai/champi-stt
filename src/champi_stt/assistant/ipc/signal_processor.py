@@ -82,11 +82,14 @@ class AssistantSignalProcessor:
         logger.info("Assistant signal processor started")
 
     def stop(self) -> None:
-        """Stop processing signals."""
+        """Stop processing signals and disconnect all handlers."""
         self.running = False
+        self.disconnect_all()
 
         if self.processor_thread:
-            self.processor_thread.join(timeout=2.0)
+            self.processor_thread.join(timeout=5.0)
+            if self.processor_thread.is_alive():
+                logger.warning("Signal processor thread did not stop within timeout")
             self.processor_thread = None
 
         logger.info("Assistant signal processor stopped")
@@ -195,4 +198,3 @@ class AssistantSignalProcessor:
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.stop()
-        self.disconnect_all()

@@ -1,6 +1,7 @@
 """Signal reader for assistant IPC - shared memory consumer."""
 
 import struct
+import threading
 import time
 from collections.abc import Callable
 from typing import Any
@@ -25,6 +26,7 @@ class AssistantSignalReader:
         """
         self.memory_manager = memory_manager
         self.handlers: dict[AssistantSignalType, SignalHandler] = {}
+        self._handlers_lock = threading.Lock()
         self.last_seq_nums: dict[AssistantSignalType, int] = {
             st: 0 for st in AssistantSignalType
         }
@@ -39,7 +41,8 @@ class AssistantSignalReader:
             signal_type: Type of signal to handle
             handler: Handler function with signature: handler(signal_data: SignalData) -> None
         """
-        self.handlers[signal_type] = handler
+        with self._handlers_lock:
+            self.handlers[signal_type] = handler
         logger.info(f"Registered handler for {signal_type.name}")
 
     def poll_once(self) -> None:
@@ -81,10 +84,12 @@ class AssistantSignalReader:
 
                     self.last_seq_nums[signal_type] = signal_data.seq_num
 
-                    # Dispatch to handler if registered
-                    if signal_type in self.handlers:
+                    # Dispatch to handler if registered (copy ref under lock)
+                    with self._handlers_lock:
+                        handler = self.handlers.get(signal_type)
+                    if handler is not None:
                         try:
-                            self.handlers[signal_type](signal_data)
+                            handler(signal_data)
                             logger.debug(
                                 f"Dispatched {signal_type.name} (seq: {signal_data.seq_num})"
                             )

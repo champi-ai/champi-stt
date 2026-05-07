@@ -77,68 +77,65 @@ class AssistantSharedMemoryManager:
         """Create shared memory regions for all signal types (data + ACK)."""
         self.is_creator = True
 
-        for signal_type in AssistantSignalType:
-            # Create data region
-            region_name = f"{self.name_prefix}_{signal_type.name.lower()}"
-            size = get_struct_size(signal_type)
+        try:
+            for signal_type in AssistantSignalType:
+                # Create data region
+                region_name = f"{self.name_prefix}_{signal_type.name.lower()}"
+                size = get_struct_size(signal_type)
 
-            try:
-                # Try to unlink existing (cleanup from previous run)
                 try:
-                    existing = shared_memory.SharedMemory(name=region_name)
-                    existing.close()
-                    existing.unlink()
-                except FileNotFoundError:
-                    pass
+                    # Try to unlink existing (cleanup from previous run)
+                    try:
+                        existing = shared_memory.SharedMemory(name=region_name)
+                        existing.close()
+                        existing.unlink()
+                    except FileNotFoundError:
+                        pass
 
-                # Create new region
-                shm = shared_memory.SharedMemory(
-                    name=region_name, create=True, size=size
-                )
+                    shm = shared_memory.SharedMemory(
+                        name=region_name, create=True, size=size
+                    )
+                    shm.buf[:] = bytes(size)
+                    self.memory_regions[signal_type] = shm
+                    logger.debug(
+                        f"Created shared memory region: {region_name} ({size} bytes)"
+                    )
 
-                # Initialize with zeros
-                shm.buf[:] = bytes(size)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to create shared memory region {region_name}: {e}"
+                    )
+                    raise
 
-                self.memory_regions[signal_type] = shm
-                logger.debug(
-                    f"Created shared memory region: {region_name} ({size} bytes)"
-                )
+                # Create ACK region
+                ack_region_name = f"{self.name_prefix}_{signal_type.name.lower()}_ack"
+                ack_size = get_ack_size()
 
-            except Exception as e:
-                logger.error(
-                    f"Failed to create shared memory region {region_name}: {e}"
-                )
-                raise
-
-            # Create ACK region
-            ack_region_name = f"{self.name_prefix}_{signal_type.name.lower()}_ack"
-            ack_size = get_ack_size()
-
-            try:
-                # Try to unlink existing
                 try:
-                    existing = shared_memory.SharedMemory(name=ack_region_name)
-                    existing.close()
-                    existing.unlink()
-                except FileNotFoundError:
-                    pass
+                    try:
+                        existing = shared_memory.SharedMemory(name=ack_region_name)
+                        existing.close()
+                        existing.unlink()
+                    except FileNotFoundError:
+                        pass
 
-                # Create new ACK region
-                ack_shm = shared_memory.SharedMemory(
-                    name=ack_region_name, create=True, size=ack_size
-                )
+                    ack_shm = shared_memory.SharedMemory(
+                        name=ack_region_name, create=True, size=ack_size
+                    )
+                    ack_shm.buf[:] = bytes(ack_size)
+                    self.ack_regions[signal_type] = ack_shm
+                    logger.debug(
+                        f"Created ACK region: {ack_region_name} ({ack_size} bytes)"
+                    )
 
-                # Initialize with zeros
-                ack_shm.buf[:] = bytes(ack_size)
+                except Exception as e:
+                    logger.error(f"Failed to create ACK region {ack_region_name}: {e}")
+                    raise
 
-                self.ack_regions[signal_type] = ack_shm
-                logger.debug(
-                    f"Created ACK region: {ack_region_name} ({ack_size} bytes)"
-                )
-
-            except Exception as e:
-                logger.error(f"Failed to create ACK region {ack_region_name}: {e}")
-                raise
+        except Exception:
+            # Roll back any regions already created to avoid leaks
+            self.cleanup()
+            raise
 
     def attach_regions(self):
         """Attach to existing shared memory regions (data + ACK)."""
