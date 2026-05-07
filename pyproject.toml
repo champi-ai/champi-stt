@@ -18,64 +18,82 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    # All dependencies from champi
-    "uv",
+    # Audio I/O and processing
     "numpy",
     "sounddevice",
     "scipy",
     "pydub",
     "simpleaudio",
-    "httpx",
-    "webrtcvad",
-    "unidecode",
-    "espeak-phonemizer",
-    "tiktoken",
-    "loguru",
-    "openai",
-    "matplotlib",
-    "mutagen",
-    "psutil",
-    "espeakng-loader",
-    "spacy",
-    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
-    "av",
-    "text2num",
     "soundfile",
     "aiofiles",
     "tqdm",
+    "librosa>=0.10.0",
+    "webrtcvad",
+    # STT core
     "faster-whisper",
     "ctranslate2",
     "tokenizers",
     "onnxruntime",
+    # Networking and HTTP
+    "httpx",
+    "aiohttp>=3.8.0",
+    "requests>=2.28.1",
+    "openai",
+    # CLI and UI utilities
+    "rich>=14.0.0",
+    "typer>=0.16.0",
+    "click>=8.0.0",
+    "textual>=5.3.0",
+    # Configuration
+    "pyyaml>=6.0.0",
+    "psutil",
+    "mutagen",
+    # Event system
+    "blinker>=1.9.0",
+    "awaitlet>=0.0.1",
+    "champi-signals",
+    # Logging
+    "loguru",
+]
+
+[project.optional-dependencies]
+# PyTorch GPU acceleration
+torch = [
+    "torch",
+    "torchaudio",
+    "torchvision",
+]
+
+# ImGui 3D visualization
+imgui = [
     "imgui-bundle",
     "pyglm",
     "PyOpenGL",
     "pygltflib",
-    "uv-build>=0.7.21",
-    "vulture>=2.14",
-    "torch",
-    "torchaudio",
-    "blinker>=1.9.0",
-    "awaitlet>=0.0.1",
-    "rich>=14.0.0",
-    "typer>=0.16.0",
-    "requests>=2.28.1",
-    "textual>=5.3.0",
-    "champi-signals",
-    "hatching",
-    # Additional champi-stt specific
-    "librosa>=0.10.0",
-    "click>=8.0.0",
-    "pyyaml>=6.0.0",
-    "aiohttp>=3.8.0",
-    "openwakeword>=0.4.0",
-    "resemblyzer>=0.1.1",
-    "opencv-python>=4.12.0.88",
-    "torchvision==0.23.0",
 ]
 
-[project.optional-dependencies]
+# NLP features
+nlp = [
+    "spacy",
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+    "tiktoken",
+    "unidecode",
+]
+
 # Wake word engines
+wakeword = [
+    "openwakeword>=0.4.0",
+]
+
+# Speaker diarization / voice identification
+diarization = [
+    "resemblyzer>=0.1.1",
+]
+
+# All optional extras
+all = [
+    "champi-stt[torch,imgui,nlp,wakeword,diarization]",
+]
 
 # Development tools
 dev = [
@@ -99,7 +117,7 @@ test = [
     "pytest-asyncio",
     "pytest-cov",
     "pytest-mock",
-    "coverage"
+    "coverage",
 ]
 
 
