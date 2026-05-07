@@ -178,7 +178,6 @@ class AssistantService:
             self.speaker_identification()
 
     def status_indicator(self):
-
         try:
             # Initialize signal manager
             self._signal_manager = AssistantSignalManager()
