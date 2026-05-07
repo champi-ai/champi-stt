@@ -1,8 +1,6 @@
 """Shared memory manager for assistant IPC."""
 
-import os
 from multiprocessing import shared_memory
-from typing import Dict, List
 
 from loguru import logger
 
@@ -15,7 +13,7 @@ from .structs import (
 )
 
 
-def cleanup_orphaned_regions(name_prefix: str = "champi_assistant") -> List[str]:
+def cleanup_orphaned_regions(name_prefix: str = "champi_assistant") -> list[str]:
     """Clean up orphaned shared memory regions.
 
     This utility function removes shared memory regions that were left behind
@@ -71,8 +69,8 @@ class AssistantSharedMemoryManager:
             name_prefix: Prefix for shared memory region names
         """
         self.name_prefix = name_prefix
-        self.memory_regions: Dict[AssistantSignalType, shared_memory.SharedMemory] = {}
-        self.ack_regions: Dict[AssistantSignalType, shared_memory.SharedMemory] = {}
+        self.memory_regions: dict[AssistantSignalType, shared_memory.SharedMemory] = {}
+        self.ack_regions: dict[AssistantSignalType, shared_memory.SharedMemory] = {}
         self.is_creator = False
 
     def create_regions(self):
@@ -107,7 +105,9 @@ class AssistantSharedMemoryManager:
                 )
 
             except Exception as e:
-                logger.error(f"Failed to create shared memory region {region_name}: {e}")
+                logger.error(
+                    f"Failed to create shared memory region {region_name}: {e}"
+                )
                 raise
 
             # Create ACK region

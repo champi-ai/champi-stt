@@ -58,13 +58,13 @@ async def play_chime_start(sample_rate: int = 16000) -> bool:
 
         # Get default output device sample rate
         try:
-            default_device = sd.query_devices(kind='output')
-            device_rate = int(default_device['default_samplerate'])
-        except:
+            default_device = sd.query_devices(kind="output")
+            device_rate = int(default_device["default_samplerate"])
+        except Exception:
             device_rate = 44100  # Fallback to common rate
 
         chime = generate_chime([800, 1000], duration=0.1, sample_rate=device_rate)
-        sd.play(chime, device_rate, latency='high')  # Allow shared device access
+        sd.play(chime, device_rate, latency="high")  # Allow shared device access
         sd.wait()
         return True
     except Exception as e:
@@ -83,13 +83,13 @@ async def play_chime_end(sample_rate: int = 16000) -> bool:
 
         # Get default output device sample rate
         try:
-            default_device = sd.query_devices(kind='output')
-            device_rate = int(default_device['default_samplerate'])
-        except:
+            default_device = sd.query_devices(kind="output")
+            device_rate = int(default_device["default_samplerate"])
+        except Exception:
             device_rate = 44100  # Fallback to common rate
 
         chime = generate_chime([1000, 800], duration=0.1, sample_rate=device_rate)
-        sd.play(chime, device_rate, latency='high')  # Allow shared device access
+        sd.play(chime, device_rate, latency="high")  # Allow shared device access
         sd.wait()
         return True
     except Exception as e:
@@ -108,13 +108,15 @@ async def play_chime_wake(sample_rate: int = 16000) -> bool:
 
         # Get default output device sample rate
         try:
-            default_device = sd.query_devices(kind='output')
-            device_rate = int(default_device['default_samplerate'])
-        except:
+            default_device = sd.query_devices(kind="output")
+            device_rate = int(default_device["default_samplerate"])
+        except Exception:
             device_rate = 44100  # Fallback to common rate
 
-        chime = generate_chime([1000, 1200, 1400], duration=0.08, sample_rate=device_rate)
-        sd.play(chime, device_rate, latency='high')  # Allow shared device access
+        chime = generate_chime(
+            [1000, 1200, 1400], duration=0.08, sample_rate=device_rate
+        )
+        sd.play(chime, device_rate, latency="high")  # Allow shared device access
         sd.wait()
         return True
     except Exception as e:

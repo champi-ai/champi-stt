@@ -3,7 +3,7 @@
 import struct
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Dict
+from typing import Any
 
 # Maximum sizes for string fields
 MAX_STATE_SIZE = 32
@@ -34,15 +34,11 @@ RECORDING_STRUCT = struct.Struct("=QBd?")  # seq, signal_type, duration, is_acti
 TRANSCRIBING_STRUCT = struct.Struct(
     f"=QB{MAX_TEXT_SIZE}s?"
 )  # seq, signal_type, partial_text, is_final
-EXECUTING_STRUCT = struct.Struct(
-    f"=QB{MAX_TEXT_SIZE}s"
-)  # seq, signal_type, command
+EXECUTING_STRUCT = struct.Struct(f"=QB{MAX_TEXT_SIZE}s")  # seq, signal_type, command
 ERROR_STRUCT = struct.Struct(
     f"=QB{MAX_ERROR_SIZE}s{MAX_TEXT_SIZE}s"
 )  # seq, signal_type, error_message, error_type
-SHUTDOWN_STRUCT = struct.Struct(
-    f"=QB{MAX_STATE_SIZE}s"
-)  # seq, signal_type, reason
+SHUTDOWN_STRUCT = struct.Struct(f"=QB{MAX_STATE_SIZE}s")  # seq, signal_type, reason
 AUDIO_LEVEL_STRUCT = struct.Struct(
     "=QBdd?"
 )  # seq, signal_type, rms_db, dominant_freq, is_speaking
@@ -57,7 +53,7 @@ class SignalData:
 
     signal_type: AssistantSignalType
     seq_num: int
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 
 def _pad_string(s: str, size: int) -> bytes:
@@ -301,6 +297,7 @@ def get_ack_size() -> int:
 
 # Convenience wrapper functions for specific signal types
 # (for backwards compatibility with tests)
+
 
 def pack_state_change(seq_num: int, state: str) -> bytes:
     """Pack STATE_CHANGE signal."""

@@ -34,17 +34,17 @@ provider = get_provider("whisperlive", config=config)
 """
 
 # Factory functions (primary API)
-from champi_stt.factory import (
-    get_provider,
-    get_default_provider,
-    list_providers,
-)
+from champi_stt.core.base_config import BaseSTTConfig
+from champi_stt.core.base_model_manager import BaseModelManager
 
 # Base classes (for type hints and custom providers)
 from champi_stt.core.base_provider import BaseSTTProvider
-from champi_stt.core.base_config import BaseSTTConfig
 from champi_stt.core.base_transcriber import BaseTranscriber
-from champi_stt.core.base_model_manager import BaseModelManager
+from champi_stt.factory import (
+    get_default_provider,
+    get_provider,
+    list_providers,
+)
 
 # Backwards compatibility: expose WhisperLive directly
 from champi_stt.providers.whisperlive import (
@@ -56,22 +56,15 @@ from champi_stt.providers.whisperlive import (
 __version__ = "0.0.1"
 
 __all__ = [
-    # Factory functions (recommended API)
-    "get_provider",
-    "get_default_provider",
-    "list_providers",
-
-    # Base classes
-    "BaseSTTProvider",
-    "BaseSTTConfig",
-    "BaseTranscriber",
     "BaseModelManager",
-
-    # Backwards compatibility
+    "BaseSTTConfig",
+    "BaseSTTProvider",
+    "BaseTranscriber",
     "WhisperLiveConfig",
     "WhisperLiveSTTProvider",
     "WhisperLiveTranscriber",
-
-    # Version
     "__version__",
+    "get_default_provider",
+    "get_provider",
+    "list_providers",
 ]

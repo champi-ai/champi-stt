@@ -3,31 +3,33 @@ Main voice assistant service daemon
 """
 
 import asyncio
+import contextlib
+
 # import logging - replaced with loguru
 import os
 import subprocess
 import sys
 from enum import Enum
-from typing import Optional
 
-from champi_stt.core.base_provider import BaseSTTProvider
-from champi_stt.assistant.wakeword.base import BaseWakeWordEngine
+# AudioStream is defined in this module below
+from loguru import logger
+
 from champi_stt.assistant.commands.registry import CommandRegistry
-from champi_stt.assistant.service.config import AssistantConfig
 from champi_stt.assistant.ipc import (
-    AssistantSignalManager,
-    AssistantSignalType,
     AssistantSharedMemoryManager,
+    AssistantSignalManager,
     AssistantSignalProcessor,
+    AssistantSignalType,
     cleanup_orphaned_regions,
 )
-# AudioStream is defined in this module below
-
-from loguru import logger
+from champi_stt.assistant.service.config import AssistantConfig
+from champi_stt.assistant.wakeword.base import BaseWakeWordEngine
+from champi_stt.core.base_provider import BaseSTTProvider
 
 
 class ServiceState(Enum):
     """Voice assistant service states"""
+
     IDLE = "idle"
     INITIALIZING = "initializing"
     LISTENING_FOR_WAKE = "listening_for_wake"
@@ -45,7 +47,9 @@ class AudioStream:
     Yields audio chunks asynchronously for wake word detection.
     """
 
-    def __init__(self, sample_rate: int = 16000, chunk_size: int = 512, device: Optional[int] = None):
+    def __init__(
+        self, sample_rate: int = 16000, chunk_size: int = 512, device: int | None = None
+    ):
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
         self.device = device
@@ -55,9 +59,10 @@ class AudioStream:
 
     async def __aiter__(self):
         """Async iterator yielding audio chunks"""
-        import sounddevice as sd
-        import numpy as np
         import queue
+
+        import numpy as np
+        import sounddevice as sd
 
         self._queue = queue.Queue()
         self._callback_count = 0
@@ -67,7 +72,9 @@ class AudioStream:
                 logger.warning(f"Audio stream status: {status}")
             self._callback_count += 1
             if self._callback_count <= 3:
-                logger.debug(f"Audio callback #{self._callback_count}: {frames} frames, range [{indata.min():.0f}, {indata.max():.0f}]")
+                logger.debug(
+                    f"Audio callback #{self._callback_count}: {frames} frames, range [{indata.min():.0f}, {indata.max():.0f}]"
+                )
             if self._queue:
                 self._queue.put(indata.copy())
 
@@ -76,13 +83,13 @@ class AudioStream:
         # Configure for shared access (non-exclusive)
         # Use higher latency to allow device sharing
         stream_kwargs = {
-            'samplerate': self.sample_rate,
-            'channels': 1,
-            'dtype': np.int16,
-            'blocksize': self.chunk_size,
-            'callback': callback,
-            'device': self.device,
-            'latency': 'high',  # Allow shared access with higher latency
+            "samplerate": self.sample_rate,
+            "channels": 1,
+            "dtype": np.int16,
+            "blocksize": self.chunk_size,
+            "callback": callback,
+            "device": self.device,
+            "latency": "high",  # Allow shared access with higher latency
         }
 
         # Create stream without context manager so we can close it explicitly
@@ -149,7 +156,7 @@ class AssistantService:
 
         self.state = ServiceState.IDLE
         self._running = False
-        self._audio_stream: Optional[AudioStream] = None
+        self._audio_stream: AudioStream | None = None
         self._visualizer = None
         self._speaker_identifier = None
         self._recording_mode = False  # Flag to prevent stream restart during recording
@@ -159,7 +166,9 @@ class AssistantService:
         self._memory_manager = None
         self._signal_processor = None
         self._ui_process = None
-        self._memory_prefix = os.getenv("CHAMPI_ASSISTANT_MEMORY_PREFIX", "champi_assistant")
+        self._memory_prefix = os.getenv(
+            "CHAMPI_ASSISTANT_MEMORY_PREFIX", "champi_assistant"
+        )
         # Initialize IPC and wake indicator if enabled
         if self.config.enable_wake_indicator:
             self.status_indicator()
@@ -168,14 +177,16 @@ class AssistantService:
         if self.config.enable_speaker_identification:
             self.speaker_identification()
 
-    def  status_indicator(self):
+    def status_indicator(self):
 
         try:
             # Initialize signal manager
             self._signal_manager = AssistantSignalManager()
 
             # Initialize shared memory manager
-            self._memory_manager = AssistantSharedMemoryManager(name_prefix=self._memory_prefix)
+            self._memory_manager = AssistantSharedMemoryManager(
+                name_prefix=self._memory_prefix
+            )
 
             # Initialize signal processor
             self._signal_processor = AssistantSignalProcessor(self._memory_manager)
@@ -185,40 +196,58 @@ class AssistantService:
                 self._signal_manager.state,
                 AssistantSignalType.STATE_CHANGE,
                 data_mapper=lambda **kw: {
-                    "state": kw.get("sub_event", "").replace("_START", "").replace("_FINISH", "").lower()}
+                    "state": kw.get("sub_event", "")
+                    .replace("_START", "")
+                    .replace("_FINISH", "")
+                    .lower()
+                },
             )
 
             # Connect additional signal types
             self._signal_processor.connect_signal(
                 self._signal_manager.processing,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")} if kw.get(
-                    "sub_event") == "WAKE_DETECTED" else None
+                data_mapper=lambda **kw: (
+                    {"wake_word": kw.get("wake_word", "")}
+                    if kw.get("sub_event") == "WAKE_DETECTED"
+                    else None
+                ),
             )
 
             self._signal_processor.connect_signal(
                 self._signal_manager.processing,
                 AssistantSignalType.RECORDING,
-                data_mapper=lambda **kw: {
-                    "duration": kw.get("duration", 0.0),
-                    "is_active": kw.get("is_active", False)
-                } if "RECORDING" in kw.get("sub_event", "") else None
+                data_mapper=lambda **kw: (
+                    {
+                        "duration": kw.get("duration", 0.0),
+                        "is_active": kw.get("is_active", False),
+                    }
+                    if "RECORDING" in kw.get("sub_event", "")
+                    else None
+                ),
             )
 
             self._signal_processor.connect_signal(
                 self._signal_manager.processing,
                 AssistantSignalType.TRANSCRIBING,
-                data_mapper=lambda **kw: {
-                    "partial_text": kw.get("text", ""),
-                    "is_final": kw.get("is_final", False)
-                } if "TRANSCRIBING" in kw.get("sub_event", "") else None
+                data_mapper=lambda **kw: (
+                    {
+                        "partial_text": kw.get("text", ""),
+                        "is_final": kw.get("is_final", False),
+                    }
+                    if "TRANSCRIBING" in kw.get("sub_event", "")
+                    else None
+                ),
             )
 
             self._signal_processor.connect_signal(
                 self._signal_manager.processing,
                 AssistantSignalType.EXECUTING,
-                data_mapper=lambda **kw: {"command": kw.get("command", "")} if "EXECUTING" in kw.get("sub_event",
-                                                                                                     "") else None
+                data_mapper=lambda **kw: (
+                    {"command": kw.get("command", "")}
+                    if "EXECUTING" in kw.get("sub_event", "")
+                    else None
+                ),
             )
 
             self._signal_processor.connect_signal(
@@ -226,8 +255,8 @@ class AssistantService:
                 AssistantSignalType.ERROR,
                 data_mapper=lambda **kw: {
                     "error_message": kw.get("error", ""),
-                    "error_type": kw.get("error_type", "")
-                }
+                    "error_type": kw.get("error_type", ""),
+                },
             )
 
             # Clean up any orphaned regions from previous crashes
@@ -237,31 +266,41 @@ class AssistantService:
 
             # Create shared memory regions
             self._memory_manager.create_regions()
-            logger.info(f"Created {len(self._memory_manager.memory_regions)} shared memory regions")
+            logger.info(
+                f"Created {len(self._memory_manager.memory_regions)} shared memory regions"
+            )
 
             # Start signal processor
             self._signal_processor.start()
             logger.info("Signal processor started")
 
             # Launch UI subprocess if enabled
-            ui_enabled = os.getenv("CHAMPI_ASSISTANT_UI_ENABLED", "true").lower() == "true"
+            ui_enabled = (
+                os.getenv("CHAMPI_ASSISTANT_UI_ENABLED", "true").lower() == "true"
+            )
             if ui_enabled:
                 self._launch_ui_subprocess()
             else:
                 logger.info("UI subprocess disabled by configuration")
 
-            logger.info(f"Wake indicator IPC initialized with prefix: {self._memory_prefix}")
+            logger.info(
+                f"Wake indicator IPC initialized with prefix: {self._memory_prefix}"
+            )
         except Exception as e:
             logger.warning(f"Wake indicator requested but initialization failed: {e}")
 
     def speaker_identification(self):
         try:
             from champi_stt.assistant.speaker import SpeakerIdentifier
+
             self._speaker_identifier = SpeakerIdentifier()
             logger.info(
-                f"Speaker identification enabled with {len(self._speaker_identifier.profiles)} enrolled speakers")
+                f"Speaker identification enabled with {len(self._speaker_identifier.profiles)} enrolled speakers"
+            )
         except ImportError as e:
-            logger.warning(f"Speaker identification requested but resemblyzer not available: {e}")
+            logger.warning(
+                f"Speaker identification requested but resemblyzer not available: {e}"
+            )
             self._speaker_identifier = None
         except Exception as e:
             logger.error(f"Failed to initialize speaker identification: {e}")
@@ -277,7 +316,7 @@ class AssistantService:
             self._signal_manager.state.send(
                 event_type="state",
                 sub_event=f"{new_state.value.upper()}_START",
-                data={"state": new_state.value}
+                data={"state": new_state.value},
             )
 
     def _launch_ui_subprocess(self):
@@ -285,16 +324,18 @@ class AssistantService:
         try:
             # Get path to wake_indicator_ui.py
             import champi_stt.assistant.ui.wake_indicator_ui as ui_module
+
             ui_script = ui_module.__file__
 
             # Setup log file for UI subprocess
             import pathlib
+
             cache_dir = pathlib.Path(self.config.cache_dir).expanduser()
             cache_dir.mkdir(parents=True, exist_ok=True)
             ui_log_file = cache_dir / "ui.log"
 
             # Open log file
-            log_handle = open(ui_log_file, "a")
+            log_handle = open(ui_log_file, "a")  # noqa: SIM115
 
             # Launch subprocess with logging
             self._ui_process = subprocess.Popen(
@@ -304,7 +345,9 @@ class AssistantService:
                 stderr=log_handle,
             )
             self._ui_log_handle = log_handle  # Keep handle for cleanup
-            logger.info(f"Wake indicator UI subprocess launched (PID: {self._ui_process.pid})")
+            logger.info(
+                f"Wake indicator UI subprocess launched (PID: {self._ui_process.pid})"
+            )
             logger.info(f"UI logs: {ui_log_file}")
         except Exception as e:
             logger.error(f"Failed to launch UI subprocess: {e}")
@@ -355,15 +398,18 @@ class AssistantService:
 
     async def _listen_loop(self):
         """Main listening loop for wake word detection"""
-        from champi_stt.core.audio import get_audio_device
-        import sounddevice as sd
         import numpy as np
+        import sounddevice as sd
         from scipy import signal
+
+        from champi_stt.core.audio import get_audio_device
 
         # Get audio device if configured
         device_id = None
         wakeword_sample_rate = self.wakeword.config.sample_rate
-        wakeword_frame_samples = self.wakeword.get_frame_length_samples()  # 1280 samples @ 16kHz
+        wakeword_frame_samples = (
+            self.wakeword.get_frame_length_samples()
+        )  # 1280 samples @ 16kHz
 
         if self.config.input_device:
             try:
@@ -374,29 +420,39 @@ class AssistantService:
                 logger.info(f"  Sample rate: {device_sample_rate} Hz")
                 logger.info(f"  Channels: {audio_device.input_channels}")
             except ValueError as e:
-                logger.warning(f"Could not find device '{self.config.input_device}': {e}, using default")
+                logger.warning(
+                    f"Could not find device '{self.config.input_device}': {e}, using default"
+                )
                 device_sample_rate = wakeword_sample_rate
         else:
             # Get default device info
             try:
-                default_device = sd.query_devices(kind='input')
-                device_sample_rate = int(default_device['default_samplerate'])
+                default_device = sd.query_devices(kind="input")
+                device_sample_rate = int(default_device["default_samplerate"])
                 logger.info(f"Using default input device: {default_device['name']}")
                 logger.info(f"  Sample rate: {device_sample_rate} Hz")
             except Exception as e:
-                logger.warning(f"Could not query default device: {e}, using config values")
+                logger.warning(
+                    f"Could not query default device: {e}, using config values"
+                )
                 device_sample_rate = wakeword_sample_rate
 
         # Calculate device chunk size to match wake word requirements after resampling
         # We need wakeword_frame_samples at wakeword_sample_rate after resampling
-        device_chunk_size = int(wakeword_frame_samples * device_sample_rate / wakeword_sample_rate)
+        device_chunk_size = int(
+            wakeword_frame_samples * device_sample_rate / wakeword_sample_rate
+        )
 
         # Determine if resampling is needed
         needs_resampling = device_sample_rate != wakeword_sample_rate
 
         if needs_resampling:
-            logger.info(f"Audio will be resampled from {device_sample_rate} Hz to {wakeword_sample_rate} Hz")
-            logger.info(f"  Device chunk: {device_chunk_size} samples → Wake word frame: {wakeword_frame_samples} samples")
+            logger.info(
+                f"Audio will be resampled from {device_sample_rate} Hz to {wakeword_sample_rate} Hz"
+            )
+            logger.info(
+                f"  Device chunk: {device_chunk_size} samples → Wake word frame: {wakeword_frame_samples} samples"
+            )
 
         # Main loop - recreate stream when it stops (e.g., for command recording)
         while self._running:
@@ -404,7 +460,7 @@ class AssistantService:
             self._audio_stream = AudioStream(
                 sample_rate=device_sample_rate,
                 chunk_size=device_chunk_size,
-                device=device_id
+                device=device_id,
             )
 
             try:
@@ -417,30 +473,48 @@ class AssistantService:
                         # Resample if needed
                         if needs_resampling:
                             # Calculate target length for resampling
-                            target_length = int(len(audio_chunk) * wakeword_sample_rate / device_sample_rate)
+                            target_length = int(
+                                len(audio_chunk)
+                                * wakeword_sample_rate
+                                / device_sample_rate
+                            )
 
                             # Convert to float for resampling
                             audio_float = audio_chunk.astype(np.float32)
 
                             # Resample
-                            resampled_float = signal.resample(audio_float, target_length)
+                            resampled_float = signal.resample(
+                                audio_float, target_length
+                            )
 
                             # Convert back to int16
                             resampled_chunk = resampled_float.astype(np.int16)
 
                             # Debug first chunk and periodically check audio levels
-                            if not hasattr(self, '_logged_resample'):
-                                logger.debug(f"Resampling: {len(audio_chunk)} → {len(resampled_chunk)} samples")
-                                logger.debug(f"  Input range: [{audio_chunk.min()}, {audio_chunk.max()}]")
-                                logger.debug(f"  Output range: [{resampled_chunk.min()}, {resampled_chunk.max()}]")
+                            if not hasattr(self, "_logged_resample"):
+                                logger.debug(
+                                    f"Resampling: {len(audio_chunk)} → {len(resampled_chunk)} samples"
+                                )
+                                logger.debug(
+                                    f"  Input range: [{audio_chunk.min()}, {audio_chunk.max()}]"
+                                )
+                                logger.debug(
+                                    f"  Output range: [{resampled_chunk.min()}, {resampled_chunk.max()}]"
+                                )
                                 self._logged_resample = True
                                 self._audio_check_counter = 0
 
                             # Check audio levels periodically
-                            self._audio_check_counter = getattr(self, '_audio_check_counter', 0) + 1
+                            self._audio_check_counter = (
+                                getattr(self, "_audio_check_counter", 0) + 1
+                            )
                             if self._audio_check_counter >= 50:  # Every ~2 seconds
-                                rms = np.sqrt(np.mean(resampled_chunk.astype(np.float32) ** 2))
-                                logger.debug(f"Audio RMS level: {rms:.1f} (range: [{resampled_chunk.min()}, {resampled_chunk.max()}])")
+                                rms = np.sqrt(
+                                    np.mean(resampled_chunk.astype(np.float32) ** 2)
+                                )
+                                logger.debug(
+                                    f"Audio RMS level: {rms:.1f} (range: [{resampled_chunk.min()}, {resampled_chunk.max()}])"
+                                )
                                 self._audio_check_counter = 0
                         else:
                             resampled_chunk = audio_chunk
@@ -452,9 +526,15 @@ class AssistantService:
                         # Emit audio level data for UI visualization
                         if self._signal_manager:
                             try:
-                                from champi_stt.assistant.audio_analysis import analyze_audio_chunk
-                                rms_db, dominant_freq, is_speaking = analyze_audio_chunk(
-                                    resampled_chunk, sample_rate=wakeword_sample_rate
+                                from champi_stt.assistant.audio_analysis import (
+                                    analyze_audio_chunk,
+                                )
+
+                                rms_db, dominant_freq, is_speaking = (
+                                    analyze_audio_chunk(
+                                        resampled_chunk,
+                                        sample_rate=wakeword_sample_rate,
+                                    )
                                 )
                                 self._signal_manager.processing.send(
                                     event_type="processing",
@@ -498,6 +578,7 @@ class AssistantService:
         # Play wake detection audio feedback
         try:
             from champi_stt.assistant.audio_feedback import play_audio_feedback
+
             await play_audio_feedback("wake", enabled=True)
         except Exception as e:
             logger.debug(f"Audio feedback failed: {e}")
@@ -507,19 +588,21 @@ class AssistantService:
             self._signal_manager.processing.send(
                 event_type="processing",
                 sub_event="WAKE_DETECTED",
-                data={"wake_word": keyword}
+                data={"wake_word": keyword},
             )
 
         # Identify speaker from wake word audio if enabled
         speaker_name = None
         speaker_confidence = 0.0
 
-        if self._speaker_identifier and hasattr(self.wakeword, 'get_last_wake_audio'):
+        if self._speaker_identifier and hasattr(self.wakeword, "get_last_wake_audio"):
             wake_audio = self.wakeword.get_last_wake_audio()
             if wake_audio is not None and len(wake_audio) > 0:
-                speaker_name, speaker_confidence = self._speaker_identifier.identify_speaker(
-                    wake_audio,
-                    threshold=self.config.speaker_identification_threshold
+                speaker_name, speaker_confidence = (
+                    self._speaker_identifier.identify_speaker(
+                        wake_audio,
+                        threshold=self.config.speaker_identification_threshold,
+                    )
                 )
 
         try:
@@ -539,7 +622,7 @@ class AssistantService:
                 self._signal_manager.processing.send(
                     event_type="processing",
                     sub_event="RECORDING_START",
-                    data={"duration": 0.0, "is_active": True}
+                    data={"duration": 0.0, "is_active": True},
                 )
 
             # Record user command (with VAD for automatic silence detection)
@@ -548,21 +631,24 @@ class AssistantService:
             # Play listening chime before recording
             try:
                 from champi_stt.assistant.audio_feedback import play_audio_feedback
+
                 await play_audio_feedback("listening", enabled=True)
             except Exception as e:
                 logger.debug(f"Audio feedback failed: {e}")
 
             from champi_stt.core.audio import record_audio_with_vad
+
             audio = await record_audio_with_vad(
                 max_duration=self.config.max_recording_duration,
                 device_name=self.config.input_device,
                 sample_rate=16000,
-                silence_threshold_ms=self.config.command_silence_timeout_ms
+                silence_threshold_ms=self.config.command_silence_timeout_ms,
             )
 
             # Play finished chime after recording
             try:
                 from champi_stt.assistant.audio_feedback import play_audio_feedback
+
                 await play_audio_feedback("finished", enabled=True)
             except Exception as e:
                 logger.debug(f"Audio feedback failed: {e}")
@@ -581,7 +667,7 @@ class AssistantService:
                 self._signal_manager.processing.send(
                     event_type="processing",
                     sub_event="TRANSCRIBING_START",
-                    data={"partial_text": "Processing...", "is_final": False}
+                    data={"partial_text": "Processing...", "is_final": False},
                 )
 
             result = await self.stt.transcribe(audio)
@@ -599,7 +685,7 @@ class AssistantService:
                 self._signal_manager.processing.send(
                     event_type="processing",
                     sub_event="TRANSCRIBING_FINISH",
-                    data={"partial_text": text, "is_final": True}
+                    data={"partial_text": text, "is_final": True},
                 )
 
             # Execute command with speaker context
@@ -610,7 +696,7 @@ class AssistantService:
                 self._signal_manager.processing.send(
                     event_type="processing",
                     sub_event="EXECUTING_START",
-                    data={"command": text}
+                    data={"command": text},
                 )
             context = {}
             if speaker_name:
@@ -623,7 +709,10 @@ class AssistantService:
                 logger.info(f"✓ Command executed: {command_result}")
 
                 # Check for shutdown command
-                if isinstance(command_result, dict) and command_result.get("action") == "shutdown":
+                if (
+                    isinstance(command_result, dict)
+                    and command_result.get("action") == "shutdown"
+                ):
                     logger.info("Shutdown requested")
                     await self.stop()
                     return
@@ -639,10 +728,7 @@ class AssistantService:
                 self._signal_manager.error.send(
                     event_type="error",
                     sub_event="ERROR",
-                    data={
-                        "error": str(e),
-                        "error_type": type(e).__name__
-                    }
+                    data={"error": str(e), "error_type": type(e).__name__},
                 )
 
         finally:
@@ -660,9 +746,7 @@ class AssistantService:
         # Send SHUTDOWN signal to UI before terminating
         if self._signal_manager and self._ui_process:
             try:
-                self._signal_manager.emit(
-                    AssistantSignalType.SHUTDOWN, reason="normal"
-                )
+                self._signal_manager.emit(AssistantSignalType.SHUTDOWN, reason="normal")
                 logger.info("Sent SHUTDOWN signal to UI")
                 # Give UI time to process shutdown signal and cleanup
                 await asyncio.sleep(0.5)
@@ -682,7 +766,7 @@ class AssistantService:
                 try:
                     self._ui_process.kill()
                     self._ui_process.wait(timeout=1)
-                except:
+                except Exception:
                     pass
             self._ui_process = None
 
@@ -694,10 +778,8 @@ class AssistantService:
 
         # Close UI log handle
         if hasattr(self, "_ui_log_handle"):
-            try:
+            with contextlib.suppress(Exception):
                 self._ui_log_handle.close()
-            except:
-                pass
 
         # Cleanup shared memory
         if self._memory_manager:

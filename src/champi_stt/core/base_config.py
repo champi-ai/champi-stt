@@ -3,7 +3,7 @@ Base configuration class for all STT providers
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -81,8 +81,8 @@ class BaseSTTConfig(ABC):
 
         Default implementation - providers can override.
         """
-        from pathlib import Path
         import os
+        from pathlib import Path
 
         # Expand and create cache directory
         cache_path = Path(os.path.expanduser(self.cache_dir))

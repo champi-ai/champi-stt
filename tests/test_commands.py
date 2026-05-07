@@ -1,20 +1,20 @@
 """Tests for command parsing and execution."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
-from champi_stt.assistant.commands.parser import CommandParser, CommandMatch
-from champi_stt.assistant.commands.registry import (
-    CommandRegistry,
-    Command,
-)
-from champi_stt.assistant.commands.executor import (
-    CommandExecutor,
-    CommandAction,
-    ActionType,
-)
 from champi_stt.assistant.commands.builtin import register_builtin_commands
+from champi_stt.assistant.commands.executor import (
+    ActionType,
+    CommandAction,
+    CommandExecutor,
+)
+from champi_stt.assistant.commands.parser import CommandMatch, CommandParser
+from champi_stt.assistant.commands.registry import (
+    Command,
+    CommandRegistry,
+)
 
 
 class TestCommandMatch:

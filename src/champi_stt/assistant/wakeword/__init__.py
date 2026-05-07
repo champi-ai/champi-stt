@@ -11,16 +11,16 @@ Supported engines:
 """
 
 from champi_stt.assistant.wakeword.base import (
-    BaseWakeWordEngine,
     BaseWakeWordDetector,
+    BaseWakeWordEngine,
     WakeWordConfig,
     WakeWordEvent,
 )
 from champi_stt.assistant.wakeword.whisper import WhisperWakeWordDetector
 
 __all__ = [
-    "BaseWakeWordEngine",
     "BaseWakeWordDetector",
+    "BaseWakeWordEngine",
     "WakeWordConfig",
     "WakeWordEvent",
     "WhisperWakeWordDetector",

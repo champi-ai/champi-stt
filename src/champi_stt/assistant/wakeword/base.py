@@ -2,12 +2,15 @@
 Base wake word detection engine interface
 """
 
+import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional, Any
-import numpy as np
-# import logging - replaced with loguru
+from typing import Any
 
+import numpy as np
+
+# import logging - replaced with loguru
 from loguru import logger
 
 
@@ -33,8 +36,8 @@ class WakeWordConfig:
     frame_length_ms: int = 30  # Audio frame length in milliseconds
 
     # Model/Engine settings
-    model_path: Optional[str] = None  # Path to custom wake word model
-    access_key: Optional[str] = None  # API key (for Porcupine)
+    model_path: str | None = None  # Path to custom wake word model
+    access_key: str | None = None  # API key (for Porcupine)
 
     # Behavior settings
     auto_reset: bool = True  # Auto-reset after detection
@@ -56,11 +59,13 @@ class BaseWakeWordEngine(ABC):
             config: Wake word configuration
         """
         self.config = config
-        self._callback: Optional[Callable] = None
+        self._callback: Callable | None = None
         self._initialized = False
         self._last_detection_time = 0
 
-        logger.debug(f"Initializing {self.__class__.__name__} with keywords: {config.keywords}")
+        logger.debug(
+            f"Initializing {self.__class__.__name__} with keywords: {config.keywords}"
+        )
 
     @abstractmethod
     async def initialize(self) -> None:
@@ -75,7 +80,7 @@ class BaseWakeWordEngine(ABC):
         pass
 
     @abstractmethod
-    async def process_audio(self, audio_chunk: np.ndarray) -> tuple[bool, Optional[str]]:
+    async def process_audio(self, audio_chunk: np.ndarray) -> tuple[bool, str | None]:
         """
         Process audio chunk for wake word detection.
 
@@ -138,16 +143,15 @@ class BaseWakeWordEngine(ABC):
             True if detection is allowed (cooldown elapsed)
         """
         import time
+
         current_time = time.time() * 1000  # Convert to ms
 
-        if current_time - self._last_detection_time < self.config.cooldown_ms:
-            return False
-
-        return True
+        return not (current_time - self._last_detection_time < self.config.cooldown_ms)
 
     def _update_detection_time(self) -> None:
         """Update last detection timestamp"""
         import time
+
         self._last_detection_time = time.time() * 1000
 
     async def process_audio_with_callback(self, audio_chunk: np.ndarray) -> bool:
@@ -185,9 +189,6 @@ class BaseWakeWordEngine(ABC):
         """
         return int(self.config.sample_rate * self.config.frame_length_ms / 1000)
 
-
-# Import asyncio at module level
-import asyncio
 
 # Alias for backwards compatibility with tests
 BaseWakeWordDetector = BaseWakeWordEngine

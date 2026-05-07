@@ -2,12 +2,12 @@
 Assistant service configuration
 """
 
-from dataclasses import dataclass, field
-from typing import Optional
-from pathlib import Path
-import warnings
-import yaml
 import os
+import warnings
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import yaml
 
 
 @dataclass
@@ -22,13 +22,13 @@ class AssistantConfig:
     wakeword_engine: str = "openwakeword"  # Wake word engine type
     wakeword_keywords: list[str] = field(default_factory=lambda: ["hey_jarvis"])
     wakeword_sensitivity: float = 0.5
-    wakeword_access_key: Optional[str] = None  # Deprecated (was for Porcupine)
+    wakeword_access_key: str | None = None  # Deprecated (was for Porcupine)
 
     # Audio configuration
-    input_device: Optional[str] = None  # Audio input device name (None = default)
+    input_device: str | None = None  # Audio input device name (None = default)
 
     # Command configuration
-    commands_file: Optional[str] = None  # Path to commands config file
+    commands_file: str | None = None  # Path to commands config file
     enable_builtin_commands: bool = True
 
     # Service behavior
@@ -38,9 +38,15 @@ class AssistantConfig:
     command_silence_timeout_ms: int = 2500  # Silence timeout for command recording (ms)
     enable_visualizer: bool = False  # Show real-time spectrogram
     enable_wake_indicator: bool = False  # Show visual wake status indicator
-    wake_indicator_position: Optional[str] = None  # DEPRECATED: Position no longer configurable
-    enable_speaker_identification: bool = False  # Enable speaker identification from wake word
-    speaker_identification_threshold: float = 0.75  # Similarity threshold for speaker ID
+    wake_indicator_position: str | None = (
+        None  # DEPRECATED: Position no longer configurable
+    )
+    enable_speaker_identification: bool = (
+        False  # Enable speaker identification from wake word
+    )
+    speaker_identification_threshold: float = (
+        0.75  # Similarity threshold for speaker ID
+    )
 
     # IPC Configuration
     ipc_memory_prefix: str = "champi_assistant"  # Shared memory namespace prefix
@@ -50,7 +56,7 @@ class AssistantConfig:
 
     # Logging
     log_level: str = "INFO"
-    log_file: Optional[str] = None
+    log_file: str | None = None
 
     # Directories
     config_dir: str = "~/.config/champi-stt"
@@ -63,7 +69,7 @@ class AssistantConfig:
                 "wake_indicator_position is deprecated and no longer used. "
                 "UI window position is now configured via ipc_ui_window_x and ipc_ui_window_y.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
     @classmethod
@@ -102,35 +108,38 @@ class AssistantConfig:
             # STT
             stt_provider=stt_config.get("provider", "whisperlive"),
             stt_config={k: v for k, v in stt_config.items() if k != "provider"},
-
             # Wake word
             wakeword_engine=wakeword_config.get("engine", "openwakeword"),
             wakeword_keywords=wakeword_config.get("keywords", ["hey_jarvis"]),
             wakeword_sensitivity=wakeword_config.get("sensitivity", 0.5),
             wakeword_access_key=wakeword_config.get("access_key"),
-
             # Audio
             input_device=audio_config.get("input_device"),
-
             # Commands
             commands_file=commands_config.get("file"),
             enable_builtin_commands=commands_config.get("enable_builtin", True),
-
             # Service
             continuous_mode=service_config.get("continuous_mode", True),
             auto_start=service_config.get("auto_start", False),
             max_recording_duration=service_config.get("max_recording_duration", 10.0),
-            command_silence_timeout_ms=service_config.get("command_silence_timeout_ms", 2500),
+            command_silence_timeout_ms=service_config.get(
+                "command_silence_timeout_ms", 2500
+            ),
             enable_visualizer=service_config.get("enable_visualizer", False),
             enable_wake_indicator=service_config.get("enable_wake_indicator", False),
-            wake_indicator_position=service_config.get("wake_indicator_position"),  # Deprecated
-            enable_speaker_identification=service_config.get("enable_speaker_identification", False),
-            speaker_identification_threshold=service_config.get("speaker_identification_threshold", 0.75),
+            wake_indicator_position=service_config.get(
+                "wake_indicator_position"
+            ),  # Deprecated
+            enable_speaker_identification=service_config.get(
+                "enable_speaker_identification", False
+            ),
+            speaker_identification_threshold=service_config.get(
+                "speaker_identification_threshold", 0.75
+            ),
             log_level=service_config.get("log_level", "INFO"),
             log_file=service_config.get("log_file"),
             config_dir=service_config.get("config_dir", "~/.config/champi-stt"),
             cache_dir=service_config.get("cache_dir", "~/.config/champi-stt"),
-
             # IPC
             ipc_memory_prefix=ipc_config.get("memory_prefix", "champi_assistant"),
             ipc_ui_window_x=ipc_config.get("ui_window_x", 50),

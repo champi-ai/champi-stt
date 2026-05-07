@@ -2,7 +2,8 @@
 
 import struct
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from loguru import logger
 
@@ -90,21 +91,23 @@ class AssistantSignalReader:
                         except Exception as e:
                             logger.error(
                                 f"Handler error for {signal_type.name} (seq: {signal_data.seq_num}): {e}",
-                                exc_info=True
+                                exc_info=True,
                             )
                             # Continue processing despite handler error
 
                     # Write ACK after successfully processing signal
                     try:
                         self.memory_manager.write_ack(signal_type, signal_data.seq_num)
-                        logger.debug(f"ACKed {signal_type.name} (seq: {signal_data.seq_num})")
+                        logger.debug(
+                            f"ACKed {signal_type.name} (seq: {signal_data.seq_num})"
+                        )
                     except ValueError as e:
                         logger.error(f"Failed to write ACK for {signal_type.name}: {e}")
 
             except Exception as e:
                 logger.error(
                     f"Unexpected error reading signal {signal_type.name}: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
 
     def poll_loop(self, poll_rate_hz: int = 60) -> None:

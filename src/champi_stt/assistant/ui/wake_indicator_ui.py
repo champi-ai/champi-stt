@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass
 
 import glfw
-import OpenGL.GL as gl
+import OpenGL.GL as gl  # noqa: N811
 from imgui_bundle import imgui
 from imgui_bundle.python_backends import glfw_backend
 from loguru import logger
@@ -81,9 +81,7 @@ class WakeIndicator:
         self.signal_reader.register_handler(
             AssistantSignalType.EXECUTING, self._on_executing
         )
-        self.signal_reader.register_handler(
-            AssistantSignalType.ERROR, self._on_error
-        )
+        self.signal_reader.register_handler(AssistantSignalType.ERROR, self._on_error)
         self.signal_reader.register_handler(
             AssistantSignalType.SHUTDOWN, self._on_shutdown
         )
@@ -169,7 +167,11 @@ class WakeIndicator:
         glfw.window_hint(hint=glfw.VISIBLE, value=glfw.FALSE)  # Start hidden
 
         self.window = glfw.create_window(
-            width=150, height=150, title="Assistant Wake Indicator", monitor=None, share=None
+            width=150,
+            height=150,
+            title="Assistant Wake Indicator",
+            monitor=None,
+            share=None,
         )
         if not self.window:
             glfw.terminate()
@@ -204,7 +206,9 @@ class WakeIndicator:
                     logger.warning("⚠️  Failed to load 3D model, using 2D fallback")
                     self.sphere_renderer = None
             except Exception as e:
-                logger.warning(f"⚠️  Failed to initialize 3D renderer: {e}, using 2D fallback")
+                logger.warning(
+                    f"⚠️  Failed to initialize 3D renderer: {e}, using 2D fallback"
+                )
                 self.sphere_renderer = None
 
     def _show_window(self):
@@ -221,28 +225,22 @@ class WakeIndicator:
         """Render animated status circle/sphere with audio-responsive effects."""
         # Color and animation based on state
         if self.status.state == "awake":
-            base_color_imgui = imgui.IM_COL32(51, 204, 51, 255)  # Green
-            base_color_rgb = (0.2, 0.8, 0.2)
+            base_color = imgui.IM_COL32(51, 204, 51, 255)  # Green
             pulse_speed = 8
         elif self.status.state == "recording":
-            base_color_imgui = imgui.IM_COL32(204, 51, 51, 255)  # Red
-            base_color_rgb = (0.8, 0.2, 0.2)
+            base_color = imgui.IM_COL32(204, 51, 51, 255)  # Red
             pulse_speed = 6
         elif self.status.state == "transcribing":
-            base_color_imgui = imgui.IM_COL32(51, 102, 204, 255)  # Blue
-            base_color_rgb = (0.2, 0.4, 0.8)
+            base_color = imgui.IM_COL32(51, 102, 204, 255)  # Blue
             pulse_speed = 4
         elif self.status.state == "executing":
-            base_color_imgui = imgui.IM_COL32(204, 204, 51, 255)  # Yellow
-            base_color_rgb = (0.8, 0.8, 0.2)
+            base_color = imgui.IM_COL32(204, 204, 51, 255)  # Yellow
             pulse_speed = 5
         elif self.status.state == "error":
-            base_color_imgui = imgui.IM_COL32(204, 51, 51, 255)  # Red (flash)
-            base_color_rgb = (0.8, 0.2, 0.2)
+            base_color = imgui.IM_COL32(204, 51, 51, 255)  # Red (flash)
             pulse_speed = 10
         else:  # idle
-            base_color_imgui = imgui.IM_COL32(100, 100, 100, 255)  # Gray
-            base_color_rgb = (0.4, 0.4, 0.4)
+            base_color = imgui.IM_COL32(100, 100, 100, 255)  # Gray
             pulse_speed = 2
 
         # Calculate audio-based pulsing (decibel-driven)
@@ -375,7 +373,9 @@ class WakeIndicator:
         # Calculate audio-reactive parameters
         audio_intensity = 0.0
         if self.audio_is_speaking and self.audio_rms_db > -50:
-            db_normalized = min(1.0, (self.audio_rms_db + 50) / 30)  # -50dB to -20dB -> 0 to 1
+            db_normalized = min(
+                1.0, (self.audio_rms_db + 50) / 30
+            )  # -50dB to -20dB -> 0 to 1
             audio_intensity = db_normalized
 
         # Frequency-based squeezing
@@ -514,7 +514,9 @@ def wake_indicator_main(name_prefix: str = "champi_assistant"):
     # Attach to existing shared memory
     memory_mgr = AssistantSharedMemoryManager(name_prefix=name_prefix)
     memory_mgr.attach_regions()
-    logger.info(f"✅ Attached to {len(memory_mgr.memory_regions)} shared memory regions")
+    logger.info(
+        f"✅ Attached to {len(memory_mgr.memory_regions)} shared memory regions"
+    )
 
     # Create and run UI
     try:

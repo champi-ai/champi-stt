@@ -2,7 +2,6 @@
 
 import threading
 from collections import deque
-from typing import Optional
 
 from .structs import AssistantSignalType
 
@@ -59,7 +58,7 @@ class SignalQueue:
 
             return seq_num
 
-    def get(self, timeout: Optional[float] = None) -> Optional[SignalQueueItem]:
+    def get(self, timeout: float | None = None) -> SignalQueueItem | None:
         """Get next signal from queue (blocks if empty).
 
         Args:
@@ -75,7 +74,7 @@ class SignalQueue:
 
             return self._queue.popleft()
 
-    def get_nowait(self) -> Optional[SignalQueueItem]:
+    def get_nowait(self) -> SignalQueueItem | None:
         """Get next signal without blocking.
 
         Returns:

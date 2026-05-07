@@ -5,15 +5,15 @@ Uses Resemblyzer to create and compare voice embeddings for speaker recognition.
 """
 
 # import logging - replaced with loguru
-from pathlib import Path
-from typing import Optional
 import pickle
-import numpy as np
+from pathlib import Path
 
+import numpy as np
 from loguru import logger
 
 try:
     from resemblyzer import VoiceEncoder, preprocess_wav
+
     RESEMBLYZER_AVAILABLE = True
 except ImportError:
     RESEMBLYZER_AVAILABLE = False
@@ -64,7 +64,9 @@ class SpeakerIdentifier:
         # Load existing profiles
         self._load_profiles()
 
-        logger.info(f"Speaker identifier initialized with {len(self.profiles)} profiles")
+        logger.info(
+            f"Speaker identifier initialized with {len(self.profiles)} profiles"
+        )
 
     def _load_profiles(self):
         """Load speaker profiles from disk"""
@@ -84,7 +86,9 @@ class SpeakerIdentifier:
             pickle.dump(profile, f)
         logger.info(f"Saved speaker profile: {profile.name}")
 
-    def enroll_speaker(self, name: str, audio_samples: list[np.ndarray]) -> SpeakerProfile:
+    def enroll_speaker(
+        self, name: str, audio_samples: list[np.ndarray]
+    ) -> SpeakerProfile:
         """
         Enroll a new speaker with voice samples.
 
@@ -120,10 +124,8 @@ class SpeakerIdentifier:
         return profile
 
     def identify_speaker(
-        self,
-        audio: np.ndarray,
-        threshold: float = 0.75
-    ) -> tuple[Optional[str], float]:
+        self, audio: np.ndarray, threshold: float = 0.75
+    ) -> tuple[str | None, float]:
         """
         Identify speaker from audio sample.
 
@@ -159,10 +161,14 @@ class SpeakerIdentifier:
 
         # Check threshold
         if best_score >= threshold:
-            logger.info(f"Identified speaker: {best_match} (confidence: {best_score:.2f})")
+            logger.info(
+                f"Identified speaker: {best_match} (confidence: {best_score:.2f})"
+            )
             return best_match, best_score
         else:
-            logger.info(f"Unknown speaker (best match: {best_match} @ {best_score:.2f}, threshold: {threshold})")
+            logger.info(
+                f"Unknown speaker (best match: {best_match} @ {best_score:.2f}, threshold: {threshold})"
+            )
             return None, best_score
 
     def remove_speaker(self, name: str):

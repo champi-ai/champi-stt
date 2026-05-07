@@ -1,16 +1,11 @@
 """Tests for IPC signal reader."""
 
-import time
-from unittest.mock import MagicMock
-
-import pytest
-
 from champi_stt.assistant.ipc import (
     AssistantSharedMemoryManager,
     AssistantSignalType,
 )
 from champi_stt.assistant.ipc.signal_reader import AssistantSignalReader
-from champi_stt.assistant.ipc.structs import pack_wake_detected, pack_state_change
+from champi_stt.assistant.ipc.structs import pack_state_change, pack_wake_detected
 
 
 class TestSignalReader:
@@ -118,12 +113,10 @@ class TestSignalReader:
             state_calls = []
 
             reader.register_handler(
-                AssistantSignalType.WAKE_DETECTED,
-                lambda sig: wake_calls.append(sig)
+                AssistantSignalType.WAKE_DETECTED, lambda sig: wake_calls.append(sig)
             )
             reader.register_handler(
-                AssistantSignalType.STATE_CHANGE,
-                lambda sig: state_calls.append(sig)
+                AssistantSignalType.STATE_CHANGE, lambda sig: state_calls.append(sig)
             )
 
             # Write both signals
@@ -154,10 +147,7 @@ class TestSignalReader:
             mgr.create_regions()
             reader = AssistantSignalReader(mgr)
 
-            reader.register_handler(
-                AssistantSignalType.WAKE_DETECTED,
-                lambda sig: None
-            )
+            reader.register_handler(AssistantSignalType.WAKE_DETECTED, lambda sig: None)
 
             # Write signal
             data = pack_wake_detected(seq_num=42, wake_word="test")
@@ -184,8 +174,7 @@ class TestSignalReader:
 
             handler_calls = []
             reader.register_handler(
-                AssistantSignalType.WAKE_DETECTED,
-                lambda sig: handler_calls.append(sig)
+                AssistantSignalType.WAKE_DETECTED, lambda sig: handler_calls.append(sig)
             )
 
             # Write signal seq 5
@@ -281,16 +270,17 @@ class TestEdgeCases:
         calls2 = []
 
         reader.register_handler(
-            AssistantSignalType.WAKE_DETECTED,
-            lambda sig: calls1.append(sig)
+            AssistantSignalType.WAKE_DETECTED, lambda sig: calls1.append(sig)
         )
 
         # Replace handler
         reader.register_handler(
-            AssistantSignalType.WAKE_DETECTED,
-            lambda sig: calls2.append(sig)
+            AssistantSignalType.WAKE_DETECTED, lambda sig: calls2.append(sig)
         )
 
         assert AssistantSignalType.WAKE_DETECTED in reader.handlers
         # Only the second handler should be registered
-        assert len(reader.handlers[AssistantSignalType.WAKE_DETECTED].__code__.co_freevars) >= 0
+        assert (
+            len(reader.handlers[AssistantSignalType.WAKE_DETECTED].__code__.co_freevars)
+            >= 0
+        )

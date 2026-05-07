@@ -2,8 +2,8 @@
 
 import asyncio
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import numpy as np
 import pytest

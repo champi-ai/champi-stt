@@ -5,18 +5,17 @@ Blender custom properties and ImGui integration.
 """
 
 import math
-import os
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Any
 
 import numpy as np
-import OpenGL.GL as gl
+import OpenGL.GL as gl  # noqa: N811
 from loguru import logger
 
 
 class EnergySphereParams:
     """Parameters for energy sphere animation and appearance."""
-    
+
     def __init__(self):
         """Initialize with default values matching Blender export."""
         self.animation_time = 0.0
@@ -26,36 +25,36 @@ class EnergySphereParams:
         self.color_saturation = 1.0
         self.glow_strength = 3.0
         self.jiggle_amount = 0.0
-    
-    def to_dict(self) -> Dict[str, float]:
+
+    def to_dict(self) -> dict[str, float]:
         """Convert to dictionary."""
         return {
-            'animation_time': self.animation_time,
-            'pulse_speed': self.pulse_speed,
-            'pulse_intensity': self.pulse_intensity,
-            'color_hue': self.color_hue,
-            'color_saturation': self.color_saturation,
-            'glow_strength': self.glow_strength,
-            'jiggle_amount': self.jiggle_amount,
+            "animation_time": self.animation_time,
+            "pulse_speed": self.pulse_speed,
+            "pulse_intensity": self.pulse_intensity,
+            "color_hue": self.color_hue,
+            "color_saturation": self.color_saturation,
+            "glow_strength": self.glow_strength,
+            "jiggle_amount": self.jiggle_amount,
         }
-    
-    def from_dict(self, data: Dict[str, Any]):
+
+    def from_dict(self, data: dict[str, Any]):
         """Load from dictionary."""
-        self.animation_time = float(data.get('animation_time', 0.0))
-        self.pulse_speed = float(data.get('pulse_speed', 1.0))
-        self.pulse_intensity = float(data.get('pulse_intensity', 1.0))
-        self.color_hue = float(data.get('color_hue', 0.66))
-        self.color_saturation = float(data.get('color_saturation', 1.0))
-        self.glow_strength = float(data.get('glow_strength', 3.0))
-        self.jiggle_amount = float(data.get('jiggle_amount', 0.0))
-    
+        self.animation_time = float(data.get("animation_time", 0.0))
+        self.pulse_speed = float(data.get("pulse_speed", 1.0))
+        self.pulse_intensity = float(data.get("pulse_intensity", 1.0))
+        self.color_hue = float(data.get("color_hue", 0.66))
+        self.color_saturation = float(data.get("color_saturation", 1.0))
+        self.glow_strength = float(data.get("glow_strength", 3.0))
+        self.jiggle_amount = float(data.get("jiggle_amount", 0.0))
+
     @staticmethod
-    def hue_to_rgb(hue: float) -> Tuple[float, float, float]:
+    def hue_to_rgb(hue: float) -> tuple[float, float, float]:
         """Convert HSV hue to RGB (assuming S=1, V=1)."""
         h = hue * 6.0
         i = int(h)
         f = h - i
-        
+
         if i == 0:
             return (1.0, f, 0.0)
         elif i == 1:
@@ -68,12 +67,14 @@ class EnergySphereParams:
             return (f, 0.0, 1.0)
         else:
             return (1.0, 0.0, 1.0 - f)
-    
-    def get_color(self) -> Tuple[float, float, float]:
+
+    def get_color(self) -> tuple[float, float, float]:
         """Get RGB color from hue and saturation."""
         rgb = self.hue_to_rgb(self.color_hue)
         # Apply saturation
-        return tuple(c * self.color_saturation + (1.0 - self.color_saturation) for c in rgb)
+        return tuple(
+            c * self.color_saturation + (1.0 - self.color_saturation) for c in rgb
+        )
 
 
 class EnergySphereRenderer:
@@ -90,14 +91,16 @@ class EnergySphereRenderer:
         self.nbo = None
         self.shader_program = None
         self.model_loaded = False
-        
+
         # Custom properties
         self.params = EnergySphereParams()
         self.custom_properties = {}
 
         # Get path to energy sphere model
         # Go up to src/champi_stt/assistant/ui -> src/champi_stt -> src -> assets
-        self.assets_dir = Path(__file__).parent.parent.parent.parent / "assets" / "energy_sphere"
+        self.assets_dir = (
+            Path(__file__).parent.parent.parent.parent / "assets" / "energy_sphere"
+        )
         self.model_path = self.assets_dir / "Energy_Sphere.glb"
 
     def load_model(self) -> bool:
@@ -120,7 +123,7 @@ class EnergySphereRenderer:
 
                 # Extract custom properties if available
                 self._extract_custom_properties(gltf)
-                
+
                 # Extract mesh data from GLTF
                 self._extract_gltf_data(gltf)
                 self.model_loaded = True
@@ -139,10 +142,10 @@ class EnergySphereRenderer:
             self._create_fallback_sphere()
             self.model_loaded = True
             return True
-    
+
     def _extract_custom_properties(self, gltf):
         """Extract custom properties from GLTF extras.
-        
+
         Args:
             gltf: GLTF2 object
         """
@@ -150,22 +153,24 @@ class EnergySphereRenderer:
             # Check scene extras for custom properties
             if gltf.scenes and len(gltf.scenes) > 0:
                 scene = gltf.scenes[0]
-                if hasattr(scene, 'extras') and scene.extras:
-                    logger.info(f"Found custom properties in scene extras: {scene.extras}")
+                if hasattr(scene, "extras") and scene.extras:
+                    logger.info(
+                        f"Found custom properties in scene extras: {scene.extras}"
+                    )
                     self.params.from_dict(scene.extras)
                     self.custom_properties = scene.extras.copy()
-            
+
             # Also check root extras
-            if hasattr(gltf, 'extras') and gltf.extras:
+            if hasattr(gltf, "extras") and gltf.extras:
                 logger.info(f"Found custom properties in root extras: {gltf.extras}")
                 self.params.from_dict(gltf.extras)
                 self.custom_properties.update(gltf.extras)
-            
+
             if self.custom_properties:
                 logger.info(f"Loaded custom properties: {self.custom_properties}")
             else:
                 logger.info("No custom properties found in GLB, using defaults")
-                
+
         except Exception as e:
             logger.warning(f"Failed to extract custom properties: {e}")
 
@@ -181,7 +186,11 @@ class EnergySphereRenderer:
 
         # Get accessor indices
         position_accessor_idx = primitive.attributes.POSITION
-        normal_accessor_idx = primitive.attributes.NORMAL if hasattr(primitive.attributes, 'NORMAL') else None
+        normal_accessor_idx = (
+            primitive.attributes.NORMAL
+            if hasattr(primitive.attributes, "NORMAL")
+            else None
+        )
         indices_accessor_idx = primitive.indices
 
         # Extract vertex positions
@@ -399,10 +408,10 @@ class EnergySphereRenderer:
                 float noiseX = sin(aPos.x * 10.0 + animationTime * 2.0) * cos(aPos.y * 8.0);
                 float noiseY = sin(aPos.y * 12.0 + animationTime * 2.5) * cos(aPos.z * 7.0);
                 float noiseZ = sin(aPos.z * 11.0 + animationTime * 1.8) * cos(aPos.x * 9.0);
-                
+
                 displaced += aNormal * vec3(noiseX, noiseY, noiseZ) * jiggleAmount * 0.1;
             }
-            
+
             FragPos = vec3(model * vec4(displaced, 1.0));
             Normal = mat3(transpose(inverse(model))) * aNormal;
             gl_Position = projection * view * vec4(FragPos, 1.0);
@@ -445,11 +454,11 @@ class EnergySphereRenderer:
 
             // Fresnel glow effect
             float fresnel = pow(1.0 - max(dot(viewDir, norm), 0.0), 3.0);
-            
+
             // Animated energy waves
             float wave = sin(animationTime * 2.0 + FragPos.x * 2.0 + FragPos.y * 3.0) * 0.5 + 0.5;
             float energyPulse = wave * pulseIntensity;
-            
+
             vec3 glow = (fresnel + energyPulse) * glowStrength * baseColor;
 
             // Boost brightness for better visibility
@@ -511,7 +520,7 @@ class EnergySphereRenderer:
         audio_intensity: float = 0.0,
         x_squeeze: float = 1.0,
         y_squeeze: float = 1.0,
-        override_color: Optional[Tuple[float, float, float]] = None,
+        override_color: tuple[float, float, float] | None = None,
     ):
         """Render the energy sphere with custom properties.
 
@@ -537,9 +546,14 @@ class EnergySphereRenderer:
             model = np.eye(4, dtype=np.float32)
 
             # Apply pulse from params and audio
-            pulse_factor = 1.0 + math.sin(self.params.animation_time * self.params.pulse_speed) * self.params.pulse_intensity * 0.2
+            pulse_factor = (
+                1.0
+                + math.sin(self.params.animation_time * self.params.pulse_speed)
+                * self.params.pulse_intensity
+                * 0.2
+            )
             pulse_factor += audio_intensity * 0.2  # Add audio response
-            
+
             # Scale based on radius and pulse
             scale = radius * pulse_factor
             model[0, 0] = scale * x_squeeze
@@ -581,15 +595,19 @@ class EnergySphereRenderer:
             gl.glUniformMatrix4fv(proj_loc, 1, gl.GL_TRUE, projection)
 
             # Set custom property uniforms
-            anim_time_loc = gl.glGetUniformLocation(self.shader_program, "animationTime")
+            anim_time_loc = gl.glGetUniformLocation(
+                self.shader_program, "animationTime"
+            )
             gl.glUniform1f(anim_time_loc, self.params.animation_time)
-            
+
             jiggle_loc = gl.glGetUniformLocation(self.shader_program, "jiggleAmount")
             gl.glUniform1f(jiggle_loc, self.params.jiggle_amount)
-            
-            pulse_int_loc = gl.glGetUniformLocation(self.shader_program, "pulseIntensity")
+
+            pulse_int_loc = gl.glGetUniformLocation(
+                self.shader_program, "pulseIntensity"
+            )
             gl.glUniform1f(pulse_int_loc, self.params.pulse_intensity)
-            
+
             glow_loc = gl.glGetUniformLocation(self.shader_program, "glowStrength")
             gl.glUniform1f(glow_loc, self.params.glow_strength)
 

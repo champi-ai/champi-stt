@@ -6,14 +6,12 @@ Less efficient than dedicated wake word models but more reliable.
 """
 
 # import logging - replaced with loguru
-from typing import Optional
 
 import numpy as np
+from loguru import logger
 
 from champi_stt.assistant.wakeword.base import BaseWakeWordEngine, WakeWordConfig
 from champi_stt.core.base_provider import BaseSTTProvider
-
-from loguru import logger
 
 
 class WhisperWakeWordDetector(BaseWakeWordEngine):
@@ -38,7 +36,9 @@ class WhisperWakeWordDetector(BaseWakeWordEngine):
         self._buffer_duration = 2.0  # Process 2 seconds of audio at a time
         self._last_transcription = ""  # Track last transcription to avoid repeats
         self._min_audio_rms = 100  # Minimum RMS to consider speech (not silence)
-        self._last_wake_audio: Optional[np.ndarray] = None  # Store wake word audio for speaker ID
+        self._last_wake_audio: np.ndarray | None = (
+            None  # Store wake word audio for speaker ID
+        )
 
     async def initialize(self) -> None:
         """Initialize Whisper wake word detector"""
@@ -46,7 +46,7 @@ class WhisperWakeWordDetector(BaseWakeWordEngine):
             return
 
         # Verify STT provider is initialized
-        if not hasattr(self.stt, '_initialized') or not self.stt._initialized:
+        if not hasattr(self.stt, "_initialized") or not self.stt._initialized:
             logger.warning("STT provider not initialized, attempting initialization...")
             await self.stt.initialize()
 
@@ -68,7 +68,7 @@ class WhisperWakeWordDetector(BaseWakeWordEngine):
         self._initialized = False
         logger.info("WhisperWakeWord shutdown complete")
 
-    async def process_audio(self, audio_chunk: np.ndarray) -> tuple[bool, Optional[str]]:
+    async def process_audio(self, audio_chunk: np.ndarray) -> tuple[bool, str | None]:
         """
         Process audio chunk for wake word detection.
 
@@ -99,7 +99,9 @@ class WhisperWakeWordDetector(BaseWakeWordEngine):
 
                 # Skip transcription if audio is too quiet (silence/background noise)
                 if audio_rms < self._min_audio_rms:
-                    logger.debug(f"Skipping transcription - silence detected (RMS {audio_rms:.1f} < {self._min_audio_rms})")
+                    logger.debug(
+                        f"Skipping transcription - silence detected (RMS {audio_rms:.1f} < {self._min_audio_rms})"
+                    )
                     self._audio_buffer.clear()
                     return False, None
 
@@ -123,7 +125,9 @@ class WhisperWakeWordDetector(BaseWakeWordEngine):
 
                 # Skip if Whisper detects no speech (hallucination prevention)
                 if no_speech_prob > 0.5:
-                    logger.debug(f"Skipping hallucination - no speech detected (prob: {no_speech_prob:.2f}): '{text_lower}'")
+                    logger.debug(
+                        f"Skipping hallucination - no speech detected (prob: {no_speech_prob:.2f}): '{text_lower}'"
+                    )
                     self._audio_buffer.clear()
                     return False, None
 
@@ -142,7 +146,9 @@ class WhisperWakeWordDetector(BaseWakeWordEngine):
                 for keyword in self.config.keywords:
                     keyword_lower = keyword.lower().replace("_", " ")
                     if keyword_lower in text_lower:
-                        logger.info(f"✓ Wake word detected: '{keyword}' in text '{text_lower}'")
+                        logger.info(
+                            f"✓ Wake word detected: '{keyword}' in text '{text_lower}'"
+                        )
                         # Store wake word audio for speaker identification
                         self._last_wake_audio = full_audio.copy()
                         self._audio_buffer.clear()
@@ -175,7 +181,7 @@ class WhisperWakeWordDetector(BaseWakeWordEngine):
         """Check if WhisperWakeWord is initialized"""
         return self._initialized
 
-    def get_last_wake_audio(self) -> Optional[np.ndarray]:
+    def get_last_wake_audio(self) -> np.ndarray | None:
         """
         Get the audio from the last wake word detection.
 

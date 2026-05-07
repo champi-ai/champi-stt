@@ -45,9 +45,7 @@ async def normalize_audio(audio_data: np.ndarray) -> np.ndarray:
 
 
 async def resample_audio(
-    audio_data: np.ndarray,
-    orig_sample_rate: int,
-    target_sample_rate: int
+    audio_data: np.ndarray, orig_sample_rate: int, target_sample_rate: int
 ) -> np.ndarray:
     """
     Resample audio to target sample rate.
@@ -73,8 +71,7 @@ async def resample_audio(
     # Resample in executor to avoid blocking
     loop = asyncio.get_running_loop()
     resampled = await loop.run_in_executor(
-        None,
-        lambda: scipy_signal.resample(audio_data, target_length)
+        None, lambda: scipy_signal.resample(audio_data, target_length)
     )
 
     return resampled.astype(audio_data.dtype)
@@ -120,7 +117,7 @@ async def prepare_audio_for_stt(
     audio_data: np.ndarray,
     current_sample_rate: int,
     target_sample_rate: int = 16000,
-    target_dtype: str = "float32"
+    target_dtype: str = "float32",
 ) -> np.ndarray:
     """
     Prepare audio for STT processing.
@@ -150,9 +147,7 @@ async def prepare_audio_for_stt(
     # Step 2: Resample if needed
     if current_sample_rate != target_sample_rate:
         audio_data = await resample_audio(
-            audio_data,
-            current_sample_rate,
-            target_sample_rate
+            audio_data, current_sample_rate, target_sample_rate
         )
 
     return audio_data

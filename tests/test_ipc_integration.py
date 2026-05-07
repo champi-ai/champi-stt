@@ -31,7 +31,7 @@ class TestEndToEndSignalFlow:
             processor.connect_signal(
                 test_signal,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
             )
 
             processor.start()
@@ -42,7 +42,7 @@ class TestEndToEndSignalFlow:
 
             reader.register_handler(
                 AssistantSignalType.WAKE_DETECTED,
-                lambda sig: received_signals.append(sig)
+                lambda sig: received_signals.append(sig),
             )
 
             # Emit signal
@@ -80,13 +80,13 @@ class TestEndToEndSignalFlow:
             processor.connect_signal(
                 wake_signal,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
             )
 
             processor.connect_signal(
                 state_signal,
                 AssistantSignalType.STATE_CHANGE,
-                data_mapper=lambda **kw: {"state": kw.get("state", "")}
+                data_mapper=lambda **kw: {"state": kw.get("state", "")},
             )
 
             processor.connect_signal(
@@ -94,8 +94,8 @@ class TestEndToEndSignalFlow:
                 AssistantSignalType.ERROR,
                 data_mapper=lambda **kw: {
                     "error_message": kw.get("error_message", ""),
-                    "error_type": kw.get("error_type", "")
-                }
+                    "error_type": kw.get("error_type", ""),
+                },
             )
 
             processor.start()
@@ -106,9 +106,15 @@ class TestEndToEndSignalFlow:
             state_calls = []
             error_calls = []
 
-            reader.register_handler(AssistantSignalType.WAKE_DETECTED, lambda sig: wake_calls.append(sig))
-            reader.register_handler(AssistantSignalType.STATE_CHANGE, lambda sig: state_calls.append(sig))
-            reader.register_handler(AssistantSignalType.ERROR, lambda sig: error_calls.append(sig))
+            reader.register_handler(
+                AssistantSignalType.WAKE_DETECTED, lambda sig: wake_calls.append(sig)
+            )
+            reader.register_handler(
+                AssistantSignalType.STATE_CHANGE, lambda sig: state_calls.append(sig)
+            )
+            reader.register_handler(
+                AssistantSignalType.ERROR, lambda sig: error_calls.append(sig)
+            )
 
             # Emit multiple signals
             wake_signal.send(wake_word="alexa")
@@ -145,8 +151,11 @@ class TestEndToEndSignalFlow:
             processor.connect_signal(
                 signal_mgr.processing,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("data", {}).get("wake_word", "")}
-                if kw.get("sub_event") == "WAKE_DETECTED" else None
+                data_mapper=lambda **kw: (
+                    {"wake_word": kw.get("data", {}).get("wake_word", "")}
+                    if kw.get("sub_event") == "WAKE_DETECTED"
+                    else None
+                ),
             )
 
             processor.start()
@@ -155,13 +164,15 @@ class TestEndToEndSignalFlow:
             reader = AssistantSignalReader(mgr)
             received = []
 
-            reader.register_handler(AssistantSignalType.WAKE_DETECTED, lambda sig: received.append(sig))
+            reader.register_handler(
+                AssistantSignalType.WAKE_DETECTED, lambda sig: received.append(sig)
+            )
 
             # Emit via signal manager
             signal_mgr.processing.send(
                 event_type="processing",
                 sub_event="WAKE_DETECTED",
-                data={"wake_word": "computer"}
+                data={"wake_word": "computer"},
             )
 
             time.sleep(0.2)
@@ -190,7 +201,7 @@ class TestEndToEndSignalFlow:
             processor.connect_signal(
                 test_signal,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
             )
 
             processor.start()
@@ -204,7 +215,9 @@ class TestEndToEndSignalFlow:
             # Setup reader
             reader = AssistantSignalReader(mgr)
             received = []
-            reader.register_handler(AssistantSignalType.WAKE_DETECTED, lambda sig: received.append(sig))
+            reader.register_handler(
+                AssistantSignalType.WAKE_DETECTED, lambda sig: received.append(sig)
+            )
 
             reader.poll_once()
 
@@ -231,7 +244,7 @@ class TestEndToEndSignalFlow:
             processor.connect_signal(
                 test_signal,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
             )
 
             processor.start()
@@ -243,8 +256,12 @@ class TestEndToEndSignalFlow:
             received1 = []
             received2 = []
 
-            reader1.register_handler(AssistantSignalType.WAKE_DETECTED, lambda sig: received1.append(sig))
-            reader2.register_handler(AssistantSignalType.WAKE_DETECTED, lambda sig: received2.append(sig))
+            reader1.register_handler(
+                AssistantSignalType.WAKE_DETECTED, lambda sig: received1.append(sig)
+            )
+            reader2.register_handler(
+                AssistantSignalType.WAKE_DETECTED, lambda sig: received2.append(sig)
+            )
 
             # Emit signal
             test_signal.send(wake_word="shared")
@@ -286,14 +303,17 @@ class TestRealWorldScenarios:
             processor.connect_signal(
                 signal_mgr.state,
                 AssistantSignalType.STATE_CHANGE,
-                data_mapper=lambda **kw: {"state": kw.get("sub_event", "").lower()}
+                data_mapper=lambda **kw: {"state": kw.get("sub_event", "").lower()},
             )
 
             processor.connect_signal(
                 signal_mgr.processing,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("data", {}).get("wake_word", "")}
-                if kw.get("sub_event") == "WAKE_DETECTED" else None
+                data_mapper=lambda **kw: (
+                    {"wake_word": kw.get("data", {}).get("wake_word", "")}
+                    if kw.get("sub_event") == "WAKE_DETECTED"
+                    else None
+                ),
             )
 
             processor.start()
@@ -303,8 +323,13 @@ class TestRealWorldScenarios:
             state_changes = []
             wake_detections = []
 
-            reader.register_handler(AssistantSignalType.STATE_CHANGE, lambda sig: state_changes.append(sig))
-            reader.register_handler(AssistantSignalType.WAKE_DETECTED, lambda sig: wake_detections.append(sig))
+            reader.register_handler(
+                AssistantSignalType.STATE_CHANGE, lambda sig: state_changes.append(sig)
+            )
+            reader.register_handler(
+                AssistantSignalType.WAKE_DETECTED,
+                lambda sig: wake_detections.append(sig),
+            )
 
             # Simulate workflow
             signal_mgr.state.send(event_type="state", sub_event="LISTENING_START")
@@ -314,7 +339,7 @@ class TestRealWorldScenarios:
             signal_mgr.processing.send(
                 event_type="processing",
                 sub_event="WAKE_DETECTED",
-                data={"wake_word": "hey_jarvis"}
+                data={"wake_word": "hey_jarvis"},
             )
             time.sleep(0.1)
             reader.poll_once()

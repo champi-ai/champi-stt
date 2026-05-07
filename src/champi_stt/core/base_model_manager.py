@@ -3,7 +3,7 @@ Base model manager interface
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 
 class BaseModelManager(ABC):
@@ -47,7 +47,7 @@ class BaseModelManager(ABC):
 
     # Optional methods
 
-    async def clear_cache(self) -> None:
+    async def clear_cache(self) -> None:  # noqa: B027
         """
         Clear model cache.
 
@@ -57,7 +57,7 @@ class BaseModelManager(ABC):
         pass
 
     @property
-    def model(self) -> Optional[Any]:
+    def model(self) -> Any | None:
         """
         Get the loaded model instance.
 

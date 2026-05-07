@@ -3,10 +3,10 @@ CLI for champi-stt voice assistant
 """
 
 import asyncio
-import click
 import sys
-from pathlib import Path
-from loguru import logger
+
+import click
+
 from champi_stt.core.logging import configure_logging
 
 
@@ -21,7 +21,12 @@ def cli():
 @click.argument("audio_file", type=click.Path(exists=True))
 @click.option("--provider", default="whisperlive", help="STT provider to use")
 @click.option("--language", default=None, help="Language code (e.g., 'en')")
-@click.option("--format", "response_format", default="text", help="Output format (text/json/verbose_json)")
+@click.option(
+    "--format",
+    "response_format",
+    default="text",
+    help="Output format (text/json/verbose_json)",
+)
 def transcribe(audio_file, provider, language, response_format):
     """Transcribe an audio file"""
     from champi_stt import get_provider
@@ -31,13 +36,12 @@ def transcribe(audio_file, provider, language, response_format):
         await stt.initialize()
 
         result = await stt.transcribe(
-            audio_file,
-            language=language,
-            response_format=response_format
+            audio_file, language=language, response_format=response_format
         )
 
         if isinstance(result, dict):
             import json
+
             click.echo(json.dumps(result, indent=2))
         else:
             click.echo(result)
@@ -57,11 +61,15 @@ def assistant():
 @click.option("--config", type=click.Path(), help="Config file path")
 def start(config):
     """Start the voice assistant service"""
+    from champi_stt import get_provider
+    from champi_stt.assistant.commands import (
+        CommandExecutor,
+        CommandParser,
+        CommandRegistry,
+    )
+    from champi_stt.assistant.commands.builtin import register_builtin_commands
     from champi_stt.assistant.service import AssistantConfig, AssistantService
     from champi_stt.assistant.wakeword import WakeWordConfig, WhisperWakeWordDetector
-    from champi_stt.assistant.commands import CommandRegistry, CommandExecutor, CommandParser
-    from champi_stt.assistant.commands.builtin import register_builtin_commands
-    from champi_stt import get_provider
 
     async def run():
         # Load config
@@ -72,20 +80,16 @@ def start(config):
 
         # Setup logging with config level
         configure_logging(
-            level=assistant_config.log_level,
-            log_file=assistant_config.log_file
+            level=assistant_config.log_level, log_file=assistant_config.log_file
         )
 
-        click.echo(f"Starting voice assistant with config:")
+        click.echo("Starting voice assistant with config:")
         click.echo(f"  STT Provider: {assistant_config.stt_provider}")
         click.echo(f"  Wake Words: {assistant_config.wakeword_keywords}")
         click.echo(f"  Wake Engine: {assistant_config.wakeword_engine}")
 
         # Setup STT provider
-        stt = get_provider(
-            assistant_config.stt_provider,
-            **assistant_config.stt_config
-        )
+        stt = get_provider(assistant_config.stt_provider, **assistant_config.stt_config)
 
         # Setup wake word engine
         wakeword_config = WakeWordConfig(
@@ -123,7 +127,7 @@ def start(config):
             stt,
             wakeword,
             registry,
-            enable_visualizer=assistant_config.enable_visualizer
+            enable_visualizer=assistant_config.enable_visualizer,
         )
 
         try:
@@ -140,7 +144,12 @@ def start(config):
 
 
 @assistant.command()
-@click.option("--output", type=click.Path(), default="assistant_config.yaml", help="Output file path")
+@click.option(
+    "--output",
+    type=click.Path(),
+    default="assistant_config.yaml",
+    help="Output file path",
+)
 def init_config(output):
     """Create default assistant configuration file"""
     from champi_stt.assistant.service import AssistantConfig
@@ -156,16 +165,20 @@ def init_config(output):
         else:
             click.echo("\nAvailable audio input devices:")
             for i, device in enumerate(devices):
-                click.echo(f"  [{i}] {device['name']} ({device['sample_rate']} Hz, {device['channels']} ch)")
+                click.echo(
+                    f"  [{i}] {device['name']} ({device['sample_rate']} Hz, {device['channels']} ch)"
+                )
 
-            click.echo(f"  [d] Use default device")
+            click.echo("  [d] Use default device")
 
-            choice = click.prompt("\nSelect device number (or 'd' for default)",
-                                type=str,
-                                default="d",
-                                show_default=True)
+            choice = click.prompt(
+                "\nSelect device number (or 'd' for default)",
+                type=str,
+                default="d",
+                show_default=True,
+            )
 
-            if choice.lower() == 'd':
+            if choice.lower() == "d":
                 selected_device = None
             else:
                 try:
@@ -173,10 +186,10 @@ def init_config(output):
                     if 0 <= idx < len(devices):
                         selected_device = devices[idx]
                     else:
-                        click.echo(f"Invalid selection, using default device")
+                        click.echo("Invalid selection, using default device")
                         selected_device = None
                 except ValueError:
-                    click.echo(f"Invalid input, using default device")
+                    click.echo("Invalid input, using default device")
                     selected_device = None
 
     except Exception as e:
@@ -191,7 +204,7 @@ def init_config(output):
         config.input_device = selected_device["name"]
         click.echo(f"\n✓ Selected input device: {selected_device['name']}")
     else:
-        click.echo(f"\n✓ Using default input device")
+        click.echo("\n✓ Using default input device")
 
     # Populate stt_config with WhisperLive defaults
     whisperlive_defaults = WhisperLiveConfig()
@@ -231,12 +244,14 @@ def init_config(output):
     config.save(output)
 
     click.echo(f"✓ Created config file: {output}")
-    click.echo(f"\nStart the assistant with:")
+    click.echo("\nStart the assistant with:")
     click.echo(f"  champi-stt assistant start --config {output}")
 
 
 @assistant.command()
-@click.option("--output", type=click.Path(), default="commands.yaml", help="Output file path")
+@click.option(
+    "--output", type=click.Path(), default="commands.yaml", help="Output file path"
+)
 def init_commands(output):
     """Create example commands configuration file"""
     import yaml
@@ -247,35 +262,35 @@ def init_commands(output):
                 "type": "api",
                 "url": "http://192.168.1.100/api/lights/on",
                 "method": "POST",
-                "description": "Turn on the lights"
+                "description": "Turn on the lights",
             },
             "turn off lights": {
                 "type": "api",
                 "url": "http://192.168.1.100/api/lights/off",
                 "method": "POST",
-                "description": "Turn off the lights"
+                "description": "Turn off the lights",
             },
         },
         "patterns": {
             "set volume to (?P<level>\\d+)": {
                 "type": "shell",
                 "command": "pactl set-sink-volume @DEFAULT_SINK@ {level}%",
-                "description": "Set system volume"
+                "description": "Set system volume",
             },
             "search for (?P<query>.+)": {
                 "type": "python",
                 "function": "champi_stt.assistant.commands.builtin.web_search",
-                "description": "Search the web"
+                "description": "Search the web",
             },
-        }
+        },
     }
 
     with open(output, "w") as f:
         yaml.dump(example_commands, f, default_flow_style=False, indent=2)
 
     click.echo(f"✓ Created commands file: {output}")
-    click.echo(f"\nEdit the commands and reference it in your config:")
-    click.echo(f"  commands:")
+    click.echo("\nEdit the commands and reference it in your config:")
+    click.echo("  commands:")
     click.echo(f"    file: {output}")
 
 
@@ -337,11 +352,15 @@ def enroll(name, samples, duration):
         identifier = SpeakerIdentifier()
 
         click.echo(f"Enrolling speaker: {name}")
-        click.echo(f"You will be asked to record {samples} voice samples ({duration}s each)")
+        click.echo(
+            f"You will be asked to record {samples} voice samples ({duration}s each)"
+        )
 
         audio_samples = []
         for i in range(samples):
-            click.echo(f"\nSample {i+1}/{samples} - Press Enter to start recording...")
+            click.echo(
+                f"\nSample {i + 1}/{samples} - Press Enter to start recording..."
+            )
             input()
 
             click.echo(f"Recording for {duration} seconds... Speak now!")
@@ -352,7 +371,7 @@ def enroll(name, samples, duration):
                 continue
 
             audio_samples.append(audio)
-            click.echo(f"✓ Sample {i+1} recorded")
+            click.echo(f"✓ Sample {i + 1} recorded")
 
         # Enroll speaker
         identifier.enroll_speaker(name, audio_samples)
@@ -428,6 +447,7 @@ def cleanup(prefix):
 def status(prefix):
     """Show status of shared memory regions"""
     from multiprocessing import shared_memory
+
     from champi_stt.assistant.ipc import AssistantSignalType
 
     click.echo(f"Checking shared memory regions with prefix: {prefix}\n")

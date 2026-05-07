@@ -6,60 +6,63 @@ Local speech-to-text processing using WhisperLive's optimized faster-whisper bac
 """
 
 from champi_stt.providers.whisperlive.config import WhisperLiveConfig
-from champi_stt.providers.whisperlive.provider import WhisperLiveSTTProvider
-from champi_stt.providers.whisperlive.transcriber import WhisperLiveTranscriber
-from champi_stt.providers.whisperlive.models import ModelManager, ModelCacheManager, DeviceManager
+from champi_stt.providers.whisperlive.enums import (
+    AudioFormat,
+    ComputeType,
+    DeviceType,
+    LifecycleEvents,
+    ModelEvents,
+    ModelSize,
+    ProcessingEvents,
+    ResponseFormat,
+    STTEventTypes,
+    TaskType,
+    TelemetryEvents,
+)
 from champi_stt.providers.whisperlive.events import STTSignalManager
 from champi_stt.providers.whisperlive.exceptions import (
+    WhisperAudioError,
+    WhisperConfigurationError,
+    WhisperDeviceError,
     WhisperError,
+    WhisperFileError,
     WhisperInitializationError,
     WhisperModelError,
     WhisperTranscriptionError,
-    WhisperAudioError,
-    WhisperConfigurationError,
-    WhisperFileError,
-    WhisperDeviceError,
 )
-from champi_stt.providers.whisperlive.enums import (
-    STTEventTypes, LifecycleEvents, ModelEvents, ProcessingEvents,
-    TelemetryEvents, AudioFormat, ModelSize, DeviceType, ComputeType,
-    ResponseFormat, TaskType
+from champi_stt.providers.whisperlive.models import (
+    DeviceManager,
+    ModelCacheManager,
+    ModelManager,
 )
+from champi_stt.providers.whisperlive.provider import WhisperLiveSTTProvider
+from champi_stt.providers.whisperlive.transcriber import WhisperLiveTranscriber
 
 __all__ = [
-    # Core components
+    "AudioFormat",
+    "ComputeType",
+    "DeviceManager",
+    "DeviceType",
+    "LifecycleEvents",
+    "ModelCacheManager",
+    "ModelEvents",
+    "ModelManager",
+    "ModelSize",
+    "ProcessingEvents",
+    "ResponseFormat",
+    "STTEventTypes",
+    "STTSignalManager",
+    "TaskType",
+    "TelemetryEvents",
+    "WhisperAudioError",
+    "WhisperConfigurationError",
+    "WhisperDeviceError",
+    "WhisperError",
+    "WhisperFileError",
+    "WhisperInitializationError",
     "WhisperLiveConfig",
     "WhisperLiveSTTProvider",
     "WhisperLiveTranscriber",
-
-    # Model management
-    "ModelManager",
-    "ModelCacheManager",
-    "DeviceManager",
-
-    # Event system
-    "STTSignalManager",
-
-    # Exceptions
-    "WhisperError",
-    "WhisperInitializationError",
     "WhisperModelError",
     "WhisperTranscriptionError",
-    "WhisperAudioError",
-    "WhisperConfigurationError",
-    "WhisperFileError",
-    "WhisperDeviceError",
-
-    # Enums
-    "STTEventTypes",
-    "LifecycleEvents",
-    "ModelEvents",
-    "ProcessingEvents",
-    "TelemetryEvents",
-    "AudioFormat",
-    "ModelSize",
-    "DeviceType",
-    "ComputeType",
-    "ResponseFormat",
-    "TaskType",
 ]

@@ -4,12 +4,10 @@ Renders a 3D energy sphere model using OpenGL, with audio-responsive effects.
 """
 
 import math
-import os
 from pathlib import Path
-from typing import Optional, Tuple
 
 import numpy as np
-import OpenGL.GL as gl
+import OpenGL.GL as gl  # noqa: N811
 from loguru import logger
 
 
@@ -30,7 +28,9 @@ class EnergySphereRenderer:
 
         # Get path to energy sphere model
         # Go up to src/champi_stt/assistant/ui -> src/champi_stt -> src -> assets
-        self.assets_dir = Path(__file__).parent.parent.parent.parent / "assets" / "energy_sphere"
+        self.assets_dir = (
+            Path(__file__).parent.parent.parent.parent / "assets" / "energy_sphere"
+        )
         self.model_path = self.assets_dir / "Energy_Sphere.glb"
 
     def load_model(self) -> bool:
@@ -70,7 +70,7 @@ class EnergySphereRenderer:
             self._create_fallback_sphere()
             self.model_loaded = True
             self._fallback_mode = True
-                return False
+            return False
 
     def _extract_gltf_data(self, gltf):
         """Extract mesh data from GLTF model.
@@ -84,7 +84,11 @@ class EnergySphereRenderer:
 
         # Get accessor indices
         position_accessor_idx = primitive.attributes.POSITION
-        normal_accessor_idx = primitive.attributes.NORMAL if hasattr(primitive.attributes, 'NORMAL') else None
+        normal_accessor_idx = (
+            primitive.attributes.NORMAL
+            if hasattr(primitive.attributes, "NORMAL")
+            else None
+        )
         indices_accessor_idx = primitive.indices
 
         # Extract vertex positions
@@ -395,7 +399,7 @@ class EnergySphereRenderer:
         audio_intensity: float = 0.0,
         x_squeeze: float = 1.0,
         y_squeeze: float = 1.0,
-        color: Tuple[float, float, float] = (0.2, 0.8, 0.2),
+        color: tuple[float, float, float] = (0.2, 0.8, 0.2),
     ):
         """Render the energy sphere.
 
@@ -412,30 +416,32 @@ class EnergySphereRenderer:
         """
 
         if not self.model_loaded or self.shader_program is None:
-            logger.warning("Skipping render - model not loaded or shader program missing")
+            logger.warning(
+                "Skipping render - model not loaded or shader program missing"
+            )
             return
 
         try:
             # Use shader program
             gl.glUseProgram(self.shader_program)
-    
+
             # Set up model matrix (scale, translate)
             model = np.eye(4, dtype=np.float32)
-    
+
             # Scale based on radius and audio
             scale = radius * (1.0 + audio_intensity * 0.3)
             model[0, 0] = scale * x_squeeze
             model[1, 1] = scale * y_squeeze
             model[2, 2] = scale
-    
+
             # Translate to screen position (in 3D space)
             model[3, 0] = center_x
             model[3, 1] = center_y
             model[3, 2] = 0.0
-    
+
             # Identity view matrix (no camera transformation)
             view = np.eye(4, dtype=np.float32)
-    
+
             # Orthographic projection for 2D screen space
             # Convert screen coordinates to normalized device coordinates (-1 to 1)
             left = 0.0
@@ -454,10 +460,11 @@ class EnergySphereRenderer:
             projection[0, 3] = -(right + left) / (right - left)
             projection[1, 3] = -(top + bottom) / (top - bottom)
             projection[2, 3] = -(far + near) / (far - near)
-    
+
         except Exception as e:
             logger.error(f"Error in render setup: {e}")
             import traceback
+
             logger.error(traceback.format_exc())
             raise
 
@@ -508,8 +515,6 @@ class EnergySphereRenderer:
         # Disable depth test and blending
         gl.glDisable(gl.GL_DEPTH_TEST)
         gl.glDisable(gl.GL_BLEND)
-
-        elements_drawn = len(self.indices) if self.indices is not None else len(self.vertices)
 
     def cleanup(self):
         """Clean up OpenGL resources."""

@@ -1,7 +1,5 @@
 """Tests for wake word detection."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import numpy as np
 import pytest
 

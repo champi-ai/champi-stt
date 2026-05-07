@@ -2,14 +2,13 @@
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
-import numpy as np
 import pytest
 
 from champi_stt.assistant.commands import CommandRegistry
 from champi_stt.assistant.service import AssistantConfig, AssistantService
-from champi_stt.assistant.wakeword import WakeWordConfig, WakeWordEvent
+from champi_stt.assistant.wakeword import WakeWordEvent
 from champi_stt.core.response import STTResponse
 
 
@@ -102,7 +101,9 @@ class TestAssistantWorkflow:
             executed_commands.append("lights_off")
 
         registry.register_exact("what time is it", time_command, "Show time")
-        registry.register_exact("turn off lights", lights_off_command, "Turn off lights")
+        registry.register_exact(
+            "turn off lights", lights_off_command, "Turn off lights"
+        )
 
         config = AssistantConfig(
             continuous_mode=True,
@@ -208,7 +209,9 @@ class TestCommandExecution:
         results = []
 
         registry.register_exact("lights on", lambda: results.append("on"), "Lights on")
-        registry.register_exact("lights off", lambda: results.append("off"), "Lights off")
+        registry.register_exact(
+            "lights off", lambda: results.append("off"), "Lights off"
+        )
 
         # Execute exact matches
         match1 = registry.find_command("lights on")
@@ -230,9 +233,7 @@ class TestCommandExecution:
             results.append(f"volume_{level}")
 
         registry.register_pattern(
-            r"set volume to (?P<level>\d+)",
-            set_volume,
-            "Set volume level"
+            r"set volume to (?P<level>\d+)", set_volume, "Set volume level"
         )
 
         # Execute pattern match

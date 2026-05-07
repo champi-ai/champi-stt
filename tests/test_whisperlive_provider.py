@@ -1,15 +1,15 @@
 """Tests for WhisperLive provider."""
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from champi_stt.providers.whisperlive.config import WhisperLiveConfig
-from champi_stt.providers.whisperlive.enums import ModelSize, ComputeType
-from champi_stt.providers.whisperlive.provider import WhisperLiveProvider
-from champi_stt.providers.whisperlive.models import TranscriptionOptions
 from champi_stt.core.response import TranscriptionResponse
+from champi_stt.providers.whisperlive.config import WhisperLiveConfig
+from champi_stt.providers.whisperlive.enums import ComputeType, ModelSize
+from champi_stt.providers.whisperlive.models import TranscriptionOptions
+from champi_stt.providers.whisperlive.provider import WhisperLiveProvider
 
 
 class TestWhisperLiveConfig:
@@ -172,7 +172,11 @@ class TestWhisperLiveProvider:
         provider = WhisperLiveProvider(config)
 
         mock_model = MagicMock()
-        mock_segments = [MagicMock(text=" hola", start=0.0, end=1.0, avg_logprob=-0.2, no_speech_prob=0.1)]
+        mock_segments = [
+            MagicMock(
+                text=" hola", start=0.0, end=1.0, avg_logprob=-0.2, no_speech_prob=0.1
+            )
+        ]
         mock_info = MagicMock(language="es", language_probability=0.98)
         mock_model.transcribe.return_value = (mock_segments, mock_info)
 

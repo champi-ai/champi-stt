@@ -7,7 +7,6 @@ Provides functions to analyze audio chunks for:
 """
 
 import numpy as np
-from typing import Tuple
 
 
 def calculate_rms_db(audio_data: np.ndarray, reference: float = 32768.0) -> float:
@@ -117,15 +116,12 @@ def detect_voice_activity(
     dominant_freq = calculate_dominant_frequency(audio_data, sample_rate)
 
     # Voice is typically between 80-3000 Hz
-    if 80 <= dominant_freq <= 3000:
-        return True
-
-    return False
+    return 80 <= dominant_freq <= 3000
 
 
 def analyze_audio_chunk(
     audio_data: np.ndarray, sample_rate: int = 16000
-) -> Tuple[float, float, bool]:
+) -> tuple[float, float, bool]:
     """Analyze audio chunk for all metrics.
 
     Args:

@@ -3,7 +3,7 @@ Porcupine wake word detection engine
 """
 
 import logging
-from typing import Optional
+
 import numpy as np
 
 from champi_stt.assistant.wakeword.base import BaseWakeWordEngine, WakeWordConfig
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import pvporcupine
+
     PORCUPINE_AVAILABLE = True
 except ImportError:
     pvporcupine = None
@@ -48,7 +49,7 @@ class PorcupineWakeWord(BaseWakeWordEngine):
             )
 
         super().__init__(config)
-        self._porcupine: Optional[pvporcupine.Porcupine] = None
+        self._porcupine: pvporcupine.Porcupine | None = None
 
     async def initialize(self) -> None:
         """Initialize Porcupine engine"""
@@ -65,7 +66,7 @@ class PorcupineWakeWord(BaseWakeWordEngine):
             self._porcupine = pvporcupine.create(
                 access_key=self.config.access_key,
                 keyword_paths=keyword_paths,
-                sensitivities=[self.config.sensitivity] * len(self.config.keywords)
+                sensitivities=[self.config.sensitivity] * len(self.config.keywords),
             )
 
             # Update sample rate from Porcupine's requirement
@@ -85,7 +86,7 @@ class PorcupineWakeWord(BaseWakeWordEngine):
             logger.error(f"Failed to initialize Porcupine: {e}")
             raise RuntimeError(f"Porcupine initialization failed: {e}") from e
 
-    async def process_audio(self, audio_chunk: np.ndarray) -> tuple[bool, Optional[str]]:
+    async def process_audio(self, audio_chunk: np.ndarray) -> tuple[bool, str | None]:
         """
         Process audio chunk for wake word detection.
 
@@ -107,7 +108,7 @@ class PorcupineWakeWord(BaseWakeWordEngine):
         if len(audio_chunk) < required_samples:
             # Pad with zeros if too short
             padded = np.zeros(required_samples, dtype=np.int16)
-            padded[:len(audio_chunk)] = audio_chunk
+            padded[: len(audio_chunk)] = audio_chunk
             audio_chunk = padded
         elif len(audio_chunk) > required_samples:
             # Truncate if too long
@@ -119,7 +120,9 @@ class PorcupineWakeWord(BaseWakeWordEngine):
 
             if keyword_index >= 0:
                 keyword = self.config.keywords[keyword_index]
-                logger.debug(f"🎤 Detected wake word: '{keyword}' (index={keyword_index})")
+                logger.debug(
+                    f"🎤 Detected wake word: '{keyword}' (index={keyword_index})"
+                )
                 return True, keyword
 
             return False, None

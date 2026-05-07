@@ -7,16 +7,15 @@ matching the custom properties from the Blender export.
 import math
 import time
 from pathlib import Path
-from typing import Optional, Tuple
 
 import numpy as np
-import OpenGL.GL as gl
+import OpenGL.GL as gl  # noqa: N811
 from loguru import logger
 
 
 class EnergySphereImGuiRenderer:
     """Renders 3D energy sphere with ImGui-controllable parameters.
-    
+
     This renderer integrates with the Blender-exported Energy Sphere model
     and provides ImGui controls for all custom properties:
     - animation_time
@@ -48,16 +47,18 @@ class EnergySphereImGuiRenderer:
         self.color_saturation = 1.0
         self.glow_strength = 3.0
         self.jiggle_amount = 0.0
-        
+
         # Internal state
         self._start_time = time.time()
         self._last_update = time.time()
 
         # Get path to energy sphere model
-        self.assets_dir = Path(__file__).parent.parent.parent.parent / "assets" / "energy_sphere"
+        self.assets_dir = (
+            Path(__file__).parent.parent.parent.parent / "assets" / "energy_sphere"
+        )
         self.model_path = self.assets_dir / "Energy_Sphere.glb"
-        
-        logger.info(f"Energy Sphere ImGui Renderer initialized")
+
+        logger.info("Energy Sphere ImGui Renderer initialized")
         logger.info(f"Model path: {self.model_path}")
 
     def load_model(self) -> bool:
@@ -104,7 +105,11 @@ class EnergySphereImGuiRenderer:
         primitive = mesh.primitives[0]
 
         position_accessor_idx = primitive.attributes.POSITION
-        normal_accessor_idx = primitive.attributes.NORMAL if hasattr(primitive.attributes, 'NORMAL') else None
+        normal_accessor_idx = (
+            primitive.attributes.NORMAL
+            if hasattr(primitive.attributes, "NORMAL")
+            else None
+        )
         indices_accessor_idx = primitive.indices
 
         # Extract vertex positions
@@ -114,7 +119,10 @@ class EnergySphereImGuiRenderer:
         position_data = gltf.get_data_from_buffer_uri(position_buffer.uri)
 
         positions = np.frombuffer(
-            position_data[position_buffer_view.byteOffset : position_buffer_view.byteOffset + position_buffer_view.byteLength],
+            position_data[
+                position_buffer_view.byteOffset : position_buffer_view.byteOffset
+                + position_buffer_view.byteLength
+            ],
             dtype=np.float32,
         ).reshape(-1, 3)
         self.vertices = positions
@@ -127,7 +135,10 @@ class EnergySphereImGuiRenderer:
             normal_data = gltf.get_data_from_buffer_uri(normal_buffer.uri)
 
             normals = np.frombuffer(
-                normal_data[normal_buffer_view.byteOffset : normal_buffer_view.byteOffset + normal_buffer_view.byteLength],
+                normal_data[
+                    normal_buffer_view.byteOffset : normal_buffer_view.byteOffset
+                    + normal_buffer_view.byteLength
+                ],
                 dtype=np.float32,
             ).reshape(-1, 3)
             self.normals = normals
@@ -143,12 +154,17 @@ class EnergySphereImGuiRenderer:
 
             dtype = np.uint16 if indices_accessor.componentType == 5123 else np.uint32
             indices = np.frombuffer(
-                indices_data[indices_buffer_view.byteOffset : indices_buffer_view.byteOffset + indices_buffer_view.byteLength],
+                indices_data[
+                    indices_buffer_view.byteOffset : indices_buffer_view.byteOffset
+                    + indices_buffer_view.byteLength
+                ],
                 dtype=dtype,
             )
             self.indices = indices
 
-        logger.info(f"Mesh data: {len(self.vertices)} vertices, {len(self.indices) if self.indices is not None else 0} indices")
+        logger.info(
+            f"Mesh data: {len(self.vertices)} vertices, {len(self.indices) if self.indices is not None else 0} indices"
+        )
 
     def _generate_normals(self, vertices: np.ndarray) -> np.ndarray:
         """Generate normals for vertices (sphere normals point outward)."""
@@ -173,17 +189,21 @@ class EnergySphereImGuiRenderer:
             for j in range(segments):
                 first = i * (segments + 1) + j
                 second = first + segments + 1
-                indices.extend([first, second, first + 1, second, second + 1, first + 1])
+                indices.extend(
+                    [first, second, first + 1, second, second + 1, first + 1]
+                )
 
         self.vertices = np.array(vertices, dtype=np.float32)
         self.normals = np.array(normals, dtype=np.float32)
-        self.normals = self.normals / np.linalg.norm(self.normals, axis=1, keepdims=True)
+        self.normals = self.normals / np.linalg.norm(
+            self.normals, axis=1, keepdims=True
+        )
         self.indices = np.array(indices, dtype=np.uint32)
         logger.info(f"Created fallback sphere: {len(self.vertices)} vertices")
 
-    def update_animation(self, delta_time: Optional[float] = None):
+    def update_animation(self, delta_time: float | None = None):
         """Update animation time based on pulse_speed.
-        
+
         Args:
             delta_time: Time delta in seconds. If None, auto-calculates from last update.
         """
@@ -191,24 +211,26 @@ class EnergySphereImGuiRenderer:
             current_time = time.time()
             delta_time = current_time - self._last_update
             self._last_update = current_time
-        
+
         # Update animation time based on pulse speed
         self.animation_time += delta_time * self.pulse_speed
-    
-    def hue_to_rgb(self, hue: float, saturation: float = 1.0) -> Tuple[float, float, float]:
+
+    def hue_to_rgb(
+        self, hue: float, saturation: float = 1.0
+    ) -> tuple[float, float, float]:
         """Convert HSV to RGB (Value=1.0).
-        
+
         Args:
             hue: Hue value (0-1)
             saturation: Saturation (0-1)
-            
+
         Returns:
             RGB tuple (0-1 range)
         """
         hue = hue % 1.0
         h = hue * 6.0
         x = 1.0 - abs((h % 2.0) - 1.0)
-        
+
         if h < 1:
             r, g, b = 1, x, 0
         elif h < 2:
@@ -221,12 +243,12 @@ class EnergySphereImGuiRenderer:
             r, g, b = x, 0, 1
         else:
             r, g, b = 1, 0, x
-        
+
         # Apply saturation
         r = r * saturation + (1 - saturation)
         g = g * saturation + (1 - saturation)
         b = b * saturation + (1 - saturation)
-        
+
         return (r, g, b)
 
     def setup_gl(self):
@@ -242,7 +264,9 @@ class EnergySphereImGuiRenderer:
         # Create VBO for vertices
         self.vbo = gl.glGenBuffers(1)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, gl.GL_STATIC_DRAW)
+        gl.glBufferData(
+            gl.GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, gl.GL_STATIC_DRAW
+        )
         gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None)
         gl.glEnableVertexAttribArray(0)
 
@@ -250,7 +274,9 @@ class EnergySphereImGuiRenderer:
         if self.normals is not None:
             self.nbo = gl.glGenBuffers(1)
             gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.nbo)
-            gl.glBufferData(gl.GL_ARRAY_BUFFER, self.normals.nbytes, self.normals, gl.GL_STATIC_DRAW)
+            gl.glBufferData(
+                gl.GL_ARRAY_BUFFER, self.normals.nbytes, self.normals, gl.GL_STATIC_DRAW
+            )
             gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None)
             gl.glEnableVertexAttribArray(1)
 
@@ -258,7 +284,12 @@ class EnergySphereImGuiRenderer:
         if self.indices is not None:
             self.ebo = gl.glGenBuffers(1)
             gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ebo)
-            gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, gl.GL_STATIC_DRAW)
+            gl.glBufferData(
+                gl.GL_ELEMENT_ARRAY_BUFFER,
+                self.indices.nbytes,
+                self.indices,
+                gl.GL_STATIC_DRAW,
+            )
 
         gl.glBindVertexArray(0)
         self._create_shaders()
@@ -392,21 +423,23 @@ class EnergySphereImGuiRenderer:
         except Exception as e:
             logger.error(f"Shader creation failed: {e}")
 
-    def render(self,
-               center_x: float,
-               center_y: float,
-               radius: float,
-               window_width: int,
-               window_height: int,
-               audio_intensity: float = 0.0,
-               x_squeeze: float = 1.0,
-               y_squeeze: float = 1.0,
-               override_color: Optional[Tuple[float, float, float]] = None):
+    def render(
+        self,
+        center_x: float,
+        center_y: float,
+        radius: float,
+        window_width: int,
+        window_height: int,
+        audio_intensity: float = 0.0,
+        x_squeeze: float = 1.0,
+        y_squeeze: float = 1.0,
+        override_color: tuple[float, float, float] | None = None,
+    ):
         """Render the energy sphere with ImGui parameters.
 
         Args:
             center_x: Center X position in screen coordinates
-            center_y: Center Y position in screen coordinates  
+            center_y: Center Y position in screen coordinates
             radius: Base radius
             window_width: Window width
             window_height: Window height
@@ -432,15 +465,18 @@ class EnergySphereImGuiRenderer:
         # Model matrix with pulsing (row-major NumPy format, will be transposed by GL_TRUE)
         model = np.eye(4, dtype=np.float32)
         pulse = math.sin(self.animation_time * 2.0) * 0.5 + 0.5
-        scale_factor = radius * (1.0 + pulse * self.pulse_intensity * 0.3 + audio_intensity * 0.2)
+        scale_factor = radius * (
+            1.0 + pulse * self.pulse_intensity * 0.3 + audio_intensity * 0.2
+        )
 
         model[0, 0] = scale_factor * x_squeeze
         model[1, 1] = scale_factor * y_squeeze
         model[2, 2] = scale_factor
-        model[3, 0] = center_x  # Translation in row 3 (row-major, will transpose to column 3)
+        model[3, 0] = (
+            center_x  # Translation in row 3 (row-major, will transpose to column 3)
+        )
         model[3, 1] = center_y
         model[3, 2] = 0.0
-
 
         # View matrix
         view = np.eye(4, dtype=np.float32)
@@ -459,7 +495,6 @@ class EnergySphereImGuiRenderer:
         projection[1, 3] = -(top + bottom) / (top - bottom)
         projection[2, 3] = -(far + near) / (far - near)
 
-
         # Send matrices to shader (GL_TRUE = transpose from NumPy row-major to OpenGL column-major)
         model_loc = gl.glGetUniformLocation(self.shader_program, "model")
         view_loc = gl.glGetUniformLocation(self.shader_program, "view")
@@ -469,15 +504,39 @@ class EnergySphereImGuiRenderer:
         gl.glUniformMatrix4fv(proj_loc, 1, gl.GL_TRUE, projection)
 
         # Send ImGui parameters to shader
-        gl.glUniform1f(gl.glGetUniformLocation(self.shader_program, "animationTime"), self.animation_time)
-        gl.glUniform1f(gl.glGetUniformLocation(self.shader_program, "jiggleAmount"), self.jiggle_amount)
-        gl.glUniform1f(gl.glGetUniformLocation(self.shader_program, "glowStrength"), self.glow_strength)
-        gl.glUniform1f(gl.glGetUniformLocation(self.shader_program, "pulseIntensity"), self.pulse_intensity)
+        gl.glUniform1f(
+            gl.glGetUniformLocation(self.shader_program, "animationTime"),
+            self.animation_time,
+        )
+        gl.glUniform1f(
+            gl.glGetUniformLocation(self.shader_program, "jiggleAmount"),
+            self.jiggle_amount,
+        )
+        gl.glUniform1f(
+            gl.glGetUniformLocation(self.shader_program, "glowStrength"),
+            self.glow_strength,
+        )
+        gl.glUniform1f(
+            gl.glGetUniformLocation(self.shader_program, "pulseIntensity"),
+            self.pulse_intensity,
+        )
 
         # Send color and lighting
-        gl.glUniform3f(gl.glGetUniformLocation(self.shader_program, "objectColor"), *color)
-        gl.glUniform3f(gl.glGetUniformLocation(self.shader_program, "lightPos"), center_x, center_y - 100, 500.0)
-        gl.glUniform3f(gl.glGetUniformLocation(self.shader_program, "viewPos"), center_x, center_y, 500.0)
+        gl.glUniform3f(
+            gl.glGetUniformLocation(self.shader_program, "objectColor"), *color
+        )
+        gl.glUniform3f(
+            gl.glGetUniformLocation(self.shader_program, "lightPos"),
+            center_x,
+            center_y - 100,
+            500.0,
+        )
+        gl.glUniform3f(
+            gl.glGetUniformLocation(self.shader_program, "viewPos"),
+            center_x,
+            center_y,
+            500.0,
+        )
 
         # Enable rendering - DISABLE face culling to ensure all faces render
         gl.glDisable(gl.GL_CULL_FACE)
@@ -489,7 +548,9 @@ class EnergySphereImGuiRenderer:
         gl.glUseProgram(self.shader_program)
         gl.glBindVertexArray(self.vao)
         if self.indices is not None:
-            gl.glDrawElements(gl.GL_TRIANGLES, len(self.indices), gl.GL_UNSIGNED_INT, None)
+            gl.glDrawElements(
+                gl.GL_TRIANGLES, len(self.indices), gl.GL_UNSIGNED_INT, None
+            )
             # Check for OpenGL errors
             err = gl.glGetError()
             if err != gl.GL_NO_ERROR:

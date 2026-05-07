@@ -3,16 +3,19 @@ Command parser for intent extraction
 """
 
 # import logging - replaced with loguru
-from dataclasses import dataclass
-from typing import Optional, Any
-import yaml
 import json
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from champi_stt.assistant.commands.registry import CommandRegistry
-from champi_stt.assistant.commands.executor import CommandExecutor, CommandAction, ActionType
-
+import yaml
 from loguru import logger
+
+from champi_stt.assistant.commands.executor import (
+    ActionType,
+    CommandExecutor,
+)
+from champi_stt.assistant.commands.registry import CommandRegistry
 
 
 @dataclass
@@ -116,7 +119,9 @@ class CommandParser:
             timeout = action_config.get("timeout", 30)
 
             async def shell_handler(**kwargs):
-                return await self.executor.execute_shell(command, timeout=timeout, **kwargs)
+                return await self.executor.execute_shell(
+                    command, timeout=timeout, **kwargs
+                )
 
             return shell_handler
 
@@ -129,7 +134,12 @@ class CommandParser:
 
             async def api_handler(**kwargs):
                 return await self.executor.execute_api(
-                    url, method=method, headers=headers, data=data, timeout=timeout, **kwargs
+                    url,
+                    method=method,
+                    headers=headers,
+                    data=data,
+                    timeout=timeout,
+                    **kwargs,
                 )
 
             return api_handler

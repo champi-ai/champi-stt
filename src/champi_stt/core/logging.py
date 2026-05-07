@@ -4,10 +4,11 @@ Centralized logging configuration using loguru
 
 import sys
 from pathlib import Path
+
 from loguru import logger
 
-
 _logging_configured = False
+
 
 def configure_logging(
     level: str = "INFO",
@@ -85,7 +86,9 @@ def configure_logging(
                 frame = frame.f_back
                 depth += 1
 
-            logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+            logger.opt(depth=depth, exception=record.exc_info).log(
+                level, record.getMessage()
+            )
 
     # Configure standard logging to use our handler
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)

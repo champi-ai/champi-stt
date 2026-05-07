@@ -1,13 +1,12 @@
 """Tests for core provider functionality."""
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from champi_stt.core.base_config import BaseProviderConfig
 from champi_stt.core.base_provider import BaseSTTProvider
-from champi_stt.core.response import TranscriptionSegment, TranscriptionResponse
+from champi_stt.core.response import TranscriptionResponse, TranscriptionSegment
 
 
 class TestTranscriptionSegment:
@@ -29,17 +28,13 @@ class TestTranscriptionSegment:
 
     def test_segment_duration(self):
         """Test calculating segment duration."""
-        segment = TranscriptionSegment(
-            text="test", start=1.0, end=3.5, confidence=0.9
-        )
+        segment = TranscriptionSegment(text="test", start=1.0, end=3.5, confidence=0.9)
 
         assert segment.duration == 2.5
 
     def test_segment_words_optional(self):
         """Test that words field is optional."""
-        segment = TranscriptionSegment(
-            text="test", start=0.0, end=1.0, confidence=0.9
-        )
+        segment = TranscriptionSegment(text="test", start=0.0, end=1.0, confidence=0.9)
 
         assert segment.words is None
 
@@ -143,9 +138,7 @@ class ConcreteProvider(BaseSTTProvider):
 
     async def transcribe_stream(self, audio_stream, **kwargs):
         """Mock stream transcribe."""
-        yield TranscriptionResponse(
-            text="stream test", language="en", segments=[]
-        )
+        yield TranscriptionResponse(text="stream test", language="en", segments=[])
 
 
 class TestBaseSTTProvider:

@@ -66,7 +66,10 @@ class TestTranscribeCommand:
         result = runner.invoke(cli, ["transcribe", "nonexistent.wav"])
 
         assert result.exit_code != 0
-        assert "does not exist" in result.output.lower() or "error" in result.output.lower()
+        assert (
+            "does not exist" in result.output.lower()
+            or "error" in result.output.lower()
+        )
 
     def test_transcribe_success_text_format(self, sample_audio_file: Path):
         """Test successful transcription with text format."""
@@ -269,9 +272,10 @@ class TestCommand:
 
         mock_audio = MagicMock()
 
-        with patch("champi_stt.get_provider") as mock_get, patch(
-            "champi_stt.core.audio.record_audio"
-        ) as mock_record:
+        with (
+            patch("champi_stt.get_provider") as mock_get,
+            patch("champi_stt.core.audio.record_audio") as mock_record,
+        ):
             mock_get.return_value = mock_provider
             mock_record.return_value = mock_audio
 

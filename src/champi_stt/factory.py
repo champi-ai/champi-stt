@@ -4,8 +4,8 @@ Provider factory for creating STT providers
 
 from typing import Literal
 
-from champi_stt.core.base_provider import BaseSTTProvider
 from champi_stt.core.base_config import BaseSTTConfig
+from champi_stt.core.base_provider import BaseSTTProvider
 
 # Type for supported providers
 ProviderType = Literal["whisperlive"]  # Will add "openai", "deepgram", etc.
@@ -14,7 +14,7 @@ ProviderType = Literal["whisperlive"]  # Will add "openai", "deepgram", etc.
 def get_provider(
     provider_type: ProviderType = "whisperlive",
     config: BaseSTTConfig | None = None,
-    **config_kwargs
+    **config_kwargs,
 ) -> BaseSTTProvider:
     """
     Factory function to create STT providers.
@@ -68,8 +68,7 @@ def get_provider(
 
     else:
         raise ValueError(
-            f"Unknown provider type: {provider_type}. "
-            f"Supported providers: whisperlive"
+            f"Unknown provider type: {provider_type}. Supported providers: whisperlive"
         )
 
 

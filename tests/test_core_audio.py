@@ -6,8 +6,8 @@ import pytest
 from champi_stt.core.audio import (
     AudioCapture,
     AudioFormat,
-    resample_audio,
     normalize_audio,
+    resample_audio,
 )
 
 
@@ -99,8 +99,8 @@ class TestAudioCapture:
         capture = AudioCapture()
 
         # Mock the audio stream
-        mocker.patch.object(capture, '_open_stream')
-        mocker.patch.object(capture, '_close_stream')
+        mocker.patch.object(capture, "_open_stream")
+        mocker.patch.object(capture, "_close_stream")
 
         async with capture:
             assert capture.is_recording

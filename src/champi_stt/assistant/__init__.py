@@ -134,10 +134,10 @@ from champi_stt.assistant.ipc import (
 from champi_stt.assistant.speaker import SpeakerIdentifier, SpeakerProfile
 
 __all__ = [
+    "AssistantSharedMemoryManager",
+    "AssistantSignalManager",
+    "AssistantSignalProcessor",
+    "AssistantSignalType",
     "SpeakerIdentifier",
     "SpeakerProfile",
-    "AssistantSignalManager",
-    "AssistantSignalType",
-    "AssistantSharedMemoryManager",
-    "AssistantSignalProcessor",
 ]

@@ -1,7 +1,8 @@
 """Tests for IPC shared memory manager."""
 
-import pytest
 from multiprocessing import shared_memory
+
+import pytest
 
 from champi_stt.assistant.ipc import (
     AssistantSharedMemoryManager,
@@ -9,18 +10,18 @@ from champi_stt.assistant.ipc import (
     cleanup_orphaned_regions,
 )
 from champi_stt.assistant.ipc.structs import (
-    pack_wake_detected,
-    pack_state_change,
-    pack_recording,
-    pack_transcribing,
-    pack_executing,
     pack_error,
-    unpack_wake_detected,
-    unpack_state_change,
-    unpack_recording,
-    unpack_transcribing,
-    unpack_executing,
+    pack_executing,
+    pack_recording,
+    pack_state_change,
+    pack_transcribing,
+    pack_wake_detected,
     unpack_error,
+    unpack_executing,
+    unpack_recording,
+    unpack_state_change,
+    unpack_transcribing,
+    unpack_wake_detected,
 )
 
 
@@ -72,7 +73,7 @@ class TestSharedMemoryManager:
 
         finally:
             consumer.cleanup()  # Close only
-            creator.cleanup()   # Unlink
+            creator.cleanup()  # Unlink
 
     def test_write_and_read_signal(self):
         """Test writing and reading signals."""
@@ -131,31 +132,43 @@ class TestSharedMemoryManager:
             # Test STATE_CHANGE
             state_data = pack_state_change(seq_num=1, state="recording")
             mgr.write_signal(AssistantSignalType.STATE_CHANGE, state_data)
-            unpacked_state = unpack_state_change(mgr.read_signal(AssistantSignalType.STATE_CHANGE))
+            unpacked_state = unpack_state_change(
+                mgr.read_signal(AssistantSignalType.STATE_CHANGE)
+            )
             assert unpacked_state["state"] == "recording"
 
             # Test RECORDING
             rec_data = pack_recording(seq_num=2, duration=5.5, is_active=True)
             mgr.write_signal(AssistantSignalType.RECORDING, rec_data)
-            unpacked_rec = unpack_recording(mgr.read_signal(AssistantSignalType.RECORDING))
+            unpacked_rec = unpack_recording(
+                mgr.read_signal(AssistantSignalType.RECORDING)
+            )
             assert unpacked_rec["duration"] == pytest.approx(5.5)
             assert unpacked_rec["is_active"] is True
 
             # Test TRANSCRIBING
-            trans_data = pack_transcribing(seq_num=3, partial_text="hello world", is_final=False)
+            trans_data = pack_transcribing(
+                seq_num=3, partial_text="hello world", is_final=False
+            )
             mgr.write_signal(AssistantSignalType.TRANSCRIBING, trans_data)
-            unpacked_trans = unpack_transcribing(mgr.read_signal(AssistantSignalType.TRANSCRIBING))
+            unpacked_trans = unpack_transcribing(
+                mgr.read_signal(AssistantSignalType.TRANSCRIBING)
+            )
             assert unpacked_trans["partial_text"] == "hello world"
             assert unpacked_trans["is_final"] is False
 
             # Test EXECUTING
             exec_data = pack_executing(seq_num=4, command="turn on lights")
             mgr.write_signal(AssistantSignalType.EXECUTING, exec_data)
-            unpacked_exec = unpack_executing(mgr.read_signal(AssistantSignalType.EXECUTING))
+            unpacked_exec = unpack_executing(
+                mgr.read_signal(AssistantSignalType.EXECUTING)
+            )
             assert unpacked_exec["command"] == "turn on lights"
 
             # Test ERROR
-            error_data = pack_error(seq_num=5, error_message="Connection failed", error_type="network")
+            error_data = pack_error(
+                seq_num=5, error_message="Connection failed", error_type="network"
+            )
             mgr.write_signal(AssistantSignalType.ERROR, error_data)
             unpacked_error = unpack_error(mgr.read_signal(AssistantSignalType.ERROR))
             assert unpacked_error["error_message"] == "Connection failed"
@@ -244,7 +257,9 @@ class TestEdgeCases:
             data = pack_wake_detected(seq_num=1, wake_word=long_word)
             mgr.write_signal(AssistantSignalType.WAKE_DETECTED, data)
 
-            unpacked = unpack_wake_detected(mgr.read_signal(AssistantSignalType.WAKE_DETECTED))
+            unpacked = unpack_wake_detected(
+                mgr.read_signal(AssistantSignalType.WAKE_DETECTED)
+            )
             # Should be truncated to MAX_WAKE_WORD_SIZE (64 bytes)
             assert len(unpacked["wake_word"]) <= 64
 

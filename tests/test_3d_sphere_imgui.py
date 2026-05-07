@@ -13,14 +13,16 @@ custom ImGui-controllable parameters:
 """
 
 import time
-import math
+
 import glfw
-import OpenGL.GL as gl
+import OpenGL.GL as gl  # noqa: N811
 from imgui_bundle import imgui
 from imgui_bundle.python_backends import glfw_backend
 from loguru import logger
 
-from champi_stt.assistant.ui.energy_sphere_renderer_imgui import EnergySphereImGuiRenderer
+from champi_stt.assistant.ui.energy_sphere_renderer_imgui import (
+    EnergySphereImGuiRenderer,
+)
 
 
 def main():
@@ -38,7 +40,7 @@ def main():
         800,
         "Energy Sphere - ImGui Integration Test",
         None,  # No monitor = windowed mode
-        None
+        None,
     )
     if not window:
         glfw.terminate()
@@ -112,6 +114,7 @@ def main():
         except Exception as e:
             logger.error(f"Render failed: {e}")
             import traceback
+
             logger.error(traceback.format_exc())
             break
 
@@ -123,18 +126,24 @@ def main():
             imgui.set_next_window_pos(imgui.ImVec2(20, 20))
             imgui.set_next_window_size(imgui.ImVec2(400, 550))
             if imgui.begin("⚡ Energy Sphere Controls", p_open=None):
-                imgui.text_colored(imgui.ImVec4(0.2, 0.8, 1.0, 1.0), "ImGui Integration Demo")
+                imgui.text_colored(
+                    imgui.ImVec4(0.2, 0.8, 1.0, 1.0), "ImGui Integration Demo"
+                )
                 imgui.separator()
 
                 # Animation section
                 imgui.text_colored(imgui.ImVec4(1.0, 1.0, 0.2, 1.0), "🎬 Animation")
                 imgui.text(f"Time: {sphere_renderer.animation_time:.2f}s")
-                
-                changed, value = imgui.slider_float("Pulse Speed", sphere_renderer.pulse_speed, 0.0, 5.0)
+
+                changed, value = imgui.slider_float(
+                    "Pulse Speed", sphere_renderer.pulse_speed, 0.0, 5.0
+                )
                 if changed:
                     sphere_renderer.pulse_speed = value
-                
-                changed, value = imgui.slider_float("Pulse Intensity", sphere_renderer.pulse_intensity, 0.0, 2.0)
+
+                changed, value = imgui.slider_float(
+                    "Pulse Intensity", sphere_renderer.pulse_intensity, 0.0, 2.0
+                )
                 if changed:
                     sphere_renderer.pulse_intensity = value
 
@@ -142,22 +151,32 @@ def main():
 
                 # Color section
                 imgui.text_colored(imgui.ImVec4(1.0, 0.5, 1.0, 1.0), "🎨 Color")
-                
-                changed, auto_color_cycle = imgui.checkbox("Auto Color Cycle", auto_color_cycle)
-                
+
+                changed, auto_color_cycle = imgui.checkbox(
+                    "Auto Color Cycle", auto_color_cycle
+                )
+
                 if not auto_color_cycle:
-                    changed, value = imgui.slider_float("Hue", sphere_renderer.color_hue, 0.0, 1.0)
+                    changed, value = imgui.slider_float(
+                        "Hue", sphere_renderer.color_hue, 0.0, 1.0
+                    )
                     if changed:
                         sphere_renderer.color_hue = value
-                
-                changed, value = imgui.slider_float("Saturation", sphere_renderer.color_saturation, 0.0, 1.0)
+
+                changed, value = imgui.slider_float(
+                    "Saturation", sphere_renderer.color_saturation, 0.0, 1.0
+                )
                 if changed:
                     sphere_renderer.color_saturation = value
 
                 # Show current color
-                current_color = sphere_renderer.hue_to_rgb(sphere_renderer.color_hue, sphere_renderer.color_saturation)
-                imgui.text(f"RGB: ({current_color[0]:.2f}, {current_color[1]:.2f}, {current_color[2]:.2f})")
-                
+                current_color = sphere_renderer.hue_to_rgb(
+                    sphere_renderer.color_hue, sphere_renderer.color_saturation
+                )
+                imgui.text(
+                    f"RGB: ({current_color[0]:.2f}, {current_color[1]:.2f}, {current_color[2]:.2f})"
+                )
+
                 # Color presets
                 if imgui.button("🔵 Blue"):
                     sphere_renderer.color_hue = 0.66
@@ -172,16 +191,22 @@ def main():
 
                 # Effects section
                 imgui.text_colored(imgui.ImVec4(0.2, 1.0, 0.5, 1.0), "✨ Effects")
-                
-                changed, value = imgui.slider_float("Glow Strength", sphere_renderer.glow_strength, 0.0, 10.0)
+
+                changed, value = imgui.slider_float(
+                    "Glow Strength", sphere_renderer.glow_strength, 0.0, 10.0
+                )
                 if changed:
                     sphere_renderer.glow_strength = value
-                
-                changed, value = imgui.slider_float("Jiggle Amount", sphere_renderer.jiggle_amount, 0.0, 1.0)
+
+                changed, value = imgui.slider_float(
+                    "Jiggle Amount", sphere_renderer.jiggle_amount, 0.0, 1.0
+                )
                 if changed:
                     sphere_renderer.jiggle_amount = value
-                
-                changed, value = imgui.slider_float("Audio Intensity", audio_intensity_sim, 0.0, 1.0)
+
+                changed, value = imgui.slider_float(
+                    "Audio Intensity", audio_intensity_sim, 0.0, 1.0
+                )
                 if changed:
                     audio_intensity_sim = value
 
@@ -189,20 +214,20 @@ def main():
 
                 # Presets
                 imgui.text_colored(imgui.ImVec4(1.0, 0.8, 0.2, 1.0), "🎯 Presets")
-                
+
                 if imgui.button("⚡ High Energy"):
                     sphere_renderer.pulse_speed = 3.0
                     sphere_renderer.pulse_intensity = 1.5
                     sphere_renderer.glow_strength = 8.0
                     sphere_renderer.jiggle_amount = 0.3
-                
+
                 imgui.same_line()
                 if imgui.button("😌 Calm"):
                     sphere_renderer.pulse_speed = 0.5
                     sphere_renderer.pulse_intensity = 0.3
                     sphere_renderer.glow_strength = 2.0
                     sphere_renderer.jiggle_amount = 0.0
-                
+
                 imgui.same_line()
                 if imgui.button("🔄 Reset"):
                     sphere_renderer.pulse_speed = 1.0
@@ -213,8 +238,12 @@ def main():
                     sphere_renderer.jiggle_amount = 0.0
 
                 imgui.separator()
-                imgui.text_colored(imgui.ImVec4(0.5, 0.5, 0.5, 1.0), "Press C to toggle this panel")
-                imgui.text_colored(imgui.ImVec4(0.5, 0.5, 0.5, 1.0), "Press ESC to exit")
+                imgui.text_colored(
+                    imgui.ImVec4(0.5, 0.5, 0.5, 1.0), "Press C to toggle this panel"
+                )
+                imgui.text_colored(
+                    imgui.ImVec4(0.5, 0.5, 0.5, 1.0), "Press ESC to exit"
+                )
 
             imgui.end()
 
@@ -222,8 +251,12 @@ def main():
         imgui.set_next_window_pos(imgui.ImVec2(width - 220, 20))
         imgui.set_next_window_size(imgui.ImVec2(200, 100))
         imgui.set_next_window_bg_alpha(0.7)
-        if imgui.begin("Info", p_open=None, flags=imgui.WindowFlags_.no_resize | imgui.WindowFlags_.no_title_bar):
-            imgui.text(f"FPS: ~60")
+        if imgui.begin(
+            "Info",
+            p_open=None,
+            flags=imgui.WindowFlags_.no_resize | imgui.WindowFlags_.no_title_bar,
+        ):
+            imgui.text("FPS: ~60")
             imgui.text(f"Window: {width}x{height}")
             imgui.text(f"Center: ({center_x:.0f}, {center_y:.0f})")
             imgui.text(f"Radius: {radius}")
@@ -233,7 +266,7 @@ def main():
         impl.render(imgui.get_draw_data())
 
         glfw.swap_buffers(window)
-        time.sleep(1/60)  # 60 FPS
+        time.sleep(1 / 60)  # 60 FPS
 
     # Cleanup
     logger.info("Cleaning up...")

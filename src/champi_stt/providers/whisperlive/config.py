@@ -4,12 +4,15 @@ WhisperLive STT Configuration
 
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from loguru import logger
 
-from champi_stt.providers.whisperlive.enums import DeviceType, ComputeType, ModelSize, AudioFormat
+from champi_stt.providers.whisperlive.enums import (
+    AudioFormat,
+    ModelSize,
+)
 
 
 @dataclass
@@ -57,11 +60,11 @@ class WhisperLiveConfig:
 
     # Cache
     cache_dir: str = "/mnt/raid_0_drive/mcp_projs/champi/mcp_champi/whisper_cache"
-    
+
     # Event system configuration
     enable_events: bool = True
     event_emit_interval: float = 1.0  # Interval for periodic event emission
-    
+
     # Transcription saving
     save_transcriptions: bool = False
     transcriptions_dir: str = "~/.cache/mcp-champi/transcriptions"
@@ -76,46 +79,56 @@ class WhisperLiveConfig:
         if self.model_size not in ModelSize.get_all_sizes():
             logger.warning(f"Unknown model size: {self.model_size}, using 'large-v3'")
             self.model_size = "large-v3"
-        
+
         # Validate language for English-only models
         if self.is_english_only_model() and self.language and self.language != "en":
-            logger.warning(f"Model {self.model_size} only supports English, setting language to 'en'")
+            logger.warning(
+                f"Model {self.model_size} only supports English, setting language to 'en'"
+            )
             self.language = "en"
-        
+
         # Validate task
         valid_tasks = ["transcribe", "translate"]
         if self.task not in valid_tasks:
             logger.warning(f"Invalid task: {self.task}, using 'transcribe'")
             self.task = "transcribe"
-        
+
         # Validate temperature
         if not (0.0 <= self.temperature <= 1.0):
-            logger.warning(f"Temperature must be between 0.0 and 1.0: {self.temperature}, using 0.0")
+            logger.warning(
+                f"Temperature must be between 0.0 and 1.0: {self.temperature}, using 0.0"
+            )
             self.temperature = 0.0
-        
+
         # Validate beam size
         if self.beam_size < 1:
             logger.warning(f"Beam size must be >= 1: {self.beam_size}, using 5")
             self.beam_size = 5
-        
+
         # Validate batch size
         if self.batch_size < 1:
             logger.warning(f"Batch size must be >= 1: {self.batch_size}, using 8")
             self.batch_size = 8
-        
+
         # Validate VAD aggressiveness
         if not (0.0 <= self.vad_aggressiveness <= 3.0):
-            logger.warning(f"VAD aggressiveness must be between 0.0 and 3.0: {self.vad_aggressiveness}, using 2.0")
+            logger.warning(
+                f"VAD aggressiveness must be between 0.0 and 3.0: {self.vad_aggressiveness}, using 2.0"
+            )
             self.vad_aggressiveness = 2.0
-        
+
         # Validate silence threshold
         if self.silence_threshold_ms < 100:
-            logger.warning(f"Silence threshold too low: {self.silence_threshold_ms}ms, using 800ms")
+            logger.warning(
+                f"Silence threshold too low: {self.silence_threshold_ms}ms, using 800ms"
+            )
             self.silence_threshold_ms = 800
-        
+
         # Validate minimum recording duration
         if self.min_recording_duration < 0.1:
-            logger.warning(f"Minimum recording duration too low: {self.min_recording_duration}s, using 0.3s")
+            logger.warning(
+                f"Minimum recording duration too low: {self.min_recording_duration}s, using 0.3s"
+            )
             self.min_recording_duration = 0.3
 
     @classmethod
@@ -156,7 +169,7 @@ class WhisperLiveConfig:
     def from_env(cls) -> "WhisperLiveConfig":
         """Create configuration from environment variables"""
         config = cls()
-        
+
         # Model settings
         if env_value := os.environ.get("WHISPERLIVE_MODEL"):
             config.model_size = env_value
@@ -178,7 +191,7 @@ class WhisperLiveConfig:
 
         # Audio processing
         if env_value := os.environ.get("WHISPERLIVE_DISABLE_VAD"):
-            config.vad_filter = not (env_value.lower() in ["true", "1", "yes", "on"])
+            config.vad_filter = env_value.lower() not in ["true", "1", "yes", "on"]
         if env_value := os.environ.get("WHISPERLIVE_WORD_TIMESTAMPS"):
             config.word_timestamps = env_value.lower() in ["true", "1", "yes", "on"]
 
@@ -195,7 +208,12 @@ class WhisperLiveConfig:
 
         # Silence detection settings
         if env_value := os.environ.get("CHAMPI_DISABLE_SILENCE_DETECTION"):
-            config.disable_silence_detection = env_value.lower() in ["true", "1", "yes", "on"]
+            config.disable_silence_detection = env_value.lower() in [
+                "true",
+                "1",
+                "yes",
+                "on",
+            ]
         if env_value := os.environ.get("CHAMPI_SILENCE_THRESHOLD_MS"):
             try:
                 config.silence_threshold_ms = int(env_value)
@@ -205,7 +223,9 @@ class WhisperLiveConfig:
             try:
                 config.min_recording_duration = float(env_value)
             except (ValueError, TypeError) as e:
-                logger.warning(f"Invalid CHAMPI_MIN_RECORDING_DURATION={env_value}: {e}")
+                logger.warning(
+                    f"Invalid CHAMPI_MIN_RECORDING_DURATION={env_value}: {e}"
+                )
         if env_value := os.environ.get("CHAMPI_VAD_AGGRESSIVENESS"):
             try:
                 config.vad_aggressiveness = float(env_value)
@@ -220,7 +240,9 @@ class WhisperLiveConfig:
             try:
                 config.initial_silence_grace_period = float(env_value)
             except (ValueError, TypeError) as e:
-                logger.warning(f"Invalid CHAMPI_INITIAL_SILENCE_GRACE_PERIOD={env_value}: {e}")
+                logger.warning(
+                    f"Invalid CHAMPI_INITIAL_SILENCE_GRACE_PERIOD={env_value}: {e}"
+                )
 
         # Performance
         if env_value := os.environ.get("WHISPERLIVE_BEAM_SIZE"):
@@ -292,6 +314,7 @@ class WhisperLiveConfig:
             return "cpu"
         try:
             import torch
+
             if torch.cuda.is_available():
                 return "cuda"
             elif torch.backends.mps.is_available():

@@ -1,9 +1,7 @@
 """Tests for IPC signal processor."""
 
 import time
-from unittest.mock import MagicMock
 
-import pytest
 from blinker import Signal
 
 from champi_stt.assistant.ipc import (
@@ -11,7 +9,7 @@ from champi_stt.assistant.ipc import (
     AssistantSignalProcessor,
     AssistantSignalType,
 )
-from champi_stt.assistant.ipc.structs import unpack_wake_detected, unpack_state_change
+from champi_stt.assistant.ipc.structs import unpack_state_change, unpack_wake_detected
 
 
 class TestSignalProcessor:
@@ -38,7 +36,7 @@ class TestSignalProcessor:
         processor.connect_signal(
             test_signal,
             AssistantSignalType.WAKE_DETECTED,
-            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
         )
 
         assert len(processor.connected_signals) == 1
@@ -52,7 +50,7 @@ class TestSignalProcessor:
         processor.connect_signal(
             test_signal,
             AssistantSignalType.WAKE_DETECTED,
-            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
         )
 
         # Emit signal
@@ -62,7 +60,7 @@ class TestSignalProcessor:
         assert processor.queue.size() == 1
 
         # Get from queue
-        signal_type, seq_num, data = processor.queue.get()
+        signal_type, _seq_num, data = processor.queue.get()
         assert signal_type == AssistantSignalType.WAKE_DETECTED
         assert data["wake_word"] == "hey_jarvis"
 
@@ -75,7 +73,7 @@ class TestSignalProcessor:
         processor.connect_signal(
             test_signal,
             AssistantSignalType.WAKE_DETECTED,
-            data_mapper=lambda **kw: None  # Always return None
+            data_mapper=lambda **kw: None,  # Always return None
         )
 
         # Emit signal
@@ -114,7 +112,7 @@ class TestSignalProcessor:
             processor.connect_signal(
                 test_signal,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
             )
 
             # Start processor
@@ -152,13 +150,13 @@ class TestSignalProcessor:
             processor.connect_signal(
                 wake_signal,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
             )
 
             processor.connect_signal(
                 state_signal,
                 AssistantSignalType.STATE_CHANGE,
-                data_mapper=lambda **kw: {"state": kw.get("state", "")}
+                data_mapper=lambda **kw: {"state": kw.get("state", "")},
             )
 
             processor.start()
@@ -171,8 +169,12 @@ class TestSignalProcessor:
             time.sleep(0.1)
 
             # Read both
-            wake_data = unpack_wake_detected(mgr.read_signal(AssistantSignalType.WAKE_DETECTED))
-            state_data = unpack_state_change(mgr.read_signal(AssistantSignalType.STATE_CHANGE))
+            wake_data = unpack_wake_detected(
+                mgr.read_signal(AssistantSignalType.WAKE_DETECTED)
+            )
+            state_data = unpack_state_change(
+                mgr.read_signal(AssistantSignalType.STATE_CHANGE)
+            )
 
             assert wake_data["wake_word"] == "jarvis"
             assert state_data["state"] == "recording"
@@ -191,7 +193,7 @@ class TestSignalProcessor:
         processor.connect_signal(
             test_signal,
             AssistantSignalType.WAKE_DETECTED,
-            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
         )
 
         # Fill queue beyond capacity
@@ -213,7 +215,7 @@ class TestSignalProcessor:
             processor.connect_signal(
                 test_signal,
                 AssistantSignalType.WAKE_DETECTED,
-                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+                data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
             )
 
             processor.start()
@@ -243,15 +245,13 @@ class TestEdgeCases:
 
         test_signal = Signal()
         processor.connect_signal(
-            test_signal,
-            AssistantSignalType.WAKE_DETECTED,
-            data_mapper=None
+            test_signal, AssistantSignalType.WAKE_DETECTED, data_mapper=None
         )
 
         # Should use raw kwargs
         test_signal.send(wake_word="test", other="data")
 
-        signal_type, seq_num, data = processor.queue.get()
+        _signal_type, _seq_num, data = processor.queue.get()
         assert data["wake_word"] == "test"
         assert data["other"] == "data"
 
@@ -264,7 +264,7 @@ class TestEdgeCases:
         processor.connect_signal(
             test_signal,
             AssistantSignalType.WAKE_DETECTED,
-            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")}
+            data_mapper=lambda **kw: {"wake_word": kw.get("wake_word", "")},
         )
 
         # Start and stop

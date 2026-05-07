@@ -5,12 +5,12 @@ Provides standardized response formatting across different providers.
 """
 
 from typing import Any
+
 from loguru import logger
 
 
 def format_response(
-    result: dict[str, Any],
-    response_format: str
+    result: dict[str, Any], response_format: str
 ) -> str | dict[str, Any]:
     """
     Format transcription response based on requested format.
@@ -42,7 +42,9 @@ def format_response(
 
     else:
         # Unknown format, return raw result
-        logger.warning(f"Unknown response_format '{response_format}', returning raw result")
+        logger.warning(
+            f"Unknown response_format '{response_format}', returning raw result"
+        )
         return result
 
 
@@ -77,9 +79,7 @@ def format_verbose_json(result: dict[str, Any]) -> dict[str, Any]:
 
     # Add segments if available
     if "segments" in result:
-        verbose["segments"] = [
-            format_segment(seg) for seg in result["segments"]
-        ]
+        verbose["segments"] = [format_segment(seg) for seg in result["segments"]]
 
     return verbose
 
@@ -120,8 +120,7 @@ def format_segment(segment: dict[str, Any]) -> dict[str, Any]:
 
 
 def standardize_provider_response(
-    provider_result: Any,
-    provider_name: str
+    provider_result: Any, provider_name: str
 ) -> dict[str, Any]:
     """
     Standardize different provider responses to a common format.
@@ -140,15 +139,12 @@ def standardize_provider_response(
         # WhisperLive already returns dict format
         return provider_result
 
-    elif provider_name == "openai":
-        # OpenAI Whisper API returns different format
-        # This is a placeholder for future implementation
-        if isinstance(provider_result, dict):
-            return {
-                "text": provider_result.get("text", ""),
-                "language": provider_result.get("language", "unknown"),
-                "duration": provider_result.get("duration", 0.0),
-            }
+    if provider_name == "openai" and isinstance(provider_result, dict):
+        return {
+            "text": provider_result.get("text", ""),
+            "language": provider_result.get("language", "unknown"),
+            "duration": provider_result.get("duration", 0.0),
+        }
 
     # Default: return as-is if dict, wrap if string
     if isinstance(provider_result, str):

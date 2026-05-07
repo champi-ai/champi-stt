@@ -125,9 +125,15 @@ class TestConfigurationLoading:
             assert loaded_config.stt_provider == original_config.stt_provider
             assert loaded_config.wakeword_engine == original_config.wakeword_engine
             assert loaded_config.wakeword_keywords == original_config.wakeword_keywords
-            assert loaded_config.wakeword_sensitivity == original_config.wakeword_sensitivity
+            assert (
+                loaded_config.wakeword_sensitivity
+                == original_config.wakeword_sensitivity
+            )
             assert loaded_config.continuous_mode == original_config.continuous_mode
-            assert loaded_config.max_recording_duration == original_config.max_recording_duration
+            assert (
+                loaded_config.max_recording_duration
+                == original_config.max_recording_duration
+            )
             assert loaded_config.ipc_memory_prefix == original_config.ipc_memory_prefix
             assert loaded_config.ipc_ui_window_x == original_config.ipc_ui_window_x
             assert loaded_config.ipc_ui_window_y == original_config.ipc_ui_window_y

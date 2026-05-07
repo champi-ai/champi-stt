@@ -1,7 +1,8 @@
 """Signal processor for assistant IPC - blinker to shared memory bridge."""
 
 import threading
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from blinker import Signal
 from loguru import logger
@@ -11,7 +12,7 @@ from .signal_queue import SignalQueue
 from .structs import AssistantSignalType, pack_signal
 
 # Type alias for data mapper functions
-DataMapper = Callable[..., Optional[dict[str, Any]]]
+DataMapper = Callable[..., dict[str, Any] | None]
 
 
 class AssistantSignalProcessor:
@@ -26,7 +27,7 @@ class AssistantSignalProcessor:
         self.memory_manager = memory_manager
         self.queue = SignalQueue(maxsize=100)
         self.running = False
-        self.processor_thread: Optional[threading.Thread] = None
+        self.processor_thread: threading.Thread | None = None
 
         # Track connected signals
         self.connected_signals: list[tuple[Signal, Callable]] = []
@@ -35,7 +36,7 @@ class AssistantSignalProcessor:
         self,
         signal: Signal,
         signal_type: AssistantSignalType,
-        data_mapper: Optional[DataMapper] = None,
+        data_mapper: DataMapper | None = None,
     ) -> None:
         """Connect a blinker signal to the processor.
 
@@ -124,7 +125,9 @@ class AssistantSignalProcessor:
                     logger.error(f"Failed to read ACK for {item.signal_type.name}: {e}")
                     ack_seq = 0  # Assume no ACK
 
-                expected_ack = item.seq_num - 1  # Reader should have ACKed previous signal
+                expected_ack = (
+                    item.seq_num - 1
+                )  # Reader should have ACKed previous signal
 
                 if ack_seq < expected_ack:
                     # Reader hasn't processed previous signal yet - potential signal loss
@@ -144,7 +147,9 @@ class AssistantSignalProcessor:
 
                 # Pack signal data into binary struct
                 try:
-                    packed_data = pack_signal(item.signal_type, item.seq_num, **item.data)
+                    packed_data = pack_signal(
+                        item.signal_type, item.seq_num, **item.data
+                    )
                 except (ValueError, KeyError, TypeError) as e:
                     logger.error(
                         f"Failed to pack signal {item.signal_type.name} (seq: {item.seq_num}): {e}. "
@@ -167,7 +172,7 @@ class AssistantSignalProcessor:
             except Exception as e:
                 logger.error(
                     f"Unexpected error processing signal {item.signal_type.name}: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 consecutive_errors += 1
                 if consecutive_errors >= max_consecutive_errors:

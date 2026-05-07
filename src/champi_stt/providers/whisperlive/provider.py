@@ -10,33 +10,37 @@ and no global state.
 import asyncio
 import contextlib
 import dataclasses
+
 # import logging - replaced with loguru
 import queue
 import tempfile
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import sounddevice as sd
+from champi_signals import EventProcessor
+from scipy import signal
 
 from champi_stt.providers.whisperlive.config import WhisperLiveConfig
-from champi_stt.providers.whisperlive.transcriber import WhisperLiveTranscriber
 from champi_stt.providers.whisperlive.enums import (
-    LifecycleEvents, ProcessingEvents, AudioFormat, ResponseFormat,
-    LoggingStrings, WhisperStrings, TaskType
+    LifecycleEvents,
+    LoggingStrings,
+    ResponseFormat,
+    TaskType,
+    WhisperStrings,
 )
 from champi_stt.providers.whisperlive.events import STTSignalManager
 from champi_stt.providers.whisperlive.exceptions import (
-    WhisperInitializationError,
     WhisperFileError,
-    WhisperAudioError,
-    WhisperTranscriptionError,
+    WhisperInitializationError,
 )
-from champi_signals import EventProcessor
-from scipy import signal
+from champi_stt.providers.whisperlive.transcriber import WhisperLiveTranscriber
+
 # Optional webrtcvad for silence detection
 try:
     import webrtcvad
+
     VAD_AVAILABLE = True
 except ImportError:
     webrtcvad = None
@@ -79,6 +83,7 @@ class WhisperLiveSTTProvider:
 
         # Configure logging with config level
         from champi_stt.core.logging import configure_logging
+
         configure_logging(level=self.config.log_level, log_file=self.config.log_file)
         # Note: Directory validation moved to initialize() method
 
@@ -86,14 +91,18 @@ class WhisperLiveSTTProvider:
         self._initialized = False
         self._stt_status: LifecycleEvents = LifecycleEvents.UNINITIALIZED.value
 
-        logger.debug(f"WhisperLive STT provider created with model: {self.config.model_size}")
-    
+        logger.debug(
+            f"WhisperLive STT provider created with model: {self.config.model_size}"
+        )
+
     class Meta:
-        event_type = 'lifecycle'
+        event_type = "lifecycle"
         signal_manager = STTSignalManager()
 
     @classmethod
-    async def get_instance(cls, _logger=None, config: WhisperLiveConfig | None = None) -> "WhisperLiveSTTProvider":
+    async def get_instance(
+        cls, _logger=None, config: WhisperLiveConfig | None = None
+    ) -> "WhisperLiveSTTProvider":
         """Get singleton instance"""
         return cls(_logger=_logger, config=config)
 
@@ -111,7 +120,7 @@ class WhisperLiveSTTProvider:
                 self,
                 event_type="lifecycle",
                 sub_event="initialization_start",
-                data={"model_size": self.config.model_size}
+                data={"model_size": self.config.model_size},
             )
 
             # 1. Validate directories FIRST
@@ -125,7 +134,10 @@ class WhisperLiveSTTProvider:
                 self,
                 event_type="model",
                 sub_event="loading_start",
-                data={"model_size": self.config.model_size, "device": self.config.device}
+                data={
+                    "model_size": self.config.model_size,
+                    "device": self.config.device,
+                },
             )
 
             # 4. Initialize model (with caching/device detection)
@@ -139,7 +151,7 @@ class WhisperLiveSTTProvider:
                 self,
                 event_type="lifecycle",
                 sub_event="initialization_complete",
-                data={"initialized": True, "device": self.config.device}
+                data={"initialized": True, "device": self.config.device},
             )
 
             logger.info(LoggingStrings.PROVIDER_INITIALIZED.value)
@@ -150,7 +162,7 @@ class WhisperLiveSTTProvider:
                 self,
                 event_type="lifecycle",
                 sub_event="initialization_error",
-                data={"error": str(e)}
+                data={"error": str(e)},
             )
             raise WhisperFileError(f"Required files not found: {e}") from e
 
@@ -160,9 +172,11 @@ class WhisperLiveSTTProvider:
                 self,
                 event_type="lifecycle",
                 sub_event="initialization_error",
-                data={"error": str(e)}
+                data={"error": str(e)},
             )
-            raise WhisperInitializationError(f"Provider initialization failed: {e}") from e
+            raise WhisperInitializationError(
+                f"Provider initialization failed: {e}"
+            ) from e
 
     @EventProcessor.emits_event(data=["config.model_size"])
     async def transcribe(
@@ -196,7 +210,6 @@ class WhisperLiveSTTProvider:
         try:
             logger.info(f"WhisperLive transcribe called with format: {response_format}")
             logger.info(f"Audio data type: {type(audio_data)}")
-            
 
             # Prepare transcription parameters
             transcribe_params = {
@@ -213,14 +226,22 @@ class WhisperLiveSTTProvider:
             if isinstance(audio_data, str):
                 # File path
                 logger.info(f"Transcribing from file: {audio_data}")
-                result = await self.transcriber.transcribe_audio(audio_data, **transcribe_params)
+                result = await self.transcriber.transcribe_audio(
+                    audio_data, **transcribe_params
+                )
             elif isinstance(audio_data, np.ndarray):
                 # Numpy array
-                logger.info(f"Transcribing numpy array: shape={audio_data.shape}, dtype={audio_data.dtype}")
-                result = await self.transcriber.transcribe_numpy(audio_data, **transcribe_params)
+                logger.info(
+                    f"Transcribing numpy array: shape={audio_data.shape}, dtype={audio_data.dtype}"
+                )
+                result = await self.transcriber.transcribe_numpy(
+                    audio_data, **transcribe_params
+                )
             else:
                 # Bytes - save to temp file
-                logger.info(f"Transcribing bytes data: length={len(audio_data) if hasattr(audio_data, '__len__') else 'unknown'}")
+                logger.info(
+                    f"Transcribing bytes data: length={len(audio_data) if hasattr(audio_data, '__len__') else 'unknown'}"
+                )
                 result = await self._transcribe_bytes(audio_data, transcribe_params)
 
             # Log raw transcription result
@@ -272,20 +293,26 @@ class WhisperLiveSTTProvider:
         import os
 
         # Create temporary file for audio data
-        with tempfile.NamedTemporaryFile(suffix=WhisperStrings.WAV_EXTENSION.value, delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            suffix=WhisperStrings.WAV_EXTENSION.value, delete=False
+        ) as temp_file:
             temp_file.write(audio_data)
             temp_file.flush()
 
             try:
                 # Transcribe using the temporary file
-                result = await self.transcriber.transcribe_audio(temp_file.name, **params)
+                result = await self.transcriber.transcribe_audio(
+                    temp_file.name, **params
+                )
                 return result
             finally:
                 # Clean up temporary file
                 with contextlib.suppress(Exception):
                     os.unlink(temp_file.name)
 
-    def _format_response(self, result: dict[str, Any], response_format: str) -> str | dict[str, Any]:
+    def _format_response(
+        self, result: dict[str, Any], response_format: str
+    ) -> str | dict[str, Any]:
         """Format transcription response based on requested format."""
         if response_format == ResponseFormat.JSON.value:
             formatted_result = {"text": result["text"]}
@@ -328,7 +355,7 @@ class WhisperLiveSTTProvider:
         }
 
     async def detect_language(
-        self, audio_data: Union[str, np.ndarray, bytes], **kwargs
+        self, audio_data: str | np.ndarray | bytes, **kwargs
     ) -> tuple[str, float, list[tuple[str, float]]]:
         """
         Detect language of audio.
@@ -342,20 +369,25 @@ class WhisperLiveSTTProvider:
         """
         if not self._initialized:
             await self.initialize()
-            
+
         if not self.transcriber:
             raise RuntimeError(LoggingStrings.PROVIDER_NOT_INITIALIZED.value)
 
         if isinstance(audio_data, bytes):
             # Save bytes to temp file and detect
-            with tempfile.NamedTemporaryFile(suffix=WhisperStrings.WAV_EXTENSION.value, delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(
+                suffix=WhisperStrings.WAV_EXTENSION.value, delete=False
+            ) as temp_file:
                 temp_file.write(audio_data)
                 temp_file.flush()
 
                 try:
-                    return await self.transcriber.detect_language(temp_file.name, **kwargs)
+                    return await self.transcriber.detect_language(
+                        temp_file.name, **kwargs
+                    )
                 finally:
                     import os
+
                     with contextlib.suppress(Exception):
                         os.unlink(temp_file.name)
         else:
@@ -365,10 +397,10 @@ class WhisperLiveSTTProvider:
         """Get information about the loaded model."""
         if not self._initialized:
             return {"status": "not_initialized"}
-            
+
         if not self.transcriber:
             return {"status": "no_transcriber"}
-            
+
         return await self.transcriber.get_model_info()
 
     async def clear_cache(self) -> None:
@@ -427,6 +459,7 @@ class WhisperLiveSTTProvider:
     def get_default_cache_dir(self) -> str:
         """Get platform-appropriate cache directory"""
         import os
+
         home = Path.home()
         if os.name == "nt":  # Windows
             app_data = os.environ.get("APPDATA", home)
@@ -437,6 +470,7 @@ class WhisperLiveSTTProvider:
     def get_default_transcriptions_dir(self) -> str:
         """Get platform-appropriate transcriptions directory"""
         import os
+
         home = Path.home()
         if os.name == "nt":  # Windows
             app_data = os.environ.get("APPDATA", home)
@@ -489,10 +523,11 @@ class WhisperLiveSTTProvider:
         """
         logger.debug(LoggingStrings.RECORDING_AUDIO.value.format(duration))
 
-
         try:
             # Get the configured audio device (not default!)
-            device_name = self.config.input_device or WhisperStrings.USB_MIC_DEVICE.value
+            device_name = (
+                self.config.input_device or WhisperStrings.USB_MIC_DEVICE.value
+            )
             audio_device = self.get_audio_device(device_name)
 
             samples_to_record = int(duration * audio_device.sample_rate)
@@ -505,17 +540,18 @@ class WhisperLiveSTTProvider:
                     samplerate=audio_device.sample_rate,
                     channels=1,
                     dtype=np.int16,
-                    device=audio_device.device_id
-                )
+                    device=audio_device.device_id,
+                ),
             )
             await loop.run_in_executor(None, sd.wait)
 
             flattened = recording.flatten()
-            logger.debug(LoggingStrings.AUDIO_RECORDED.value.format(len(flattened), duration))
-
+            logger.debug(
+                LoggingStrings.AUDIO_RECORDED.value.format(len(flattened), duration)
+            )
 
             # Calculate RMS level for debugging
-            if hasattr(self.config, 'debug') and self.config.debug:
+            if hasattr(self.config, "debug") and self.config.debug:
                 rms = np.sqrt(np.mean(flattened.astype(float) ** 2))
                 logger.debug(f"RMS level: {rms:.2f}")
 
@@ -537,12 +573,16 @@ class WhisperLiveSTTProvider:
         Returns:
             Audio data as numpy array
         """
-        if not VAD_AVAILABLE or self.config.disable_silence_detection or disable_silence_detection:
+        if (
+            not VAD_AVAILABLE
+            or self.config.disable_silence_detection
+            or disable_silence_detection
+        ):
             logger.debug("Using fixed duration recording")
             return await self.record_audio(max_duration)
 
         logger.debug(LoggingStrings.RECORDING_WITH_VAD.value.format(max_duration))
-        
+
         try:
             return await self._record_with_vad(max_duration)
         except Exception as e:
@@ -561,18 +601,20 @@ class WhisperLiveSTTProvider:
         # VAD sample rate (16kHz for compatibility)
         vad_sample_rate = 16000
 
-        vad_chunk_samples = int(vad_sample_rate * self.config.vad_chunk_duration_ms / 1000)
+        vad_chunk_samples = int(
+            vad_sample_rate * self.config.vad_chunk_duration_ms / 1000
+        )
         # Recording state
         chunks = []
         silence_duration_ms = 0
         recording_duration = 0
-        speech_detected = True
         stop_recording = False
 
         # VAD processing buffer - accumulate chunks before processing
         vad_buffer = []
 
         audio_queue = queue.Queue(maxsize=-1)
+
         def audio_callback(indata, frames, time, status):
             if status:
                 logger.warning(f"Audio stream status: {status}")
@@ -580,7 +622,9 @@ class WhisperLiveSTTProvider:
 
         try:
             # Use configured input device or fall back to hardcoded USB mic
-            device_name = self.config.input_device or WhisperStrings.USB_MIC_DEVICE.value
+            device_name = (
+                self.config.input_device or WhisperStrings.USB_MIC_DEVICE.value
+            )
             _mic_device = self.get_audio_device(device_name=device_name)
             mic_stream = sd.InputStream(
                 samplerate=_mic_device.sample_rate,
@@ -610,12 +654,18 @@ class WhisperLiveSTTProvider:
                         # Process VAD only when we have enough buffered audio
                         if len(vad_buffer) < vad_buffer_target_samples:
                             recording_duration += chunk_duration_s
-                            print(f"Skipping - buffer: {len(vad_buffer)}/{vad_buffer_target_samples}, queue: {audio_queue.qsize()}")
+                            print(
+                                f"Skipping - buffer: {len(vad_buffer)}/{vad_buffer_target_samples}, queue: {audio_queue.qsize()}"
+                            )
                             continue
 
                         # Take buffered audio for VAD processing
-                        buffered_audio = np.array(vad_buffer[:vad_buffer_target_samples])
-                        vad_buffer = vad_buffer[vad_buffer_target_samples:]  # Keep remainder
+                        buffered_audio = np.array(
+                            vad_buffer[:vad_buffer_target_samples]
+                        )
+                        vad_buffer = vad_buffer[
+                            vad_buffer_target_samples:
+                        ]  # Keep remainder
 
                         # VAD processing - resample from device rate to 16kHz for VAD
                         device_rate = _mic_device.sample_rate
@@ -623,11 +673,15 @@ class WhisperLiveSTTProvider:
                             # Proper resampling from device rate to 16kHz for VAD
                             try:
                                 # Calculate target length for resampling buffered audio
-                                target_length = int(len(buffered_audio) * vad_sample_rate / device_rate)
+                                target_length = int(
+                                    len(buffered_audio) * vad_sample_rate / device_rate
+                                )
 
                                 # Convert to float for resampling to avoid clipping
                                 buffered_float = buffered_audio.astype(np.float32)
-                                resampled_float = signal.resample(buffered_float, target_length)
+                                resampled_float = signal.resample(
+                                    buffered_float, target_length
+                                )
 
                                 # Convert back to int16 with proper scaling
                                 resampled_chunk = resampled_float.astype(np.int16)
@@ -638,20 +692,26 @@ class WhisperLiveSTTProvider:
                                     vad_chunk = resampled_chunk[:vad_chunk_samples]
                                 else:
                                     # Pad with zeros if too short
-                                    vad_chunk = np.zeros(vad_chunk_samples, dtype=np.int16)
-                                    vad_chunk[:len(resampled_chunk)] = resampled_chunk
+                                    vad_chunk = np.zeros(
+                                        vad_chunk_samples, dtype=np.int16
+                                    )
+                                    vad_chunk[: len(resampled_chunk)] = resampled_chunk
 
                             except ImportError:
                                 # Fallback to decimation if scipy not available
-                                logger.warning("scipy not available, using decimation fallback for VAD")
+                                logger.warning(
+                                    "scipy not available, using decimation fallback for VAD"
+                                )
                                 downsample_ratio = device_rate // vad_sample_rate
                                 decimated_chunk = chunk_flat[::downsample_ratio]
                                 if len(decimated_chunk) >= vad_chunk_samples:
                                     vad_chunk = decimated_chunk[:vad_chunk_samples]
                                 else:
                                     # Pad with zeros if too short
-                                    vad_chunk = np.zeros(vad_chunk_samples, dtype=np.int16)
-                                    vad_chunk[:len(decimated_chunk)] = decimated_chunk
+                                    vad_chunk = np.zeros(
+                                        vad_chunk_samples, dtype=np.int16
+                                    )
+                                    vad_chunk[: len(decimated_chunk)] = decimated_chunk
                         else:
                             # Same sample rate, just ensure correct size
                             if len(chunk_flat) >= vad_chunk_samples:
@@ -659,19 +719,25 @@ class WhisperLiveSTTProvider:
                             else:
                                 # Pad with zeros if too short
                                 vad_chunk = np.zeros(vad_chunk_samples, dtype=np.int16)
-                                vad_chunk[:len(chunk_flat)] = chunk_flat
+                                vad_chunk[: len(chunk_flat)] = chunk_flat
                         chunk_bytes = vad_chunk.tobytes()
 
                         # Debug VAD chunk properties
                         chunk_rms = np.sqrt(np.mean(vad_chunk.astype(float) ** 2))
-                        logger.debug(f"VAD chunk: {len(vad_chunk)} samples, RMS: {chunk_rms:.2f}, max: {np.max(np.abs(vad_chunk))}")
+                        logger.debug(
+                            f"VAD chunk: {len(vad_chunk)} samples, RMS: {chunk_rms:.2f}, max: {np.max(np.abs(vad_chunk))}"
+                        )
 
                         try:
                             is_speech = vad.is_speech(chunk_bytes, vad_sample_rate)
                             if is_speech:
-                                logger.debug(f"🗣️ SPEECH detected! RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}")
+                                logger.debug(
+                                    f"🗣️ SPEECH detected! RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}"
+                                )
                             else:
-                                logger.debug(f"🤫 No speech detected, RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}")
+                                logger.debug(
+                                    f"🤫 No speech detected, RMS: {chunk_rms:.2f}, silence_ms: {silence_duration_ms}"
+                                )
                         except Exception as vad_e:
                             logger.warning(f"VAD error: {vad_e}, treating as speech")
                             is_speech = True
@@ -679,7 +745,6 @@ class WhisperLiveSTTProvider:
                         if is_speech:
                             # if not speech_detected:
                             #     logger.debug(LoggingStrings.SPEECH_DETECTED_START.value)
-                            speech_detected = True
                             silence_duration_ms = 0
                         else:
                             silence_duration_ms += self.config.vad_chunk_duration_ms
@@ -711,7 +776,11 @@ class WhisperLiveSTTProvider:
             # Concatenate all chunks
             if chunks:
                 full_recording = np.concatenate(chunks)
-                logger.debug(LoggingStrings.AUDIO_RECORDED.value.format(len(full_recording), recording_duration))
+                logger.debug(
+                    LoggingStrings.AUDIO_RECORDED.value.format(
+                        len(full_recording), recording_duration
+                    )
+                )
                 return full_recording
             else:
                 logger.warning(LoggingStrings.EMPTY_AUDIO_CHUNKS.value)
@@ -745,22 +814,29 @@ class WhisperLiveSTTProvider:
                 return None
 
             logger.info("Using integrated WhisperLive STT")
-            
 
-            logger.info(f"Sending audio data to WhisperLive: shape={audio_data.shape}, dtype={audio_data.dtype}")
-            logger.info(f"Using sample rate: {self.config.sample_rate} Hz for WhisperLive")
+            logger.info(
+                f"Sending audio data to WhisperLive: shape={audio_data.shape}, dtype={audio_data.dtype}"
+            )
+            logger.info(
+                f"Using sample rate: {self.config.sample_rate} Hz for WhisperLive"
+            )
 
             # Use the actual device sample rate for transcription, not config sample rate
-            device_name = self.config.input_device or WhisperStrings.USB_MIC_DEVICE.value
+            device_name = (
+                self.config.input_device or WhisperStrings.USB_MIC_DEVICE.value
+            )
             audio_device = self.get_audio_device(device_name)
             actual_sample_rate = audio_device.sample_rate
 
-            logger.info(f"Transcribing with sample rate: {actual_sample_rate} Hz (not config: {self.config.sample_rate})")
+            logger.info(
+                f"Transcribing with sample rate: {actual_sample_rate} Hz (not config: {self.config.sample_rate})"
+            )
             try:
                 result = await self.transcribe(
                     audio_data=audio_data,
                     response_format=ResponseFormat.TEXT.value,
-                    sample_rate=actual_sample_rate  # Use actual device sample rate
+                    sample_rate=actual_sample_rate,  # Use actual device sample rate
                 )
             except Exception as e:
                 logger.error(f"Transcription failed: {e}")
@@ -775,13 +851,17 @@ class WhisperLiveSTTProvider:
                     text = result["text"].strip()
                     logger.debug(f"Extracted text from dict: '{text}'")
                 else:
-                    logger.warning(f"No 'text' key in response dict. Available keys: {list(result.keys())}")
+                    logger.warning(
+                        f"No 'text' key in response dict. Available keys: {list(result.keys())}"
+                    )
                     text = None
             elif isinstance(result, str):
                 text = result.strip()
                 logger.info(f"Direct string response: '{text}'")
             else:
-                logger.info(f"Unexpected response type: {type(result)}, value: {result}")
+                logger.info(
+                    f"Unexpected response type: {type(result)}, value: {result}"
+                )
                 text = None
 
             if text:
@@ -789,6 +869,7 @@ class WhisperLiveSTTProvider:
 
                 # Save transcription using provider's save method
                 from datetime import datetime
+
                 metadata = {
                     "type": "stt",
                     "model": "whisperlive",
@@ -804,8 +885,11 @@ class WhisperLiveSTTProvider:
 
         except Exception as e:
             import traceback
+
             logger.error(LoggingStrings.TRANSCRIPTION_FAILED.value.format(e))
-            logger.error(f"WhisperLive STT exception traceback: {traceback.format_exc()}")
+            logger.error(
+                f"WhisperLive STT exception traceback: {traceback.format_exc()}"
+            )
             logger.debug(
                 f"Audio data info - shape: {audio_data.shape if audio_data is not None else 'None'}, "
                 f"dtype: {audio_data.dtype if audio_data is not None else 'None'}"
@@ -814,17 +898,18 @@ class WhisperLiveSTTProvider:
 
     async def shutdown(self) -> None:
         """Shutdown the provider and clean up resources."""
-        
+
         if self.transcriber:
             await self.transcriber.shutdown()
             self.transcriber = None
-        
+
         self._initialized = False
         logger.debug(LoggingStrings.PROVIDER_UNLOADED.value)
 
 
 if __name__ == "__main__":
     from tests.test_whisper_vad_recording import run_all_vad_tests
+
     try:
         asyncio.run(run_all_vad_tests())
     except KeyboardInterrupt:
