@@ -2,51 +2,92 @@
 Champi STT - Multi-Provider Speech-to-Text Library
 ===================================================
 
-A modular, extensible STT library supporting multiple providers:
-- WhisperLive (local faster-whisper backend)
-- OpenAI (coming soon)
-- Deepgram (coming soon)
+Stable public API (semver guaranteed from v1.0):
 
-Quick Start:
+  Factory
+  -------
+  get_provider(provider_type, config, **kwargs) -> BaseSTTProvider
+  get_default_provider() -> BaseSTTProvider
+  list_providers() -> list[str]
+
+  Base classes (for type hints and custom provider implementations)
+  ----------------------------------------------------------------
+  BaseSTTProvider
+  BaseSTTConfig
+  BaseTranscriber
+  BaseModelManager
+
+  Streaming
+  ---------
+  StreamingTranscriptionConfig
+  TranscriptionChunk
+
+  Multi-room audio
+  ----------------
+  MultiRoomAudioManager
+  RoomConfig
+  RoomAudioChunk
+
+  Response types
+  --------------
+  TranscriptionResponse
+  TranscriptionSegment
+
+  Diarization
+  -----------
+  DiarizationConfig
+  DiarizationSegment
+  Diarizer
+
+Provisional (may change in a minor release with a deprecation warning)
+----------------------------------------------------------------------
+  WhisperLiveConfig, WhisperLiveSTTProvider, WhisperLiveTranscriber
+
+Internal (no stability guarantee — do not import directly)
+----------------------------------------------------------
+  Everything under champi_stt.providers.*.*, champi_stt.assistant.*,
+  champi_stt.core.audio, champi_stt.core.preprocessing
+
+Deprecation policy
+------------------
+Symbols will be deprecated for at least one minor release before removal.
+Deprecated symbols emit DeprecationWarning on import and are documented in
+CHANGELOG.md.
+
+Quick start
 -----------
-```python
-from champi_stt import get_provider
+    from champi_stt import get_provider
 
-# Get default provider (WhisperLive)
-provider = get_provider()
-await provider.initialize()
-
-# Transcribe audio
-result = await provider.transcribe("audio.wav")
-print(result["text"])
-```
-
-Provider-Specific Usage:
------------------------
-```python
-from champi_stt import get_provider
-from champi_stt.providers.whisperlive import WhisperLiveConfig
-
-# Custom WhisperLive config
-config = WhisperLiveConfig(model_size="base", device="cpu")
-provider = get_provider("whisperlive", config=config)
-```
+    provider = get_provider("whisperlive")
+    await provider.initialize()
+    result = await provider.transcribe("audio.wav")
+    print(result)
+    await provider.shutdown()
 """
 
-# Factory functions (primary API)
+from __future__ import annotations
+
+# Factory (primary entry points)
+from champi_stt.factory import get_default_provider, get_provider, list_providers
+
+# Base classes
 from champi_stt.core.base_config import BaseSTTConfig
 from champi_stt.core.base_model_manager import BaseModelManager
-
-# Base classes (for type hints and custom providers)
 from champi_stt.core.base_provider import BaseSTTProvider
 from champi_stt.core.base_transcriber import BaseTranscriber
-from champi_stt.factory import (
-    get_default_provider,
-    get_provider,
-    list_providers,
-)
 
-# Backwards compatibility: expose WhisperLive directly
+# Streaming
+from champi_stt.core.streaming import StreamingTranscriptionConfig
+from champi_stt.core.response import TranscriptionChunk, TranscriptionResponse, TranscriptionSegment
+
+# Multi-room audio
+from champi_stt.core.multi_room import MultiRoomAudioManager, RoomAudioChunk, RoomConfig
+
+# Diarization
+from champi_stt.diarization.config import DiarizationConfig
+from champi_stt.diarization.diarizer import DiarizationSegment, Diarizer
+
+# Provisional: WhisperLive provider (direct access; stable via get_provider("whisperlive"))
 from champi_stt.providers.whisperlive import (
     WhisperLiveConfig,
     WhisperLiveSTTProvider,
@@ -56,15 +97,32 @@ from champi_stt.providers.whisperlive import (
 __version__ = "0.2.0"
 
 __all__ = [
-    "BaseModelManager",
+    # Version
+    "__version__",
+    # Factory — stable
+    "get_provider",
+    "get_default_provider",
+    "list_providers",
+    # Base classes — stable
     "BaseSTTConfig",
+    "BaseModelManager",
     "BaseSTTProvider",
     "BaseTranscriber",
+    # Streaming — stable
+    "StreamingTranscriptionConfig",
+    "TranscriptionChunk",
+    "TranscriptionResponse",
+    "TranscriptionSegment",
+    # Multi-room — stable
+    "MultiRoomAudioManager",
+    "RoomAudioChunk",
+    "RoomConfig",
+    # Diarization — stable
+    "DiarizationConfig",
+    "DiarizationSegment",
+    "Diarizer",
+    # Provisional
     "WhisperLiveConfig",
     "WhisperLiveSTTProvider",
     "WhisperLiveTranscriber",
-    "__version__",
-    "get_default_provider",
-    "get_provider",
-    "list_providers",
 ]
