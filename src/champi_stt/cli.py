@@ -580,5 +580,40 @@ def service_status(service_type):
     click.echo(status())
 
 
+@cli.command("diarize")
+@click.argument("audio_file", type=click.Path(exists=True))
+@click.option("--hf-token", envvar="HF_TOKEN", default=None, help="HuggingFace access token")
+@click.option("--num-speakers", default=None, type=int, help="Expected number of speakers")
+@click.option("--min-speakers", default=None, type=int, help="Minimum number of speakers")
+@click.option("--max-speakers", default=None, type=int, help="Maximum number of speakers")
+@click.option("--model", default="pyannote/speaker-diarization-3.1", help="pyannote pipeline model")
+def diarize(audio_file, hf_token, num_speakers, min_speakers, max_speakers, model):
+    """Diarize an audio file and print speaker-labelled segments.
+
+    Requires the 'diarization' extra: pip install 'champi-stt[diarization]'
+    A HuggingFace token is needed to download the pyannote model on first run.
+    """
+    from champi_stt.diarization.config import DiarizationConfig
+    from champi_stt.diarization.diarizer import Diarizer
+
+    cfg = DiarizationConfig(
+        hf_token=hf_token,
+        num_speakers=num_speakers,
+        min_speakers=min_speakers,
+        max_speakers=max_speakers,
+        model=model,
+    )
+
+    async def _run() -> None:
+        diarizer = Diarizer(cfg)
+        await diarizer.initialize()
+        segments = await diarizer.diarize(audio_file)
+        for seg in segments:
+            click.echo(f"[{seg.start:.2f}s -> {seg.end:.2f}s] {seg.speaker_id}  {seg.text}")
+        await diarizer.shutdown()
+
+    asyncio.run(_run())
+
+
 if __name__ == "__main__":
     cli()
