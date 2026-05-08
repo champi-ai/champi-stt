@@ -3,11 +3,13 @@ Base STT provider interface
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any
 
 import numpy as np
 
 from champi_stt.core.base_config import BaseSTTConfig
+from champi_stt.core.response import TranscriptionChunk
 
 
 class BaseSTTProvider(ABC):
@@ -103,6 +105,43 @@ class BaseSTTProvider(ABC):
             task="translate",
             **kwargs,
         )
+
+    async def stream_transcribe(
+        self,
+        audio_source: AsyncIterator[bytes | np.ndarray],
+        language: str | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[TranscriptionChunk]:
+        """
+        Stream-transcribe audio from an async iterator of audio chunks.
+
+        Default implementation collects all audio, transcribes once, and
+        yields a single final TranscriptionChunk. Providers can override
+        for true incremental/real-time output.
+
+        Args:
+            audio_source: Async iterator of raw bytes or float32 numpy arrays
+            language: Language code hint
+            **kwargs: Provider-specific parameters
+
+        Yields:
+            TranscriptionChunk with partial or final text
+        """
+        chunks: list[np.ndarray] = []
+        async for chunk in audio_source:
+            if isinstance(chunk, bytes):
+                arr: np.ndarray = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+            else:
+                arr = chunk
+            chunks.append(arr)
+
+        if not chunks:
+            return
+
+        audio = np.concatenate(chunks)
+        result = await self.transcribe(audio, language=language, **kwargs)
+        text = result if isinstance(result, str) else str(result.get("text", "") if isinstance(result, dict) else result)
+        yield TranscriptionChunk(text=text, is_final=True, language=language or "unknown")
 
     async def detect_language(
         self, audio_data: bytes | np.ndarray | str, **kwargs: Any

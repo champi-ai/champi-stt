@@ -41,6 +41,18 @@ class TranscriptionResponse:
 STTResponse = TranscriptionResponse
 
 
+@dataclasses.dataclass
+class TranscriptionChunk:
+    """A partial transcription result produced during real-time streaming."""
+
+    text: str = ""
+    is_final: bool = False
+    confidence: float = 0.0
+    language: str = "unknown"
+    start: float = 0.0
+    end: float = 0.0
+
+
 def format_response(
     result: dict[str, Any], response_format: str
 ) -> str | dict[str, Any]:

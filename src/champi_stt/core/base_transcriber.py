@@ -4,9 +4,12 @@ Base transcriber interface
 
 import io
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any
 
 import numpy as np
+
+from champi_stt.core.response import TranscriptionChunk
 
 
 class BaseTranscriber(ABC):
@@ -83,3 +86,40 @@ class BaseTranscriber(ABC):
     async def get_model_info(self) -> dict[str, Any]:
         """Get transcriber/model information"""
         return {"status": "loaded" if self.is_loaded else "not_loaded"}
+
+    async def stream_transcribe(
+        self,
+        audio_source: AsyncIterator[bytes | np.ndarray],
+        language: str | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[TranscriptionChunk]:
+        """
+        Stream-transcribe audio from an async iterator of audio chunks.
+
+        Default implementation collects all chunks, runs a single transcribe,
+        and yields one final TranscriptionChunk. Providers can override for
+        true incremental output.
+
+        Args:
+            audio_source: Async iterator yielding raw bytes or numpy arrays
+            language: Language code hint
+            **kwargs: Provider-specific parameters
+
+        Yields:
+            TranscriptionChunk with partial or final transcription text
+        """
+        chunks: list[np.ndarray] = []
+        async for chunk in audio_source:
+            if isinstance(chunk, bytes):
+                arr: np.ndarray = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+            else:
+                arr = chunk
+            chunks.append(arr)
+
+        if not chunks:
+            return
+
+        audio = np.concatenate(chunks)
+        result = await self.transcribe_audio(audio, language=language, **kwargs)
+        text: str = result.get("text", "") if isinstance(result, dict) else str(result)
+        yield TranscriptionChunk(text=text, is_final=True, language=language or "unknown")
