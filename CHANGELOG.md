@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-07
+
+### Added
+- `TranscriptionResponse` and `TranscriptionSegment` dataclasses in `core/response.py` — standardized return type for all STT providers
+- `STTResponse` alias in `core/response.py` for backwards compatibility
+- `TranscriptionOptions` dataclass in `whisperlive/models.py` for structured transcription parameters
+- `WhisperLiveProvider` alias for `WhisperLiveSTTProvider`
+- `is_initialized` property, `name` attribute, `_get_model_path()`, and async context manager support on `WhisperLiveSTTProvider`
+- `__aenter__` / `__aexit__` on `WhisperLiveSTTProvider` for `async with` usage
+- Thread safety for `AssistantSignalReader` handler dict via `threading.Lock`
+- Rollback on partial `SharedMemoryManager.create_regions()` failure
+- `stop()` calls `disconnect_all()` before thread join in `AssistantSignalProcessor`
+- Thread safety and platform notes documented in `docs/IPC.md`
+- ImGui energy sphere renderer canonicalized: `energy_sphere_renderer.py` is the single import surface backed by the enhanced implementation
+
+### Fixed
+- `sounddevice` import is now guarded with try/except OSError in `core/audio.py`, `provider.py`, and `transcriber.py` — prevents crash when PortAudio library is missing
+- `torch` import is now guarded with try/except ImportError in `whisperlive/models.py` — prevents crash when PyTorch is not installed
+- `WhisperLiveConfig` defaults changed to sensible values: `model_size="base"`, `device="auto"`, `language=None`
+- Enum instances passed as `model_size` or `compute_type` to `WhisperLiveConfig` are now normalized to string values
+- `transcribe()` now handles `pathlib.Path` objects as audio input
+- `.python-version` file restored (was incorrectly deleted and added to `.gitignore`)
+- Pre-commit hooks: fixed `__all__` sorting, bare `except:` clauses, unused variables, and `N811` import naming violations
+
+### Changed
+- `WhisperLiveSTTProvider.transcribe()` return type changed from `str | dict` to `TranscriptionResponse`
+- Removed `simpleaudio` from core dependencies (fails to build on Linux with Python 3.12)
+- Moved heavy optional dependencies to extras: `torch`, `imgui-bundle`, `spacy`, `openwakeword`, `resemblyzer`
+- Added `pytest-mock` to dev dependencies
+- Test suite: `test_whisperlive_provider.py` updated to match current implementation APIs
+
+### Deprecated
+- The `response_format` parameter on `WhisperLiveSTTProvider.transcribe()` is kept for API compatibility but no longer affects the return type (always returns `TranscriptionResponse`)
+
 ## [0.0.1] - 2025-10-21
 
 ### Added

@@ -1,6 +1,6 @@
 [project]
 name = "champi-stt"
-version = "0.0.1"
+version = "0.2.0"
 description = "Multi-provider speech-to-text library with voice assistant features"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -324,7 +324,7 @@ url = "https://download.pytorch.org/whl/cu129"
 # Commitizen configuration for semantic versioning
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.0.1"
+version = "0.2.0"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
