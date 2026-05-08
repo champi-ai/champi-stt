@@ -505,6 +505,23 @@ def test_ui(prefix):
         click.echo(f"❌ Error: {e}")
 
 
+@cli.command("serve-config")
+@click.option("--config", default=None, help="Path to assistant_config.yaml")
+@click.option("--host", default="localhost", show_default=True, help="Bind address")
+@click.option("--port", default=8765, show_default=True, help="Port to listen on")
+def serve_config(config, host, port):
+    """Start the web configuration UI (http://localhost:8765 by default)."""
+    from champi_stt.assistant.web.server import serve
+
+    config_path = config or "~/.config/champi-stt/assistant_config.yaml"
+    click.echo(f"Config UI: http://{host}:{port}")
+    try:
+        serve(config_path, host=host, port=port)
+    except ImportError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+
+
 @cli.group()
 def service():
     """Manage the champi-stt system service."""
