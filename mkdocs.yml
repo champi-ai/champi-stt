@@ -29,6 +29,16 @@ theme:
 
 plugins:
   - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+            docstring_style: google
+            members_order: source
+            show_signature_annotations: true
 
 nav:
   - Home: index.md
@@ -36,6 +46,17 @@ nav:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quickstart.md
   - Architecture: architecture.md
+  - API Reference:
+      - Overview: api/index.md
+      - Factory: api/factory.md
+      - Base Classes:
+          - BaseSTTProvider: api/base_provider.md
+          - BaseSTTConfig: api/base_config.md
+          - BaseTranscriber: api/base_transcriber.md
+      - Streaming: api/streaming.md
+      - Multi-Room Audio: api/multi_room.md
+      - Diarization: api/diarization.md
+      - Response Types: api/response.md
   - Features:
       - IPC System: features/ipc.md
       - ImGui Integration: features/imgui.md

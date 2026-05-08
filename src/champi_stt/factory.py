@@ -1,4 +1,8 @@
-"""Provider factory for creating STT providers."""
+"""Provider factory for creating STT providers.
+
+This is the primary entry point for instantiating STT providers.
+Use :func:`get_provider` to create any supported provider by key.
+"""
 
 from typing import Any
 
@@ -64,10 +68,19 @@ def get_provider(
 
 
 def list_providers() -> list[str]:
-    """Return the list of registered provider keys."""
+    """Return the list of registered provider keys.
+
+    Returns:
+        List of provider key strings accepted by :func:`get_provider`.
+    """
     return list(_SUPPORTED_PROVIDERS)
 
 
 def get_default_provider() -> BaseSTTProvider:
-    """Return the default provider (WhisperLive, local inference)."""
+    """Return the default provider (WhisperLive, local inference).
+
+    Returns:
+        An uninitialized :class:`~champi_stt.core.base_provider.BaseSTTProvider`
+        backed by WhisperLive.
+    """
     return get_provider("whisperlive")
