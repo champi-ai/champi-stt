@@ -111,6 +111,12 @@ all = [
     "champi-stt[torch,imgui,nlp,wakeword,vosk,assemblyai,diarization,webui]",
 ]
 
+# Documentation
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+]
+
 # Development tools
 dev = [
     "build",
