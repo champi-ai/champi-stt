@@ -1,7 +1,8 @@
-"""Enhanced 3D Energy Sphere renderer with custom property support.
+"""Enhanced 3D Energy Sphere renderer — canonical implementation.
 
-Renders a 3D energy sphere model using OpenGL, with full support for
-Blender custom properties and ImGui integration.
+This module is the source of truth. energy_sphere_renderer.py mirrors its
+content and is the public import surface for the rest of the codebase.
+Do not import from this file directly; use energy_sphere_renderer instead.
 """
 
 import math

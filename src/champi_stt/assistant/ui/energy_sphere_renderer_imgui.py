@@ -1,7 +1,8 @@
-"""3D Energy Sphere renderer with ImGui controls for Blender-exported model.
+"""3D Energy Sphere renderer with interactive ImGui parameter controls.
 
-Renders a 3D energy sphere model using OpenGL, with ImGui-controllable parameters
-matching the custom properties from the Blender export.
+Experimental variant — adds a live ImGui parameter panel for tuning the sphere
+at runtime. Not used by the daemon; intended for development and debugging.
+For production use, import from energy_sphere_renderer instead.
 """
 
 import math

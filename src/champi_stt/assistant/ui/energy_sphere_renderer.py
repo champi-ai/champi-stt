@@ -1,18 +1,84 @@
 """3D Energy Sphere renderer for wake indicator UI.
 
-Renders a 3D energy sphere model using OpenGL, with audio-responsive effects.
+Canonical implementation. Includes audio-responsive effects,
+custom Blender property support, and OpenGL rendering.
 """
 
 import math
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import OpenGL.GL as gl  # noqa: N811
 from loguru import logger
 
 
+class EnergySphereParams:
+    """Parameters for energy sphere animation and appearance."""
+
+    def __init__(self):
+        """Initialize with default values matching Blender export."""
+        self.animation_time = 0.0
+        self.pulse_speed = 1.0
+        self.pulse_intensity = 1.0
+        self.color_hue = 0.66  # Blue by default
+        self.color_saturation = 1.0
+        self.glow_strength = 3.0
+        self.jiggle_amount = 0.0
+
+    def to_dict(self) -> dict[str, float]:
+        """Convert to dictionary."""
+        return {
+            "animation_time": self.animation_time,
+            "pulse_speed": self.pulse_speed,
+            "pulse_intensity": self.pulse_intensity,
+            "color_hue": self.color_hue,
+            "color_saturation": self.color_saturation,
+            "glow_strength": self.glow_strength,
+            "jiggle_amount": self.jiggle_amount,
+        }
+
+    def from_dict(self, data: dict[str, Any]):
+        """Load from dictionary."""
+        self.animation_time = float(data.get("animation_time", 0.0))
+        self.pulse_speed = float(data.get("pulse_speed", 1.0))
+        self.pulse_intensity = float(data.get("pulse_intensity", 1.0))
+        self.color_hue = float(data.get("color_hue", 0.66))
+        self.color_saturation = float(data.get("color_saturation", 1.0))
+        self.glow_strength = float(data.get("glow_strength", 3.0))
+        self.jiggle_amount = float(data.get("jiggle_amount", 0.0))
+
+    @staticmethod
+    def hue_to_rgb(hue: float) -> tuple[float, float, float]:
+        """Convert HSV hue to RGB (assuming S=1, V=1)."""
+        h = hue * 6.0
+        i = int(h)
+        f = h - i
+
+        if i == 0:
+            return (1.0, f, 0.0)
+        elif i == 1:
+            return (1.0 - f, 1.0, 0.0)
+        elif i == 2:
+            return (0.0, 1.0, f)
+        elif i == 3:
+            return (0.0, 1.0 - f, 1.0)
+        elif i == 4:
+            return (f, 0.0, 1.0)
+        else:
+            return (1.0, 0.0, 1.0 - f)
+
+    def get_color(self) -> tuple[float, float, float]:
+        """Get RGB color from hue and saturation."""
+        rgb = self.hue_to_rgb(self.color_hue)
+        # Apply saturation
+        return tuple(
+            c * self.color_saturation + (1.0 - self.color_saturation) for c in rgb
+        )
+
+
 class EnergySphereRenderer:
-    """Renders 3D energy sphere with audio-responsive effects."""
+    """Renders 3D energy sphere with audio-responsive effects and custom properties."""
 
     def __init__(self):
         """Initialize energy sphere renderer."""
@@ -25,6 +91,10 @@ class EnergySphereRenderer:
         self.nbo = None
         self.shader_program = None
         self.model_loaded = False
+
+        # Custom properties
+        self.params = EnergySphereParams()
+        self.custom_properties = {}
 
         # Get path to energy sphere model
         # Go up to src/champi_stt/assistant/ui -> src/champi_stt -> src -> assets
@@ -51,6 +121,9 @@ class EnergySphereRenderer:
                 gltf = GLTF2().load(str(self.model_path))
                 logger.info(f"Loaded GLB model: {self.model_path}")
 
+                # Extract custom properties if available
+                self._extract_custom_properties(gltf)
+
                 # Extract mesh data from GLTF
                 self._extract_gltf_data(gltf)
                 self.model_loaded = True
@@ -61,16 +134,45 @@ class EnergySphereRenderer:
                 # Create a simple sphere mesh as fallback
                 self._create_fallback_sphere()
                 self.model_loaded = True
-                self._fallback_mode = True
-                return False
+                return True
 
         except Exception as e:
             logger.error(f"Failed to load energy sphere: {e}")
             # Create fallback sphere
             self._create_fallback_sphere()
             self.model_loaded = True
-            self._fallback_mode = True
-            return False
+            return True
+
+    def _extract_custom_properties(self, gltf):
+        """Extract custom properties from GLTF extras.
+
+        Args:
+            gltf: GLTF2 object
+        """
+        try:
+            # Check scene extras for custom properties
+            if gltf.scenes and len(gltf.scenes) > 0:
+                scene = gltf.scenes[0]
+                if hasattr(scene, "extras") and scene.extras:
+                    logger.info(
+                        f"Found custom properties in scene extras: {scene.extras}"
+                    )
+                    self.params.from_dict(scene.extras)
+                    self.custom_properties = scene.extras.copy()
+
+            # Also check root extras
+            if hasattr(gltf, "extras") and gltf.extras:
+                logger.info(f"Found custom properties in root extras: {gltf.extras}")
+                self.params.from_dict(gltf.extras)
+                self.custom_properties.update(gltf.extras)
+
+            if self.custom_properties:
+                logger.info(f"Loaded custom properties: {self.custom_properties}")
+            else:
+                logger.info("No custom properties found in GLB, using defaults")
+
+        except Exception as e:
+            logger.warning(f"Failed to extract custom properties: {e}")
 
     def _extract_gltf_data(self, gltf):
         """Extract mesh data from GLTF model.
@@ -282,7 +384,7 @@ class EnergySphereRenderer:
         logger.info("OpenGL setup complete for energy sphere")
 
     def _create_shaders(self):
-        """Create vertex and fragment shaders."""
+        """Create vertex and fragment shaders with custom property support."""
         # Vertex shader
         vertex_shader_source = """
         #version 330 core
@@ -292,19 +394,31 @@ class EnergySphereRenderer:
         uniform mat4 model;
         uniform mat4 view;
         uniform mat4 projection;
+        uniform float animationTime;
+        uniform float jiggleAmount;
 
         out vec3 FragPos;
         out vec3 Normal;
 
         void main()
         {
-            FragPos = vec3(model * vec4(aPos, 1.0));
+            // Apply jiggle animation (noise-based displacement)
+            vec3 displaced = aPos;
+            if (jiggleAmount > 0.0) {
+                float noiseX = sin(aPos.x * 10.0 + animationTime * 2.0) * cos(aPos.y * 8.0);
+                float noiseY = sin(aPos.y * 12.0 + animationTime * 2.5) * cos(aPos.z * 7.0);
+                float noiseZ = sin(aPos.z * 11.0 + animationTime * 1.8) * cos(aPos.x * 9.0);
+
+                displaced += aNormal * vec3(noiseX, noiseY, noiseZ) * jiggleAmount * 0.1;
+            }
+
+            FragPos = vec3(model * vec4(displaced, 1.0));
             Normal = mat3(transpose(inverse(model))) * aNormal;
             gl_Position = projection * view * vec4(FragPos, 1.0);
         }
         """
 
-        # Fragment shader
+        # Fragment shader with procedural energy effects
         fragment_shader_source = """
         #version 330 core
         out vec4 FragColor;
@@ -314,35 +428,42 @@ class EnergySphereRenderer:
 
         uniform vec3 lightPos;
         uniform vec3 viewPos;
-        uniform vec3 objectColor;
+        uniform vec3 baseColor;
         uniform float glowStrength;
+        uniform float pulseIntensity;
+        uniform float animationTime;
 
         void main()
         {
             // Ambient
             float ambientStrength = 0.3;
-            vec3 ambient = ambientStrength * objectColor;
+            vec3 ambient = ambientStrength * baseColor;
 
             // Diffuse
             vec3 norm = normalize(Normal);
             vec3 lightDir = normalize(lightPos - FragPos);
             float diff = max(dot(norm, lightDir), 0.0);
-            vec3 diffuse = diff * objectColor;
+            vec3 diffuse = diff * baseColor;
 
             // Specular (for glow effect)
             float specularStrength = 0.8;
             vec3 viewDir = normalize(viewPos - FragPos);
             vec3 reflectDir = reflect(-lightDir, norm);
             float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-            vec3 specular = specularStrength * spec * objectColor;
+            vec3 specular = specularStrength * spec * baseColor;
 
             // Fresnel glow effect
             float fresnel = pow(1.0 - max(dot(viewDir, norm), 0.0), 3.0);
-            vec3 glow = fresnel * glowStrength * objectColor;
+
+            // Animated energy waves
+            float wave = sin(animationTime * 2.0 + FragPos.x * 2.0 + FragPos.y * 3.0) * 0.5 + 0.5;
+            float energyPulse = wave * pulseIntensity;
+
+            vec3 glow = (fresnel + energyPulse) * glowStrength * baseColor;
 
             // Boost brightness for better visibility
             vec3 result = (ambient + diffuse + specular + glow) * 1.5;
-            FragColor = vec4(result, 1.0);  // Fully opaque
+            FragColor = vec4(result, 1.0);
         }
         """
 
@@ -399,9 +520,9 @@ class EnergySphereRenderer:
         audio_intensity: float = 0.0,
         x_squeeze: float = 1.0,
         y_squeeze: float = 1.0,
-        color: tuple[float, float, float] = (0.2, 0.8, 0.2),
+        override_color: tuple[float, float, float] | None = None,
     ):
-        """Render the energy sphere.
+        """Render the energy sphere with custom properties.
 
         Args:
             center_x: Center X position in screen coordinates
@@ -409,16 +530,12 @@ class EnergySphereRenderer:
             radius: Base radius
             window_width: Window width
             window_height: Window height
-            audio_intensity: Audio intensity for pulsing (0-1)
+            audio_intensity: Audio intensity for additional pulsing (0-1)
             x_squeeze: X-axis squeeze factor
             y_squeeze: Y-axis squeeze factor
-            color: RGB color tuple (0-1 range)
+            override_color: Optional RGB color tuple to override params color
         """
-
         if not self.model_loaded or self.shader_program is None:
-            logger.warning(
-                "Skipping render - model not loaded or shader program missing"
-            )
             return
 
         try:
@@ -428,30 +545,37 @@ class EnergySphereRenderer:
             # Set up model matrix (scale, translate)
             model = np.eye(4, dtype=np.float32)
 
-            # Scale based on radius and audio
-            scale = radius * (1.0 + audio_intensity * 0.3)
+            # Apply pulse from params and audio
+            pulse_factor = (
+                1.0
+                + math.sin(self.params.animation_time * self.params.pulse_speed)
+                * self.params.pulse_intensity
+                * 0.2
+            )
+            pulse_factor += audio_intensity * 0.2  # Add audio response
+
+            # Scale based on radius and pulse
+            scale = radius * pulse_factor
             model[0, 0] = scale * x_squeeze
             model[1, 1] = scale * y_squeeze
             model[2, 2] = scale
 
-            # Translate to screen position (in 3D space)
+            # Translate to screen position
             model[3, 0] = center_x
             model[3, 1] = center_y
             model[3, 2] = 0.0
 
-            # Identity view matrix (no camera transformation)
+            # Identity view matrix
             view = np.eye(4, dtype=np.float32)
 
             # Orthographic projection for 2D screen space
-            # Convert screen coordinates to normalized device coordinates (-1 to 1)
             left = 0.0
             right = float(window_width)
             bottom = float(window_height)
             top = 0.0
-            near = -1000.0  # Large range to include our sphere at z=0
+            near = -1000.0
             far = 1000.0
 
-            # Build orthographic projection matrix
             projection = np.zeros((4, 4), dtype=np.float32)
             projection[0, 0] = 2.0 / (right - left)
             projection[1, 1] = 2.0 / (top - bottom)
@@ -461,60 +585,67 @@ class EnergySphereRenderer:
             projection[1, 3] = -(top + bottom) / (top - bottom)
             projection[2, 3] = -(far + near) / (far - near)
 
-        except Exception as e:
-            logger.error(f"Error in render setup: {e}")
-            import traceback
+            # Send matrices to shader
+            model_loc = gl.glGetUniformLocation(self.shader_program, "model")
+            view_loc = gl.glGetUniformLocation(self.shader_program, "view")
+            proj_loc = gl.glGetUniformLocation(self.shader_program, "projection")
 
-            logger.error(traceback.format_exc())
-            raise
+            gl.glUniformMatrix4fv(model_loc, 1, gl.GL_TRUE, model)
+            gl.glUniformMatrix4fv(view_loc, 1, gl.GL_TRUE, view)
+            gl.glUniformMatrix4fv(proj_loc, 1, gl.GL_TRUE, projection)
 
-        # Send matrices to shader
-        model_loc = gl.glGetUniformLocation(self.shader_program, "model")
-        view_loc = gl.glGetUniformLocation(self.shader_program, "view")
-        proj_loc = gl.glGetUniformLocation(self.shader_program, "projection")
-
-        # Transpose matrices for OpenGL (column-major)
-        gl.glUniformMatrix4fv(model_loc, 1, gl.GL_TRUE, model)
-        gl.glUniformMatrix4fv(view_loc, 1, gl.GL_TRUE, view)
-        gl.glUniformMatrix4fv(proj_loc, 1, gl.GL_TRUE, projection)
-
-        # Set color and lighting uniforms
-        color_loc = gl.glGetUniformLocation(self.shader_program, "objectColor")
-        gl.glUniform3f(color_loc, *color)
-
-        # Light position: above and in front of sphere in screen space
-        light_pos_loc = gl.glGetUniformLocation(self.shader_program, "lightPos")
-        gl.glUniform3f(light_pos_loc, center_x, center_y - 100, 500.0)
-
-        # View position: camera looking at sphere from front
-        view_pos_loc = gl.glGetUniformLocation(self.shader_program, "viewPos")
-        gl.glUniform3f(view_pos_loc, center_x, center_y, 500.0)
-
-        glow_loc = gl.glGetUniformLocation(self.shader_program, "glowStrength")
-        gl.glUniform1f(glow_loc, 1.0 + audio_intensity * 2.0)
-
-        # Enable blending for transparency
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-
-        # Enable depth testing
-        gl.glEnable(gl.GL_DEPTH_TEST)
-
-        # Bind VAO and draw
-        gl.glBindVertexArray(self.vao)
-
-        if self.indices is not None:
-            gl.glDrawElements(
-                gl.GL_TRIANGLES, len(self.indices), gl.GL_UNSIGNED_INT, None
+            # Set custom property uniforms
+            anim_time_loc = gl.glGetUniformLocation(
+                self.shader_program, "animationTime"
             )
-        else:
-            gl.glDrawArrays(gl.GL_TRIANGLES, 0, len(self.vertices))
+            gl.glUniform1f(anim_time_loc, self.params.animation_time)
 
-        gl.glBindVertexArray(0)
+            jiggle_loc = gl.glGetUniformLocation(self.shader_program, "jiggleAmount")
+            gl.glUniform1f(jiggle_loc, self.params.jiggle_amount)
 
-        # Disable depth test and blending
-        gl.glDisable(gl.GL_DEPTH_TEST)
-        gl.glDisable(gl.GL_BLEND)
+            pulse_int_loc = gl.glGetUniformLocation(
+                self.shader_program, "pulseIntensity"
+            )
+            gl.glUniform1f(pulse_int_loc, self.params.pulse_intensity)
+
+            glow_loc = gl.glGetUniformLocation(self.shader_program, "glowStrength")
+            gl.glUniform1f(glow_loc, self.params.glow_strength)
+
+            # Set color (use override or params)
+            color = override_color if override_color else self.params.get_color()
+            color_loc = gl.glGetUniformLocation(self.shader_program, "baseColor")
+            gl.glUniform3f(color_loc, *color)
+
+            # Set lighting uniforms
+            light_pos_loc = gl.glGetUniformLocation(self.shader_program, "lightPos")
+            gl.glUniform3f(light_pos_loc, center_x, center_y - 100, 500.0)
+
+            view_pos_loc = gl.glGetUniformLocation(self.shader_program, "viewPos")
+            gl.glUniform3f(view_pos_loc, center_x, center_y, 500.0)
+
+            # Enable blending and depth testing
+            gl.glEnable(gl.GL_BLEND)
+            gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+            gl.glEnable(gl.GL_DEPTH_TEST)
+
+            # Bind VAO and draw
+            gl.glBindVertexArray(self.vao)
+
+            if self.indices is not None:
+                gl.glDrawElements(
+                    gl.GL_TRIANGLES, len(self.indices), gl.GL_UNSIGNED_INT, None
+                )
+            else:
+                gl.glDrawArrays(gl.GL_TRIANGLES, 0, len(self.vertices))
+
+            gl.glBindVertexArray(0)
+
+            # Disable depth test and blending
+            gl.glDisable(gl.GL_DEPTH_TEST)
+            gl.glDisable(gl.GL_BLEND)
+
+        except Exception as e:
+            logger.error(f"Render error: {e}")
 
     def cleanup(self):
         """Clean up OpenGL resources."""
