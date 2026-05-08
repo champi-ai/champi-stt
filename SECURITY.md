@@ -6,6 +6,7 @@ We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 0.2.x   | :white_check_mark: |
 | 0.1.x   | :white_check_mark: |
 | < 0.1   | :x:                |
 
@@ -229,6 +230,21 @@ detect-secrets scan
   logger.error(f"Failed to load config from {config_path}")
   raise ValueError("Failed to load configuration")
   ```
+
+## Pre-release Security Audit (v0.2.0)
+
+A bandit audit at LOW severity was run against `src/champi_stt/` prior to the
+v0.2.0 release. Findings and dispositions:
+
+| ID | Severity | Location | Disposition |
+|---|---|---|---|
+| B602 | High | `assistant/commands/builtin.py:125` | Fixed — replaced `shell=True` with explicit `["cmd", "/c", "start", "", app_name]` list |
+| B324 | High | `providers/whisperlive/models.py:121` | Fixed — added `usedforsecurity=False` to `hashlib.md5()` cache-key call |
+| B301 | Medium | `assistant/speaker.py:76` | Accepted with `# nosec B301` — pickle reads files written by this application only, not external input |
+
+Remaining LOW findings (49 total) are primarily `assert` statements in tests and
+subprocess calls with validated, non-user-supplied arguments. None represent
+exploitable attack surface in normal deployment.
 
 ## Known Security Considerations
 

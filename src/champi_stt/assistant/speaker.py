@@ -73,7 +73,7 @@ class SpeakerIdentifier:
         for profile_file in self.profiles_dir.glob("*.pkl"):
             try:
                 with open(profile_file, "rb") as f:
-                    profile = pickle.load(f)
+                    profile = pickle.load(f)  # nosec B301 — file written by this app only
                     self.profiles[profile.name] = profile
                     logger.debug(f"Loaded speaker profile: {profile.name}")
             except Exception as e:
