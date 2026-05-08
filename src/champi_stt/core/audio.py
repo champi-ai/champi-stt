@@ -22,7 +22,7 @@ try:
 
     SOUNDDEVICE_AVAILABLE = True
 except OSError:
-    sd = None  # type: ignore[assignment]
+    sd = None  # type: ignore[assignment]  # sounddevice unavailable (no PortAudio)
     SOUNDDEVICE_AVAILABLE = False
 
 # Optional webrtcvad for silence detection
@@ -158,7 +158,7 @@ async def record_audio(
         )
         await loop.run_in_executor(None, sd.wait)
 
-        flattened = recording.flatten()
+        flattened: np.ndarray = recording.flatten()
         logger.debug(f"✓ Recorded {len(flattened)} samples ({duration:.1f}s)")
 
         return flattened
@@ -241,16 +241,16 @@ async def _record_with_vad_impl(
     # Recording state
     chunks = []
     silence_duration_ms = 0
-    recording_duration = 0
+    recording_duration = 0.0
     stop_recording = False
-    vad_buffer = []
+    vad_buffer: list[int] = []
 
     chunk_duration_s = vad_chunk_duration_ms / 1000
 
     # Setup audio queue and callback
-    audio_queue = queue.Queue(maxsize=-1)
+    audio_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=-1)
 
-    def audio_callback(indata, frames, time, status):
+    def audio_callback(indata: np.ndarray, frames: int, time: Any, status: Any) -> None:
         if status:
             logger.warning(f"Audio stream status: {status}")
         audio_queue.put(indata.copy())
@@ -463,7 +463,7 @@ class AudioCapture:
         """
         return await record_audio(duration, self.device_name, self.sample_rate)
 
-    async def record_with_vad(self, max_duration: float, **vad_kwargs) -> np.ndarray:
+    async def record_with_vad(self, max_duration: float, **vad_kwargs: Any) -> np.ndarray:
         """
         Record audio with VAD-based automatic stopping.
 
@@ -517,9 +517,8 @@ def resample_audio(audio_data: np.ndarray, orig_sr: int, target_sr: int) -> np.n
     resampled = signal.resample(audio_float, target_length)
 
     # Convert back to original dtype
-    if audio_data.dtype == np.int16:
-        return resampled.astype(np.int16)
-    return resampled
+    result: np.ndarray = resampled.astype(np.int16) if audio_data.dtype == np.int16 else resampled
+    return result
 
 
 def normalize_audio(audio_data: np.ndarray) -> np.ndarray:
@@ -536,4 +535,5 @@ def normalize_audio(audio_data: np.ndarray) -> np.ndarray:
     if max_val == 0:
         return audio_data
 
-    return audio_data / max_val
+    normalized: np.ndarray = audio_data / max_val
+    return normalized

@@ -42,7 +42,7 @@ class BaseSTTProvider(ABC):
         prompt: str | None = None,
         response_format: str = "json",
         temperature: float = 0.0,
-        **kwargs,
+        **kwargs: Any,
     ) -> str | dict[str, Any]:
         """
         Transcribe audio data.
@@ -86,7 +86,7 @@ class BaseSTTProvider(ABC):
         prompt: str | None = None,
         response_format: str = "json",
         temperature: float = 0.0,
-        **kwargs,
+        **kwargs: Any,
     ) -> str | dict[str, Any]:
         """
         Translate audio to English.
@@ -105,7 +105,7 @@ class BaseSTTProvider(ABC):
         )
 
     async def detect_language(
-        self, audio_data: bytes | np.ndarray | str, **kwargs
+        self, audio_data: bytes | np.ndarray | str, **kwargs: Any
     ) -> tuple[str, float, list[tuple[str, float]]]:
         """
         Detect language of audio.

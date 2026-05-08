@@ -74,7 +74,8 @@ async def resample_audio(
         None, lambda: scipy_signal.resample(audio_data, target_length)
     )
 
-    return resampled.astype(audio_data.dtype)
+    result: np.ndarray = resampled.astype(audio_data.dtype)
+    return result
 
 
 async def convert_to_float32(audio_data: np.ndarray) -> np.ndarray:

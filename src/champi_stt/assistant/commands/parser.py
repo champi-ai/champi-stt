@@ -102,7 +102,7 @@ class CommandParser:
         logger.info(f"✓ Loaded {commands_loaded} commands from {config_path}")
         return commands_loaded
 
-    def _create_handler(self, action_config: dict[str, Any]):
+    def _create_handler(self, action_config: dict[str, Any]) -> Any:
         """
         Create command handler from action configuration.
 
@@ -118,7 +118,7 @@ class CommandParser:
             command = action_config["command"]
             timeout = action_config.get("timeout", 30)
 
-            async def shell_handler(**kwargs):
+            async def shell_handler(**kwargs: Any) -> dict[str, Any]:
                 return await self.executor.execute_shell(
                     command, timeout=timeout, **kwargs
                 )
@@ -132,7 +132,7 @@ class CommandParser:
             data = action_config.get("data")
             timeout = action_config.get("timeout", 30)
 
-            async def api_handler(**kwargs):
+            async def api_handler(**kwargs: Any) -> dict[str, Any]:
                 return await self.executor.execute_api(
                     url,
                     method=method,
@@ -148,9 +148,9 @@ class CommandParser:
             function_path = action_config["function"]
             args = action_config.get("args", [])
 
-            async def python_handler(**kwargs):
+            async def python_handler(**kwargs: Any) -> Any:
                 # Merge configured args with runtime kwargs
-                all_kwargs = {**dict(enumerate(args)), **kwargs}
+                all_kwargs: dict[Any, Any] = {**dict(enumerate(args)), **kwargs}
                 return await self.executor.execute_python(function_path, **all_kwargs)
 
             return python_handler

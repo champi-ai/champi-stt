@@ -5,7 +5,7 @@ Provides standardized response formatting across different providers.
 """
 
 import dataclasses
-from typing import Any
+from typing import Any, cast
 
 from loguru import logger
 
@@ -62,7 +62,7 @@ def format_response(
 
     elif response_format == "text":
         # Plain text only
-        text = result.get("text", "")
+        text = cast(str, result.get("text", ""))
         logger.debug(f"Formatted as text: '{text}'")
         return text
 
@@ -169,7 +169,7 @@ def standardize_provider_response(
     """
     if provider_name == "whisperlive":
         # WhisperLive already returns dict format
-        return provider_result
+        return cast(dict[str, Any], provider_result)
 
     if provider_name == "openai" and isinstance(provider_result, dict):
         return {

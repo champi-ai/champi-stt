@@ -39,9 +39,9 @@ class CommandRegistry:
         await registry.execute("set volume to 50")  # Calls set_volume(level="50")
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._exact_commands: dict[str, Command] = {}
-        self._pattern_commands: list[tuple[re.Pattern, Command]] = []
+        self._pattern_commands: list[tuple[re.Pattern[str], Command]] = []
 
     def register_exact(
         self, phrase: str, handler: Callable, description: str = ""

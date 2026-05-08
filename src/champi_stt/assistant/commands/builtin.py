@@ -2,15 +2,21 @@
 Built-in voice commands
 """
 
+from __future__ import annotations
+
 # import logging - replaced with loguru
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from champi_stt.assistant.commands.registry import CommandRegistry
 
 from loguru import logger
 
 # Time and date commands
 
 
-async def say_time():
+async def say_time() -> str:
     """Say current time"""
     now = datetime.now()
     time_str = now.strftime("%I:%M %p")
@@ -18,7 +24,7 @@ async def say_time():
     return f"The time is {time_str}"
 
 
-async def say_date():
+async def say_date() -> str:
     """Say current date"""
     now = datetime.now()
     date_str = now.strftime("%A, %B %d, %Y")
@@ -29,13 +35,13 @@ async def say_date():
 # System commands
 
 
-async def shutdown_assistant():
+async def shutdown_assistant() -> dict[str, str]:
     """Shutdown the voice assistant"""
     logger.info("Shutting down assistant...")
     return {"action": "shutdown", "message": "Goodbye!"}
 
 
-async def restart_assistant():
+async def restart_assistant() -> dict[str, str]:
     """Restart the voice assistant"""
     logger.info("Restarting assistant...")
     return {"action": "restart", "message": "Restarting..."}
@@ -44,13 +50,13 @@ async def restart_assistant():
 # Information commands
 
 
-async def get_system_info():
+async def get_system_info() -> dict[str, object]:
     """Get system information"""
     import platform
 
     import psutil
 
-    info = {
+    info: dict[str, object] = {
         "platform": platform.system(),
         "platform_version": platform.version(),
         "architecture": platform.machine(),
@@ -66,7 +72,7 @@ async def get_system_info():
 # Web commands
 
 
-async def web_search(query: str):
+async def web_search(query: str) -> str:
     """
     Perform web search.
 
@@ -81,7 +87,7 @@ async def web_search(query: str):
     return f"Searching for {query}"
 
 
-async def open_url(url: str):
+async def open_url(url: str) -> str:
     """
     Open URL in browser.
 
@@ -98,7 +104,7 @@ async def open_url(url: str):
 # Application commands
 
 
-async def open_application(app_name: str):
+async def open_application(app_name: str) -> str:
     """
     Open application by name.
 
@@ -129,17 +135,17 @@ async def open_application(app_name: str):
 # Voice feedback
 
 
-async def say_hello():
+async def say_hello() -> str:
     """Say hello"""
     return "Hello! How can I help you?"
 
 
-async def say_goodbye():
+async def say_goodbye() -> str:
     """Say goodbye"""
     return "Goodbye!"
 
 
-async def say_thanks():
+async def say_thanks() -> str:
     """Acknowledge thanks"""
     return "You're welcome!"
 
@@ -147,7 +153,7 @@ async def say_thanks():
 # Media control
 
 
-async def set_volume(level: str):
+async def set_volume(level: str) -> str:
     """
     Set system volume.
 
@@ -181,7 +187,7 @@ async def set_volume(level: str):
         return "Could not set volume"
 
 
-async def play_pause_media():
+async def play_pause_media() -> str:
     """Play/pause media"""
     import platform
     import subprocess
@@ -208,7 +214,7 @@ async def play_pause_media():
 # Helper to register all built-in commands
 
 
-def register_builtin_commands(registry):
+def register_builtin_commands(registry: "CommandRegistry") -> None:
     """
     Register all built-in commands.
 

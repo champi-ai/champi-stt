@@ -73,16 +73,17 @@ def configure_logging(
     import logging
 
     class InterceptHandler(logging.Handler):
-        def emit(self, record):
+        def emit(self, record: logging.LogRecord) -> None:
             # Get corresponding Loguru level if it exists
             try:
-                level = logger.level(record.levelname).name
+                level: str | int = logger.level(record.levelname).name
             except ValueError:
                 level = record.levelno
 
             # Find caller from where originated the logged message
-            frame, depth = sys._getframe(6), 6
-            while frame and frame.f_code.co_filename == logging.__file__:
+            frame = sys._getframe(6)
+            depth = 6
+            while frame.f_back and frame.f_code.co_filename == logging.__file__:
                 frame = frame.f_back
                 depth += 1
 
@@ -106,7 +107,7 @@ def configure_logging(
         logger.info(f"Logging to file: {log_file}")
 
 
-def get_logger(name: str | None = None):
+def get_logger(name: str | None = None) -> object:
     """
     Get a logger instance. This is just a convenience wrapper around loguru's logger.
 

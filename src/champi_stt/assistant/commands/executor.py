@@ -41,7 +41,7 @@ class CommandExecutor:
     """
 
     async def execute_shell(
-        self, command: str, timeout: int = 30, **kwargs
+        self, command: str, timeout: int = 30, **kwargs: Any
     ) -> dict[str, Any]:
         """
         Execute shell command.
@@ -106,10 +106,10 @@ class CommandExecutor:
         self,
         url: str,
         method: str = "GET",
-        headers: dict | None = None,
-        data: dict | None = None,
+        headers: dict[str, str] | None = None,
+        data: dict[str, Any] | None = None,
         timeout: int = 30,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """
         Execute HTTP API call.
@@ -175,7 +175,7 @@ class CommandExecutor:
             logger.error(f"API call failed: {e}")
             return {"success": False, "error": str(e)}
 
-    async def execute_python(self, function_path: str, **kwargs) -> Any:
+    async def execute_python(self, function_path: str, **kwargs: Any) -> Any:
         """
         Execute Python function by import path.
 
@@ -207,7 +207,7 @@ class CommandExecutor:
             logger.error(f"Python function execution failed: {e}")
             raise
 
-    async def execute_action(self, action: CommandAction, **kwargs) -> Any:
+    async def execute_action(self, action: CommandAction, **kwargs: Any) -> Any:
         """
         Execute command action based on type.
 

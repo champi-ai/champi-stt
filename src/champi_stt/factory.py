@@ -1,43 +1,27 @@
-"""
-Provider factory for creating STT providers
-"""
+"""Provider factory for creating STT providers."""
 
-from typing import Literal
+from typing import Any
 
-from champi_stt.core.base_config import BaseSTTConfig
 from champi_stt.core.base_provider import BaseSTTProvider
 
-# Type for supported providers
-ProviderType = Literal["whisperlive"]  # Will add "openai", "deepgram", etc.
+_SUPPORTED_PROVIDERS = ["whisperlive", "openai_whisper", "deepgram"]
 
 
 def get_provider(
-    provider_type: ProviderType = "whisperlive",
-    config: BaseSTTConfig | None = None,
+    provider_type: str = "whisperlive",
+    config: Any | None = None,
     **config_kwargs,
 ) -> BaseSTTProvider:
     """
     Factory function to create STT providers.
 
     Args:
-        provider_type: Type of provider ("whisperlive", "openai", etc.)
-        config: Pre-configured provider config (optional)
-        **config_kwargs: Config parameters (if config not provided)
+        provider_type: Provider key — "whisperlive", "openai_whisper", or "deepgram"
+        config: Pre-built provider config object (optional)
+        **config_kwargs: Config fields forwarded to the config constructor
 
     Returns:
-        Initialized STT provider instance
-
-    Examples:
-        # Using default config from environment
-        provider = get_provider("whisperlive")
-
-        # Using custom config
-        from champi_stt.providers.whisperlive import WhisperLiveConfig
-        config = WhisperLiveConfig(model_size="base", device="cpu")
-        provider = get_provider("whisperlive", config=config)
-
-        # Using kwargs
-        provider = get_provider("whisperlive", model_size="base", device="cpu")
+        Provider instance (not yet initialized — call initialize() before use)
     """
     if provider_type == "whisperlive":
         from champi_stt.providers.whisperlive import (
@@ -46,47 +30,37 @@ def get_provider(
         )
 
         if config is None:
-            if config_kwargs:
-                # Create config from kwargs
-                config = WhisperLiveConfig(**config_kwargs)
-            else:
-                # Load from environment
-                config = WhisperLiveConfig.from_env()
-
+            config = WhisperLiveConfig(**config_kwargs) if config_kwargs else WhisperLiveConfig.from_env()
         return WhisperLiveSTTProvider(config=config)
 
-    # Future providers:
-    # elif provider_type == "openai":
-    #     from champi_stt.providers.openai import OpenAIConfig, OpenAISTTProvider
-    #     config = config or OpenAIConfig.from_env()
-    #     return OpenAISTTProvider(config=config)
-    #
-    # elif provider_type == "deepgram":
-    #     from champi_stt.providers.deepgram import DeepgramConfig, DeepgramSTTProvider
-    #     config = config or DeepgramConfig.from_env()
-    #     return DeepgramSTTProvider(config=config)
-
-    else:
-        raise ValueError(
-            f"Unknown provider type: {provider_type}. Supported providers: whisperlive"
+    if provider_type == "openai_whisper":
+        from champi_stt.providers.openai_whisper import (
+            OpenAIWhisperConfig,
+            OpenAIWhisperProvider,
         )
+
+        if config is None:
+            config = OpenAIWhisperConfig(**config_kwargs) if config_kwargs else OpenAIWhisperConfig.from_env()
+        return OpenAIWhisperProvider(config=config)
+
+    if provider_type == "deepgram":
+        from champi_stt.providers.deepgram import DeepgramConfig, DeepgramProvider
+
+        if config is None:
+            config = DeepgramConfig(**config_kwargs) if config_kwargs else DeepgramConfig.from_env()
+        return DeepgramProvider(config=config)
+
+    raise ValueError(
+        f"Unknown provider type: {provider_type!r}. "
+        f"Supported providers: {', '.join(_SUPPORTED_PROVIDERS)}"
+    )
 
 
 def list_providers() -> list[str]:
-    """
-    Get list of available STT providers.
-
-    Returns:
-        List of provider names
-    """
-    return ["whisperlive"]  # Will grow as we add more providers
+    """Return the list of registered provider keys."""
+    return list(_SUPPORTED_PROVIDERS)
 
 
 def get_default_provider() -> BaseSTTProvider:
-    """
-    Get the default STT provider (WhisperLive).
-
-    Returns:
-        Default provider instance
-    """
+    """Return the default provider (WhisperLive, local inference)."""
     return get_provider("whisperlive")

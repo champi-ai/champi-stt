@@ -27,7 +27,7 @@ class BaseTranscriber(ABC):
         audio: str | np.ndarray | io.BytesIO | io.BufferedReader,
         language: str | None = None,
         task: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """
         Transcribe audio data.
@@ -57,7 +57,7 @@ class BaseTranscriber(ABC):
     # Optional methods
 
     async def transcribe_numpy(
-        self, audio_data: np.ndarray, sample_rate: int = 16000, **kwargs
+        self, audio_data: np.ndarray, sample_rate: int = 16000, **kwargs: Any
     ) -> dict[str, Any]:
         """
         Transcribe numpy array audio data.
@@ -68,7 +68,7 @@ class BaseTranscriber(ABC):
         return await self.transcribe_audio(audio_data, **kwargs)
 
     async def detect_language(
-        self, audio: str | np.ndarray | io.BytesIO | io.BufferedReader, **kwargs
+        self, audio: str | np.ndarray | io.BytesIO | io.BufferedReader, **kwargs: Any
     ) -> tuple[str, float, list[tuple[str, float]]]:
         """
         Detect language of audio.
