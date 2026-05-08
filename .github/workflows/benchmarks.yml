@@ -1,0 +1,59 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "benchmarks/**"
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run benchmarks
+        run: |
+          uv run pytest benchmarks/ \
+            --benchmark-only \
+            --benchmark-json=benchmark-results.json \
+            -v
+
+      - name: Run memory tests
+        run: uv run pytest benchmarks/bench_memory.py -v
+
+      - name: Post benchmark summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## Benchmark Results\n\n';
+            try {
+              const data = JSON.parse(fs.readFileSync('benchmark-results.json', 'utf8'));
+              body += '| Benchmark | Mean (ms) | Std Dev (ms) |\n|---|---|---|\n';
+              for (const bench of data.benchmarks || []) {
+                const mean = (bench.stats.mean * 1000).toFixed(3);
+                const std = (bench.stats.stddev * 1000).toFixed(3);
+                body += `| ${bench.name} | ${mean} | ${std} |\n`;
+              }
+            } catch (e) {
+              body += '_No benchmark data available._\n';
+            }
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
