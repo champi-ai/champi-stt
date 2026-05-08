@@ -122,7 +122,7 @@ async def open_application(app_name: str) -> str:
         elif system == "Linux":
             subprocess.Popen([app_name.lower()])
         elif system == "Windows":
-            subprocess.Popen(["start", app_name], shell=True)
+            subprocess.Popen(["cmd", "/c", "start", "", app_name])
 
         logger.info(f"Opening application: {app_name}")
         return f"Opening {app_name}"

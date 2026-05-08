@@ -118,7 +118,7 @@ class ModelCacheManager:
     def _get_cache_key(self, config: WhisperLiveConfig) -> str:
         """Generate cache key from model configuration."""
         key_data = f"{config.model_size}:{config.device}:{config.compute_type}:{config.cpu_threads}"
-        return hashlib.md5(key_data.encode()).hexdigest()[:12]
+        return hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()[:12]
 
     def _get_metadata_path(self, cache_key: str) -> Path:
         """Get metadata file path for cache key."""
