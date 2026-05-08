@@ -5,9 +5,9 @@ Wake Word Detection System
 Provides wake word/hotword detection for voice assistants.
 
 Supported engines:
-- WhisperWakeWord (recommended, uses WhisperLive STT)
-- OpenWakeWord (free and open source)
-- Vosk (open source, general ASR)
+- WhisperWakeWord (uses WhisperLive STT)
+- Porcupine (high accuracy, requires API key)
+- Vosk (offline, no API key required)
 """
 
 from champi_stt.assistant.wakeword.base import (
@@ -16,6 +16,7 @@ from champi_stt.assistant.wakeword.base import (
     WakeWordConfig,
     WakeWordEvent,
 )
+from champi_stt.assistant.wakeword.vosk import VoskWakeWord
 from champi_stt.assistant.wakeword.whisper import WhisperWakeWordDetector
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "BaseWakeWordEngine",
     "WakeWordConfig",
     "WakeWordEvent",
+    "VoskWakeWord",
     "WhisperWakeWordDetector",
 ]

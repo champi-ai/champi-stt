@@ -84,6 +84,11 @@ wakeword = [
     "openwakeword>=0.4.0",
 ]
 
+# Vosk offline speech recognition / wake word
+vosk = [
+    "vosk>=0.3.45",
+]
+
 # Speaker diarization / voice identification
 diarization = [
     "resemblyzer>=0.1.1",
@@ -91,7 +96,7 @@ diarization = [
 
 # All optional extras
 all = [
-    "champi-stt[torch,imgui,nlp,wakeword,diarization]",
+    "champi-stt[torch,imgui,nlp,wakeword,vosk,diarization]",
 ]
 
 # Development tools
