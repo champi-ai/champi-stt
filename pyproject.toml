@@ -89,6 +89,12 @@ vosk = [
     "vosk>=0.3.45",
 ]
 
+# AssemblyAI real-time streaming STT
+assemblyai = [
+    "httpx>=0.25.0",
+    "websockets>=12.0",
+]
+
 # Speaker diarization / voice identification
 diarization = [
     "resemblyzer>=0.1.1",
@@ -96,7 +102,7 @@ diarization = [
 
 # All optional extras
 all = [
-    "champi-stt[torch,imgui,nlp,wakeword,vosk,diarization]",
+    "champi-stt[torch,imgui,nlp,wakeword,vosk,assemblyai,diarization]",
 ]
 
 # Development tools
