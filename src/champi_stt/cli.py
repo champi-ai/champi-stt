@@ -505,5 +505,56 @@ def test_ui(prefix):
         click.echo(f"❌ Error: {e}")
 
 
+@cli.group()
+def service():
+    """Manage the champi-stt system service."""
+
+
+@service.command("install")
+@click.option("--config", default=None, help="Path to assistant_config.yaml")
+@click.option("--type", "service_type", default="systemd",
+              type=click.Choice(["systemd"]), show_default=True,
+              help="Service manager type")
+@click.option("--no-enable", is_flag=True, default=False, help="Skip systemctl enable")
+@click.option("--no-start", is_flag=True, default=False, help="Skip systemctl start")
+def service_install(config, service_type, no_enable, no_start):
+    """Install champi-stt as a system service."""
+    if service_type == "systemd":
+        from champi_stt.assistant.service.systemd.installer import install
+        try:
+            path = install(config=config, enable=not no_enable, start=not no_start)
+            click.echo(f"Service installed: {path}")
+            if not no_start:
+                click.echo("Service started. Check status with: champi-stt service status")
+        except Exception as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+
+
+@service.command("uninstall")
+@click.option("--type", "service_type", default="systemd",
+              type=click.Choice(["systemd"]), show_default=True)
+def service_uninstall(service_type):
+    """Remove the champi-stt system service."""
+    if service_type == "systemd":
+        from champi_stt.assistant.service.systemd.installer import uninstall
+        try:
+            uninstall()
+            click.echo("Service uninstalled.")
+        except Exception as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+
+
+@service.command("status")
+@click.option("--type", "service_type", default="systemd",
+              type=click.Choice(["systemd"]), show_default=True)
+def service_status(service_type):
+    """Show the status of the champi-stt service."""
+    if service_type == "systemd":
+        from champi_stt.assistant.service.systemd.installer import status
+        click.echo(status())
+
+
 if __name__ == "__main__":
     cli()
