@@ -4,6 +4,7 @@ Handles model loading, caching, and device optimization without global state.
 """
 
 import asyncio
+import dataclasses
 import hashlib
 import json
 
@@ -14,7 +15,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import torch
+try:
+    import torch
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None  # type: ignore[assignment]
+    TORCH_AVAILABLE = False
 from champi_signals import EventProcessor
 from faster_whisper import WhisperModel
 from loguru import logger
@@ -27,6 +34,21 @@ from champi_stt.providers.whisperlive.enums import (
 )
 from champi_stt.providers.whisperlive.events import STTSignalManager
 from champi_stt.providers.whisperlive.exceptions import WhisperModelError
+
+
+@dataclasses.dataclass
+class TranscriptionOptions:
+    """Options for a transcription request."""
+
+    language: str | None = None
+    task: str = "transcribe"
+    beam_size: int = 5
+    best_of: int = 5
+    temperature: float = 0.0
+    word_timestamps: bool = False
+    vad_filter: bool = False
+    vad_threshold: float = 0.5
+    initial_prompt: str | None = None
 
 
 class DeviceManager:
@@ -48,7 +70,7 @@ class DeviceManager:
             # Only use CUDA if explicitly enabled via environment variable
             use_cuda = os.getenv("WHISPERLIVE_USE_CUDA", "false").lower() == "true"
 
-            if use_cuda and torch.cuda.is_available():
+            if use_cuda and TORCH_AVAILABLE and torch.cuda.is_available():
                 try:
                     # Test if CUDA libraries are working by attempting a simple operation
                     test_tensor = torch.tensor([1.0]).cuda()
@@ -64,7 +86,11 @@ class DeviceManager:
         if compute_type is None or compute_type == ComputeType.AUTO.value:
             if device == DeviceType.CUDA.value:
                 try:
-                    major, _ = torch.cuda.get_device_capability()
+                    major, _ = (
+                        torch.cuda.get_device_capability()
+                        if TORCH_AVAILABLE
+                        else (0, 0)
+                    )
                     compute_type = (
                         ComputeType.FLOAT16.value
                         if major >= 7

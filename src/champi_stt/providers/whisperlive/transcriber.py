@@ -16,8 +16,15 @@ import time
 from typing import Any
 
 import numpy as np
-import sounddevice as sd
 from champi_signals import EventProcessor
+
+try:
+    import sounddevice as sd
+
+    SOUNDDEVICE_AVAILABLE = True
+except OSError:
+    sd = None  # type: ignore[assignment]
+    SOUNDDEVICE_AVAILABLE = False
 from faster_whisper import WhisperModel
 from loguru import logger
 

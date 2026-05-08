@@ -15,8 +15,15 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import sounddevice as sd
 from loguru import logger
+
+try:
+    import sounddevice as sd
+
+    SOUNDDEVICE_AVAILABLE = True
+except OSError:
+    sd = None  # type: ignore[assignment]
+    SOUNDDEVICE_AVAILABLE = False
 
 # Optional webrtcvad for silence detection
 try:
@@ -56,6 +63,8 @@ def list_input_devices() -> list[dict[str, Any]]:
     Returns:
         List of input device dictionaries with keys: index, name, channels, sample_rate
     """
+    if not SOUNDDEVICE_AVAILABLE:
+        return []
     devices = sd.query_devices()
     input_devices = []
 

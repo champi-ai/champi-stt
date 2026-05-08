@@ -20,11 +20,11 @@ class WhisperLiveConfig:
     """Configuration for WhisperLive STT provider."""
 
     # Model configuration
-    model_size: str = "large-v3"  # Model size or path
-    language: str | None = "en"  # Auto-detect if None
+    model_size: str = ModelSize.BASE.value  # Model size or path
+    language: str | None = None  # Auto-detect if None
     task: str = "transcribe"  # transcribe or translate
 
-    device: str | None = "cuda"  # Default to CPU for stability
+    device: str | None = "auto"  # Auto-detect device
     compute_type: str | None = "int8"  # Optimal for CPU
     cpu_threads: int = 0  # 0 = auto
 
@@ -75,10 +75,16 @@ class WhisperLiveConfig:
 
     def __post_init__(self):
         """Post-initialization validation"""
+        # Normalize enum instances to their values
+        if isinstance(self.model_size, ModelSize):
+            self.model_size = self.model_size.value
+        if hasattr(self.compute_type, "value"):
+            self.compute_type = self.compute_type.value
+
         # Validate model size
         if self.model_size not in ModelSize.get_all_sizes():
-            logger.warning(f"Unknown model size: {self.model_size}, using 'large-v3'")
-            self.model_size = "large-v3"
+            logger.warning(f"Unknown model size: {self.model_size}, using 'base'")
+            self.model_size = ModelSize.BASE.value
 
         # Validate language for English-only models
         if self.is_english_only_model() and self.language and self.language != "en":

@@ -14,15 +14,28 @@ custom ImGui-controllable parameters:
 
 import time
 
-import glfw
-import OpenGL.GL as gl  # noqa: N811
-from imgui_bundle import imgui
-from imgui_bundle.python_backends import glfw_backend
-from loguru import logger
+import pytest
 
-from champi_stt.assistant.ui.energy_sphere_renderer_imgui import (
-    EnergySphereImGuiRenderer,
+try:
+    import glfw
+    import OpenGL.GL as gl  # noqa: N811
+    from imgui_bundle import imgui
+    from imgui_bundle.python_backends import glfw_backend
+
+    IMGUI_AVAILABLE = True
+except ImportError:
+    IMGUI_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(
+    not IMGUI_AVAILABLE, reason="imgui-bundle/glfw not installed"
 )
+
+from loguru import logger  # noqa: E402
+
+if IMGUI_AVAILABLE:
+    from champi_stt.assistant.ui.energy_sphere_renderer_imgui import (
+        EnergySphereImGuiRenderer,
+    )
 
 
 def main():

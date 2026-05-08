@@ -18,10 +18,18 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import sounddevice as sd
 from champi_signals import EventProcessor
+
+try:
+    import sounddevice as sd
+
+    SOUNDDEVICE_AVAILABLE = True
+except OSError:
+    sd = None  # type: ignore[assignment]
+    SOUNDDEVICE_AVAILABLE = False
 from scipy import signal
 
+from champi_stt.core.response import TranscriptionResponse, TranscriptionSegment
 from champi_stt.providers.whisperlive.config import WhisperLiveConfig
 from champi_stt.providers.whisperlive.enums import (
     LifecycleEvents,
@@ -87,6 +95,7 @@ class WhisperLiveSTTProvider:
         configure_logging(level=self.config.log_level, log_file=self.config.log_file)
         # Note: Directory validation moved to initialize() method
 
+        self.name = "WhisperLive"
         self.transcriber: WhisperLiveTranscriber | None = None
         self._initialized = False
         self._stt_status: LifecycleEvents = LifecycleEvents.UNINITIALIZED.value
@@ -188,7 +197,7 @@ class WhisperLiveSTTProvider:
         temperature: float = 0.0,
         word_timestamps: bool = False,
         **kwargs,
-    ) -> str | dict[str, Any]:
+    ) -> TranscriptionResponse:
         """
         Transcribe audio data.
 
@@ -196,13 +205,13 @@ class WhisperLiveSTTProvider:
             audio_data: Audio data (bytes, numpy array, or file path)
             language: Language code for transcription
             prompt: Initial prompt for the model
-            response_format: Output format ("json", "text", "verbose_json")
+            response_format: Output format (unused, kept for API compatibility)
             temperature: Sampling temperature
             word_timestamps: Include word-level timestamps
             **kwargs: Additional transcription parameters
 
         Returns:
-            Transcription result in requested format
+            TranscriptionResponse with text, language, and segments
         """
         if not self.transcriber:
             raise RuntimeError(LoggingStrings.PROVIDER_NOT_INITIALIZED.value)
@@ -223,6 +232,8 @@ class WhisperLiveSTTProvider:
                 transcribe_params["initial_prompt"] = prompt
 
             # Transcribe based on input type
+            if isinstance(audio_data, Path):
+                audio_data = str(audio_data)
             if isinstance(audio_data, str):
                 # File path
                 logger.info(f"Transcribing from file: {audio_data}")
@@ -262,7 +273,7 @@ class WhisperLiveSTTProvider:
         response_format: str = ResponseFormat.JSON.value,
         temperature: float = 0.0,
         **kwargs,
-    ) -> str | dict[str, Any]:
+    ) -> TranscriptionResponse:
         """
         Translate audio to English.
 
@@ -312,47 +323,31 @@ class WhisperLiveSTTProvider:
 
     def _format_response(
         self, result: dict[str, Any], response_format: str
-    ) -> str | dict[str, Any]:
-        """Format transcription response based on requested format."""
-        if response_format == ResponseFormat.JSON.value:
-            formatted_result = {"text": result["text"]}
-            logger.info(f"Formatted JSON response: {formatted_result}")
-            return formatted_result
-        elif response_format == ResponseFormat.TEXT.value:
-            text_result = result["text"]
-            logger.info(f"Formatted text response: '{text_result}'")
-            return text_result
-        elif response_format == ResponseFormat.VERBOSE_JSON.value:
-            verbose_result = self._format_verbose_json_response(result)
-            logger.info(f"Formatted verbose JSON response: {verbose_result}")
-            return verbose_result
-        else:
-            logger.info(f"Returning raw result: {result}")
-            return result
-
-    def _format_verbose_json_response(self, result: dict[str, Any]) -> dict[str, Any]:
-        """Format verbose JSON response with segments."""
-        return {
-            "task": result.get("task", TaskType.TRANSCRIBE.value),
-            "language": result["language"],
-            "duration": result["duration"],
-            "text": result["text"],
-            "segments": [
-                {
-                    "id": seg["id"],
-                    "seek": seg.get("seek", 0),
-                    "start": seg["start"],
-                    "end": seg["end"],
-                    "text": seg["text"],
-                    "tokens": seg.get("tokens", []),
-                    "temperature": seg.get("temperature", 0.0),
-                    "avg_logprob": seg.get("avg_logprob", 0.0),
-                    "compression_ratio": seg.get("compression_ratio", 0.0),
-                    "no_speech_prob": seg.get("no_speech_prob", 0.0),
-                }
-                for seg in result["segments"]
-            ],
-        }
+    ) -> TranscriptionResponse:
+        """Format transcription response as a TranscriptionResponse."""
+        segments = [
+            TranscriptionSegment(
+                id=i,
+                start=seg.get("start", 0.0),
+                end=seg.get("end", 0.0),
+                text=seg.get("text", ""),
+                avg_logprob=seg.get("avg_logprob", 0.0),
+                no_speech_prob=seg.get("no_speech_prob", 0.0),
+                tokens=seg.get("tokens", []),
+                temperature=seg.get("temperature", 0.0),
+                compression_ratio=seg.get("compression_ratio", 0.0),
+            )
+            for i, seg in enumerate(result.get("segments", []))
+        ]
+        return TranscriptionResponse(
+            text=result.get("text", ""),
+            language=result.get("language", "unknown"),
+            language_probability=result.get("language_probability", 0.0),
+            duration=result.get("duration", 0.0),
+            segments=segments,
+            task=result.get("task", TaskType.TRANSCRIBE.value),
+            processing_time=result.get("processing_time", 0.0),
+        )
 
     async def detect_language(
         self, audio_data: str | np.ndarray | bytes, **kwargs
@@ -407,6 +402,22 @@ class WhisperLiveSTTProvider:
         """Clear model cache."""
         if self.transcriber:
             await self.transcriber.clear_cache()
+
+    @property
+    def is_initialized(self) -> bool:
+        """Check if provider is initialized."""
+        return self._initialized
+
+    def _get_model_path(self) -> str:
+        """Return the model size/path used by this provider."""
+        return self.config.model_size
+
+    async def __aenter__(self):
+        await self.initialize()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.shutdown()
 
     @property
     def is_loaded(self) -> bool:
@@ -905,6 +916,9 @@ class WhisperLiveSTTProvider:
 
         self._initialized = False
         logger.debug(LoggingStrings.PROVIDER_UNLOADED.value)
+
+
+WhisperLiveProvider = WhisperLiveSTTProvider
 
 
 if __name__ == "__main__":

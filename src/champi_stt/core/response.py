@@ -4,9 +4,41 @@ Generic response formatting utilities for all STT providers.
 Provides standardized response formatting across different providers.
 """
 
+import dataclasses
 from typing import Any
 
 from loguru import logger
+
+
+@dataclasses.dataclass
+class TranscriptionSegment:
+    """A single segment from a transcription result."""
+
+    id: int = 0
+    start: float = 0.0
+    end: float = 0.0
+    text: str = ""
+    avg_logprob: float = 0.0
+    no_speech_prob: float = 0.0
+    tokens: list[int] = dataclasses.field(default_factory=list)
+    temperature: float = 0.0
+    compression_ratio: float = 0.0
+
+
+@dataclasses.dataclass
+class TranscriptionResponse:
+    """Standardized transcription response returned by all STT providers."""
+
+    text: str = ""
+    language: str = "unknown"
+    language_probability: float = 0.0
+    duration: float = 0.0
+    segments: list[TranscriptionSegment] = dataclasses.field(default_factory=list)
+    task: str = "transcribe"
+    processing_time: float = 0.0
+
+
+STTResponse = TranscriptionResponse
 
 
 def format_response(
