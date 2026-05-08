@@ -6,6 +6,7 @@ from champi_stt.core.base_config import BaseSTTConfig
 from champi_stt.core.base_model_manager import BaseModelManager
 from champi_stt.core.base_provider import BaseSTTProvider
 from champi_stt.core.base_transcriber import BaseTranscriber
+from champi_stt.core.multi_room import MultiRoomAudioManager, RoomAudioChunk, RoomConfig
 from champi_stt.core.response import TranscriptionChunk
 from champi_stt.core.streaming import StreamingTranscriptionConfig
 
@@ -14,6 +15,9 @@ __all__ = [
     "BaseSTTConfig",
     "BaseSTTProvider",
     "BaseTranscriber",
+    "MultiRoomAudioManager",
+    "RoomAudioChunk",
+    "RoomConfig",
     "StreamingTranscriptionConfig",
     "TranscriptionChunk",
 ]
