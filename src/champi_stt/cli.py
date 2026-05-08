@@ -513,47 +513,54 @@ def service():
 @service.command("install")
 @click.option("--config", default=None, help="Path to assistant_config.yaml")
 @click.option("--type", "service_type", default="systemd",
-              type=click.Choice(["systemd"]), show_default=True,
+              type=click.Choice(["systemd", "launchd"]), show_default=True,
               help="Service manager type")
-@click.option("--no-enable", is_flag=True, default=False, help="Skip systemctl enable")
-@click.option("--no-start", is_flag=True, default=False, help="Skip systemctl start")
+@click.option("--no-enable", is_flag=True, default=False, help="Skip systemctl enable (systemd only)")
+@click.option("--no-start", is_flag=True, default=False, help="Skip start after install")
 def service_install(config, service_type, no_enable, no_start):
     """Install champi-stt as a system service."""
-    if service_type == "systemd":
-        from champi_stt.assistant.service.systemd.installer import install
-        try:
+    try:
+        if service_type == "systemd":
+            from champi_stt.assistant.service.systemd.installer import install
             path = install(config=config, enable=not no_enable, start=not no_start)
-            click.echo(f"Service installed: {path}")
-            if not no_start:
-                click.echo("Service started. Check status with: champi-stt service status")
-        except Exception as e:
-            click.echo(f"Error: {e}", err=True)
-            raise SystemExit(1)
+        else:
+            from champi_stt.assistant.service.launchd.installer import install
+            path = install(config=config, load=not no_start)
+        click.echo(f"Service installed: {path}")
+        if not no_start:
+            click.echo("Service started. Check status with: champi-stt service status")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
 
 
 @service.command("uninstall")
 @click.option("--type", "service_type", default="systemd",
-              type=click.Choice(["systemd"]), show_default=True)
+              type=click.Choice(["systemd", "launchd"]), show_default=True)
 def service_uninstall(service_type):
     """Remove the champi-stt system service."""
-    if service_type == "systemd":
-        from champi_stt.assistant.service.systemd.installer import uninstall
-        try:
-            uninstall()
-            click.echo("Service uninstalled.")
-        except Exception as e:
-            click.echo(f"Error: {e}", err=True)
-            raise SystemExit(1)
+    try:
+        if service_type == "systemd":
+            from champi_stt.assistant.service.systemd.installer import uninstall
+        else:
+            from champi_stt.assistant.service.launchd.installer import uninstall
+        uninstall()
+        click.echo("Service uninstalled.")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
 
 
 @service.command("status")
 @click.option("--type", "service_type", default="systemd",
-              type=click.Choice(["systemd"]), show_default=True)
+              type=click.Choice(["systemd", "launchd"]), show_default=True)
 def service_status(service_type):
     """Show the status of the champi-stt service."""
     if service_type == "systemd":
         from champi_stt.assistant.service.systemd.installer import status
-        click.echo(status())
+    else:
+        from champi_stt.assistant.service.launchd.installer import status
+    click.echo(status())
 
 
 if __name__ == "__main__":
