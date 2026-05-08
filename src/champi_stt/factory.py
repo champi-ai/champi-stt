@@ -4,7 +4,7 @@ from typing import Any
 
 from champi_stt.core.base_provider import BaseSTTProvider
 
-_SUPPORTED_PROVIDERS = ["whisperlive", "openai_whisper", "deepgram"]
+_SUPPORTED_PROVIDERS = ["whisperlive", "openai_whisper", "deepgram", "assemblyai"]
 
 
 def get_provider(
@@ -49,6 +49,13 @@ def get_provider(
         if config is None:
             config = DeepgramConfig(**config_kwargs) if config_kwargs else DeepgramConfig.from_env()
         return DeepgramProvider(config=config)
+
+    if provider_type == "assemblyai":
+        from champi_stt.providers.assemblyai import AssemblyAIConfig, AssemblyAIProvider
+
+        if config is None:
+            config = AssemblyAIConfig(**config_kwargs) if config_kwargs else AssemblyAIConfig.from_env()
+        return AssemblyAIProvider(config=config)
 
     raise ValueError(
         f"Unknown provider type: {provider_type!r}. "
