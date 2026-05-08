@@ -580,6 +580,21 @@ def service_status(service_type):
     click.echo(status())
 
 
+@cli.command("serve")
+@click.option("--provider", default="whisperlive", help="STT provider to load")
+@click.option("--host", default="localhost", show_default=True, help="Bind address")
+@click.option("--port", default=8766, show_default=True, type=int, help="Port to listen on")
+def serve_api(provider, host, port):
+    """Start the REST API server.
+
+    Exposes POST /transcribe, GET /status, POST /command, and WS /stream.
+    Requires the 'webui' extra: pip install 'champi-stt[webui]'
+    """
+    from champi_stt.api.server import serve_api as _serve
+
+    _serve(host=host, port=port)
+
+
 @cli.command("diarize")
 @click.argument("audio_file", type=click.Path(exists=True))
 @click.option("--hf-token", envvar="HF_TOKEN", default=None, help="HuggingFace access token")
