@@ -67,25 +67,29 @@ Quick start
 
 from __future__ import annotations
 
-# Factory (primary entry points)
-from champi_stt.factory import get_default_provider, get_provider, list_providers
-
 # Base classes
 from champi_stt.core.base_config import BaseSTTConfig
 from champi_stt.core.base_model_manager import BaseModelManager
 from champi_stt.core.base_provider import BaseSTTProvider
 from champi_stt.core.base_transcriber import BaseTranscriber
 
-# Streaming
-from champi_stt.core.streaming import StreamingTranscriptionConfig
-from champi_stt.core.response import TranscriptionChunk, TranscriptionResponse, TranscriptionSegment
-
 # Multi-room audio
 from champi_stt.core.multi_room import MultiRoomAudioManager, RoomAudioChunk, RoomConfig
+from champi_stt.core.response import (
+    TranscriptionChunk,
+    TranscriptionResponse,
+    TranscriptionSegment,
+)
+
+# Streaming
+from champi_stt.core.streaming import StreamingTranscriptionConfig
 
 # Diarization
 from champi_stt.diarization.config import DiarizationConfig
 from champi_stt.diarization.diarizer import DiarizationSegment, Diarizer
+
+# Factory (primary entry points)
+from champi_stt.factory import get_default_provider, get_provider, list_providers
 
 # Provisional: WhisperLive provider (direct access; stable via get_provider("whisperlive"))
 from champi_stt.providers.whisperlive import (
@@ -97,32 +101,32 @@ from champi_stt.providers.whisperlive import (
 __version__ = "0.2.0"
 
 __all__ = [
-    # Version
-    "__version__",
-    # Factory — stable
-    "get_provider",
-    "get_default_provider",
-    "list_providers",
+    "BaseModelManager",
     # Base classes — stable
     "BaseSTTConfig",
-    "BaseModelManager",
     "BaseSTTProvider",
     "BaseTranscriber",
+    # Diarization — stable
+    "DiarizationConfig",
+    "DiarizationSegment",
+    "Diarizer",
+    # Multi-room — stable
+    "MultiRoomAudioManager",
+    "RoomAudioChunk",
+    "RoomConfig",
     # Streaming — stable
     "StreamingTranscriptionConfig",
     "TranscriptionChunk",
     "TranscriptionResponse",
     "TranscriptionSegment",
-    # Multi-room — stable
-    "MultiRoomAudioManager",
-    "RoomAudioChunk",
-    "RoomConfig",
-    # Diarization — stable
-    "DiarizationConfig",
-    "DiarizationSegment",
-    "Diarizer",
     # Provisional
     "WhisperLiveConfig",
     "WhisperLiveSTTProvider",
     "WhisperLiveTranscriber",
+    # Version
+    "__version__",
+    "get_default_provider",
+    # Factory — stable
+    "get_provider",
+    "list_providers",
 ]

@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import queue
-import threading
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 

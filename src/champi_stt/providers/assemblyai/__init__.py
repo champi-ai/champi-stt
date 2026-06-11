@@ -10,10 +10,10 @@ from champi_stt.providers.assemblyai.exceptions import (
 from champi_stt.providers.assemblyai.provider import AssemblyAIProvider
 
 __all__ = [
-    "AssemblyAIConfig",
-    "AssemblyAIError",
     "AssemblyAIAuthError",
+    "AssemblyAIConfig",
     "AssemblyAIConnectionError",
-    "AssemblyAIStreamingError",
+    "AssemblyAIError",
     "AssemblyAIProvider",
+    "AssemblyAIStreamingError",
 ]

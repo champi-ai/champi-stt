@@ -76,7 +76,7 @@ class VoskWakeWord(BaseWakeWordEngine):
 
             # Build a grammar that only accepts the configured keywords plus silence.
             # This dramatically reduces false positives compared to full ASR.
-            grammar = json.dumps(self.config.keywords + ["[unk]"])
+            grammar = json.dumps([*self.config.keywords, "[unk]"])
             self._recognizer = KaldiRecognizer(
                 self._model, self.config.sample_rate, grammar
             )

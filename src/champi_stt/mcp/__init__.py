@@ -1,11 +1,5 @@
-"""
-MCP server for champi-stt.
+"""MCP (Model Context Protocol) server for champi-stt."""
 
-Exposes speech-to-text capabilities as MCP tools for use by LLM clients
-(Claude, etc.). Install the mcp extra to use this module:
+from champi_stt.mcp.server import main, mcp
 
-    pip install 'champi-stt[mcp]'
-
-Entry point (Phase 2):
-    champi-stt mcp serve
-"""
+__all__ = ["main", "mcp"]

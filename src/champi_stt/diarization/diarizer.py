@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import dataclasses
-import io
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -158,9 +157,9 @@ class Diarizer:
         else:
             arr = audio
 
-        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        sf.write(tmp.name, arr, sample_rate)
-        return tmp.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            sf.write(tmp.name, arr, sample_rate)
+            return tmp.name
 
     async def shutdown(self) -> None:
         """Release the pipeline."""

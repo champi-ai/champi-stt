@@ -135,7 +135,7 @@ class OpenAIWhisperProvider:
                 raise OpenAIWhisperFileSizeError(
                     f"File {path} is {size} bytes, exceeds 25 MB limit"
                 )
-            return open(path, "rb"), None  # noqa: SIM115
+            return open(path, "rb"), None
 
         if isinstance(audio_data, np.ndarray):
             if not SOUNDFILE_AVAILABLE:
@@ -156,11 +156,11 @@ class OpenAIWhisperProvider:
             raise OpenAIWhisperFileSizeError(
                 f"Audio bytes ({len(audio_data)}) exceed 25 MB limit"
             )
-        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        tmp.write(audio_data)
-        tmp.flush()
-        tmp.close()
-        return open(tmp.name, "rb"), tmp.name  # noqa: SIM115
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            tmp.write(audio_data)
+            tmp.flush()
+            tmp_name = tmp.name
+        return open(tmp_name, "rb"), tmp_name
 
     async def _call_api(
         self,

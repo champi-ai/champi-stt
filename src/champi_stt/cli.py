@@ -520,7 +520,7 @@ def serve_config(config, host, port):
         serve(config_path, host=host, port=port)
     except ImportError as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @cli.group()
@@ -539,17 +539,17 @@ def service_install(config, service_type, no_enable, no_start):
     """Install champi-stt as a system service."""
     try:
         if service_type == "systemd":
-            from champi_stt.assistant.service.systemd.installer import install
-            path = install(config=config, enable=not no_enable, start=not no_start)
+            from champi_stt.assistant.service.systemd.installer import install as _svc_install
+            path = _svc_install(config=config, enable=not no_enable, start=not no_start)
         else:
-            from champi_stt.assistant.service.launchd.installer import install
-            path = install(config=config, load=not no_start)
+            from champi_stt.assistant.service.launchd.installer import install as _svc_install_launchd
+            path = _svc_install_launchd(config=config, load=not no_start)
         click.echo(f"Service installed: {path}")
         if not no_start:
             click.echo("Service started. Check status with: champi-stt service status")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @service.command("uninstall")
@@ -559,14 +559,15 @@ def service_uninstall(service_type):
     """Remove the champi-stt system service."""
     try:
         if service_type == "systemd":
-            from champi_stt.assistant.service.systemd.installer import uninstall
+            from champi_stt.assistant.service.systemd.installer import uninstall as _uninstall_systemd
+            _uninstall_systemd()
         else:
-            from champi_stt.assistant.service.launchd.installer import uninstall
-        uninstall()
+            from champi_stt.assistant.service.launchd.installer import uninstall as _uninstall_launchd
+            _uninstall_launchd()
         click.echo("Service uninstalled.")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @service.command("status")
@@ -594,6 +595,40 @@ def serve_api(provider, host, port):
     from champi_stt.api.server import serve_api as _serve
 
     _serve(host=host, port=port)
+
+
+@cli.group("mcp")
+def mcp_group() -> None:
+    """MCP (Model Context Protocol) server commands."""
+
+
+@mcp_group.command("serve")
+def mcp_serve() -> None:
+    """Start the MCP server on the stdio transport.
+
+    Blocks waiting for JSON-RPC input from an MCP host.
+    Requires the 'mcp' extra: pip install 'champi-stt[mcp]'
+    """
+    try:
+        from champi_stt.mcp.server import MCP_AVAILABLE
+        from champi_stt.mcp.server import main as _main
+    except ImportError:
+        click.echo(
+            "Error: mcp package is not installed. "
+            "Install with: pip install 'champi-stt[mcp]'",
+            err=True,
+        )
+        raise SystemExit(1) from None
+
+    if not MCP_AVAILABLE:
+        click.echo(
+            "Error: mcp package is not installed. "
+            "Install with: pip install 'champi-stt[mcp]'",
+            err=True,
+        )
+        raise SystemExit(1)
+
+    _main()
 
 
 @cli.command("diarize")

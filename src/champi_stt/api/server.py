@@ -11,7 +11,6 @@ Exposes:
 from __future__ import annotations
 
 import asyncio
-import io
 import time
 from collections.abc import AsyncIterator
 from typing import Any
@@ -19,9 +18,15 @@ from typing import Any
 from loguru import logger
 
 try:
-    from fastapi import FastAPI, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
-    from fastapi.responses import JSONResponse
     import uvicorn
+    from fastapi import (
+        FastAPI,
+        HTTPException,
+        UploadFile,
+        WebSocket,
+        WebSocketDisconnect,
+    )
+    from fastapi.responses import JSONResponse
 
     FASTAPI_AVAILABLE = True
 except ImportError:
@@ -45,7 +50,7 @@ def _require_fastapi() -> None:
 def create_api_app(
     provider: Any | None = None,
     command_queue: asyncio.Queue[str] | None = None,
-) -> "FastAPI":
+) -> FastAPI:
     """Build the FastAPI REST application.
 
     Args:
@@ -123,7 +128,7 @@ def create_api_app(
                         if data == b"__END__":
                             break
                         yield data
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         break
 
             if hasattr(prov, "stream_transcribe"):

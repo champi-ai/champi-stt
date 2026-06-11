@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 import numpy as np
@@ -16,7 +16,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-class FeedbackTheme(str, Enum):
+class FeedbackTheme(StrEnum):
     """Sound theme for audio feedback."""
 
     DEFAULT = "default"

@@ -18,9 +18,9 @@ import yaml
 from loguru import logger
 
 try:
+    import uvicorn
     from fastapi import FastAPI, HTTPException, Request
     from fastapi.responses import HTMLResponse, JSONResponse
-    import uvicorn
 
     FASTAPI_AVAILABLE = True
 except ImportError:
@@ -130,7 +130,7 @@ def _build_html(config_json: str) -> str:
 def create_app(
     config_path: str | Path,
     reload_callback: Callable[[], None] | None = None,
-) -> "FastAPI":
+) -> FastAPI:
     """
     Build the FastAPI application.
 
