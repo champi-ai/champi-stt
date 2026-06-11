@@ -188,7 +188,7 @@ class WhisperStrings(Enum):
 
     # Default directories
     DEFAULT_CACHE_DIR = "~/.cache/whisper-live/"
-    DEFAULT_TRANSCRIPTIONS_DIR = "~/.cache/mcp-champi/transcriptions"
+    DEFAULT_TRANSCRIPTIONS_DIR = "~/.cache/champi-stt/transcriptions"
 
 
 @unique

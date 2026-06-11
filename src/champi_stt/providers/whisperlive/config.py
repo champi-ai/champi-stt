@@ -59,7 +59,7 @@ class WhisperLiveConfig:
     chunk_length: int | None = None
 
     # Cache
-    cache_dir: str = "/mnt/raid_0_drive/mcp_projs/champi/mcp_champi/whisper_cache"
+    cache_dir: str = "~/.cache/champi-stt/whisper/cache"
 
     # Event system configuration
     enable_events: bool = True
@@ -67,7 +67,7 @@ class WhisperLiveConfig:
 
     # Transcription saving
     save_transcriptions: bool = False
-    transcriptions_dir: str = "~/.cache/mcp-champi/transcriptions"
+    transcriptions_dir: str = "~/.cache/champi-stt/transcriptions"
 
     # Logging
     log_level: str = "INFO"

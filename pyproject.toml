@@ -101,6 +101,11 @@ webui = [
     "uvicorn>=0.23.0",
 ]
 
+# MCP server (Model Context Protocol)
+mcp = [
+    "mcp[cli]>=1.0,<2.0",
+]
+
 # Speaker diarization via pyannote.audio
 diarization = [
     "pyannote.audio>=3.1.0",
