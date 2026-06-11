@@ -463,7 +463,9 @@ class AudioCapture:
         """
         return await record_audio(duration, self.device_name, self.sample_rate)
 
-    async def record_with_vad(self, max_duration: float, **vad_kwargs: Any) -> np.ndarray:
+    async def record_with_vad(
+        self, max_duration: float, **vad_kwargs: Any
+    ) -> np.ndarray:
         """
         Record audio with VAD-based automatic stopping.
 
@@ -517,7 +519,9 @@ def resample_audio(audio_data: np.ndarray, orig_sr: int, target_sr: int) -> np.n
     resampled = signal.resample(audio_float, target_length)
 
     # Convert back to original dtype
-    result: np.ndarray = resampled.astype(np.int16) if audio_data.dtype == np.int16 else resampled
+    result: np.ndarray = (
+        resampled.astype(np.int16) if audio_data.dtype == np.int16 else resampled
+    )
     return result
 
 

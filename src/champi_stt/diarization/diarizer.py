@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import dataclasses
-import io
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -154,13 +153,15 @@ class Diarizer:
         import soundfile as sf  # type: ignore[import-untyped]
 
         if isinstance(audio, bytes):
-            arr: np.ndarray = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+            arr: np.ndarray = (
+                np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+            )
         else:
             arr = audio
 
-        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        sf.write(tmp.name, arr, sample_rate)
-        return tmp.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            sf.write(tmp.name, arr, sample_rate)
+            return tmp.name
 
     async def shutdown(self) -> None:
         """Release the pipeline."""

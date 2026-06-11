@@ -22,8 +22,8 @@ from champi_stt.assistant.wakeword.whisper import WhisperWakeWordDetector
 __all__ = [
     "BaseWakeWordDetector",
     "BaseWakeWordEngine",
+    "VoskWakeWord",
     "WakeWordConfig",
     "WakeWordEvent",
-    "VoskWakeWord",
     "WhisperWakeWordDetector",
 ]

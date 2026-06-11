@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import queue
-import threading
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
@@ -68,9 +67,7 @@ class RoomStream:
         if not SOUNDDEVICE_AVAILABLE:
             raise ImportError("sounddevice is required for multi-room audio")
 
-        def _callback(
-            indata: np.ndarray, frames: int, time: Any, status: Any
-        ) -> None:
+        def _callback(indata: np.ndarray, frames: int, time: Any, status: Any) -> None:
             if status:
                 logger.warning(f"[{self.config.name}] audio callback status: {status}")
             audio: np.ndarray = indata.copy()
@@ -85,7 +82,9 @@ class RoomStream:
             callback=_callback,
         )
         self._stream.start()
-        logger.info(f"Room '{self.config.name}' stream started (device={self.config.device})")
+        logger.info(
+            f"Room '{self.config.name}' stream started (device={self.config.device})"
+        )
 
     def stop(self) -> None:
         if self._stream is not None:

@@ -163,7 +163,9 @@ class AssemblyAIProvider(BaseSTTProvider):
                 session_msg = json.loads(await ws.recv())
                 if session_msg.get("error"):
                     raise AssemblyAIAuthError(session_msg["error"])
-                logger.debug(f"AssemblyAI session opened: {session_msg.get('session_id')}")
+                logger.debug(
+                    f"AssemblyAI session opened: {session_msg.get('session_id')}"
+                )
 
                 async def _send() -> None:
                     async for chunk in audio_source:
@@ -266,9 +268,13 @@ class AssemblyAIProvider(BaseSTTProvider):
             return Path(audio).read_bytes()
         if isinstance(audio, np.ndarray):
             if not SOUNDFILE_AVAILABLE:
-                raise ImportError("soundfile required for numpy input. Install with: pip install soundfile")
+                raise ImportError(
+                    "soundfile required for numpy input. Install with: pip install soundfile"
+                )
             buf = io.BytesIO()
-            sf.write(buf, audio, self.config.sample_rate, format="WAV", subtype="PCM_16")
+            sf.write(
+                buf, audio, self.config.sample_rate, format="WAV", subtype="PCM_16"
+            )
             return buf.getvalue()
         raise TypeError(f"Unsupported audio type: {type(audio)}")
 

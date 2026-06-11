@@ -130,7 +130,9 @@ class BaseSTTProvider(ABC):
         chunks: list[np.ndarray] = []
         async for chunk in audio_source:
             if isinstance(chunk, bytes):
-                arr: np.ndarray = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+                arr: np.ndarray = (
+                    np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+                )
             else:
                 arr = chunk
             chunks.append(arr)
@@ -140,8 +142,14 @@ class BaseSTTProvider(ABC):
 
         audio = np.concatenate(chunks)
         result = await self.transcribe(audio, language=language, **kwargs)
-        text = result if isinstance(result, str) else str(result.get("text", "") if isinstance(result, dict) else result)
-        yield TranscriptionChunk(text=text, is_final=True, language=language or "unknown")
+        text = (
+            result
+            if isinstance(result, str)
+            else str(result.get("text", "") if isinstance(result, dict) else result)
+        )
+        yield TranscriptionChunk(
+            text=text, is_final=True, language=language or "unknown"
+        )
 
     async def detect_language(
         self, audio_data: bytes | np.ndarray | str, **kwargs: Any

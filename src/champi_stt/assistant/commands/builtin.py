@@ -214,7 +214,7 @@ async def play_pause_media() -> str:
 # Helper to register all built-in commands
 
 
-def register_builtin_commands(registry: "CommandRegistry") -> None:
+def register_builtin_commands(registry: CommandRegistry) -> None:
     """
     Register all built-in commands.
 

@@ -114,7 +114,7 @@ diarization = [
 
 # All optional extras
 all = [
-    "champi-stt[torch,imgui,nlp,wakeword,vosk,assemblyai,diarization,webui]",
+    "champi-stt[torch,imgui,nlp,wakeword,vosk,assemblyai,diarization,webui,mcp]",
 ]
 
 # Documentation
@@ -158,6 +158,7 @@ Issues = "https://github.com/divagnz/champi-stt/issues"
 
 [project.scripts]
 champi-stt = "champi_stt.cli:cli"
+champi-stt-mcp = "champi_stt.mcp.server:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -291,6 +292,7 @@ module = [
     "glfw.*",
     "champi_signals.*",
     "awaitlet.*",
+    "mcp.*",
 ]
 ignore_missing_imports = true
 

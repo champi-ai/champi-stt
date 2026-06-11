@@ -111,7 +111,9 @@ class BaseTranscriber(ABC):
         chunks: list[np.ndarray] = []
         async for chunk in audio_source:
             if isinstance(chunk, bytes):
-                arr: np.ndarray = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+                arr: np.ndarray = (
+                    np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+                )
             else:
                 arr = chunk
             chunks.append(arr)
@@ -122,4 +124,6 @@ class BaseTranscriber(ABC):
         audio = np.concatenate(chunks)
         result = await self.transcribe_audio(audio, language=language, **kwargs)
         text: str = result.get("text", "") if isinstance(result, dict) else str(result)
-        yield TranscriptionChunk(text=text, is_final=True, language=language or "unknown")
+        yield TranscriptionChunk(
+            text=text, is_final=True, language=language or "unknown"
+        )

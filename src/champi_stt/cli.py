@@ -520,7 +520,7 @@ def serve_config(config, host, port):
         serve(config_path, host=host, port=port)
     except ImportError as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @cli.group()
@@ -530,48 +530,83 @@ def service():
 
 @service.command("install")
 @click.option("--config", default=None, help="Path to assistant_config.yaml")
-@click.option("--type", "service_type", default="systemd",
-              type=click.Choice(["systemd", "launchd"]), show_default=True,
-              help="Service manager type")
-@click.option("--no-enable", is_flag=True, default=False, help="Skip systemctl enable (systemd only)")
-@click.option("--no-start", is_flag=True, default=False, help="Skip start after install")
+@click.option(
+    "--type",
+    "service_type",
+    default="systemd",
+    type=click.Choice(["systemd", "launchd"]),
+    show_default=True,
+    help="Service manager type",
+)
+@click.option(
+    "--no-enable",
+    is_flag=True,
+    default=False,
+    help="Skip systemctl enable (systemd only)",
+)
+@click.option(
+    "--no-start", is_flag=True, default=False, help="Skip start after install"
+)
 def service_install(config, service_type, no_enable, no_start):
     """Install champi-stt as a system service."""
     try:
         if service_type == "systemd":
-            from champi_stt.assistant.service.systemd.installer import install
-            path = install(config=config, enable=not no_enable, start=not no_start)
+            from champi_stt.assistant.service.systemd.installer import (
+                install as _svc_install,
+            )
+
+            path = _svc_install(config=config, enable=not no_enable, start=not no_start)
         else:
-            from champi_stt.assistant.service.launchd.installer import install
-            path = install(config=config, load=not no_start)
+            from champi_stt.assistant.service.launchd.installer import (
+                install as _svc_install_launchd,
+            )
+
+            path = _svc_install_launchd(config=config, load=not no_start)
         click.echo(f"Service installed: {path}")
         if not no_start:
             click.echo("Service started. Check status with: champi-stt service status")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @service.command("uninstall")
-@click.option("--type", "service_type", default="systemd",
-              type=click.Choice(["systemd", "launchd"]), show_default=True)
+@click.option(
+    "--type",
+    "service_type",
+    default="systemd",
+    type=click.Choice(["systemd", "launchd"]),
+    show_default=True,
+)
 def service_uninstall(service_type):
     """Remove the champi-stt system service."""
     try:
         if service_type == "systemd":
-            from champi_stt.assistant.service.systemd.installer import uninstall
+            from champi_stt.assistant.service.systemd.installer import (
+                uninstall as _uninstall_systemd,
+            )
+
+            _uninstall_systemd()
         else:
-            from champi_stt.assistant.service.launchd.installer import uninstall
-        uninstall()
+            from champi_stt.assistant.service.launchd.installer import (
+                uninstall as _uninstall_launchd,
+            )
+
+            _uninstall_launchd()
         click.echo("Service uninstalled.")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @service.command("status")
-@click.option("--type", "service_type", default="systemd",
-              type=click.Choice(["systemd", "launchd"]), show_default=True)
+@click.option(
+    "--type",
+    "service_type",
+    default="systemd",
+    type=click.Choice(["systemd", "launchd"]),
+    show_default=True,
+)
 def service_status(service_type):
     """Show the status of the champi-stt service."""
     if service_type == "systemd":
@@ -584,7 +619,9 @@ def service_status(service_type):
 @cli.command("serve")
 @click.option("--provider", default="whisperlive", help="STT provider to load")
 @click.option("--host", default="localhost", show_default=True, help="Bind address")
-@click.option("--port", default=8766, show_default=True, type=int, help="Port to listen on")
+@click.option(
+    "--port", default=8766, show_default=True, type=int, help="Port to listen on"
+)
 def serve_api(provider, host, port):
     """Start the REST API server.
 
@@ -596,13 +633,59 @@ def serve_api(provider, host, port):
     _serve(host=host, port=port)
 
 
+@cli.group("mcp")
+def mcp_group() -> None:
+    """MCP (Model Context Protocol) server commands."""
+
+
+@mcp_group.command("serve")
+def mcp_serve() -> None:
+    """Start the MCP server on the stdio transport.
+
+    Blocks waiting for JSON-RPC input from an MCP host.
+    Requires the 'mcp' extra: pip install 'champi-stt[mcp]'
+    """
+    try:
+        from champi_stt.mcp.server import MCP_AVAILABLE
+        from champi_stt.mcp.server import main as _main
+    except ImportError:
+        click.echo(
+            "Error: mcp package is not installed. "
+            "Install with: pip install 'champi-stt[mcp]'",
+            err=True,
+        )
+        raise SystemExit(1) from None
+
+    if not MCP_AVAILABLE:
+        click.echo(
+            "Error: mcp package is not installed. "
+            "Install with: pip install 'champi-stt[mcp]'",
+            err=True,
+        )
+        raise SystemExit(1)
+
+    _main()
+
+
 @cli.command("diarize")
 @click.argument("audio_file", type=click.Path(exists=True))
-@click.option("--hf-token", envvar="HF_TOKEN", default=None, help="HuggingFace access token")
-@click.option("--num-speakers", default=None, type=int, help="Expected number of speakers")
-@click.option("--min-speakers", default=None, type=int, help="Minimum number of speakers")
-@click.option("--max-speakers", default=None, type=int, help="Maximum number of speakers")
-@click.option("--model", default="pyannote/speaker-diarization-3.1", help="pyannote pipeline model")
+@click.option(
+    "--hf-token", envvar="HF_TOKEN", default=None, help="HuggingFace access token"
+)
+@click.option(
+    "--num-speakers", default=None, type=int, help="Expected number of speakers"
+)
+@click.option(
+    "--min-speakers", default=None, type=int, help="Minimum number of speakers"
+)
+@click.option(
+    "--max-speakers", default=None, type=int, help="Maximum number of speakers"
+)
+@click.option(
+    "--model",
+    default="pyannote/speaker-diarization-3.1",
+    help="pyannote pipeline model",
+)
 def diarize(audio_file, hf_token, num_speakers, min_speakers, max_speakers, model):
     """Diarize an audio file and print speaker-labelled segments.
 
@@ -625,7 +708,9 @@ def diarize(audio_file, hf_token, num_speakers, min_speakers, max_speakers, mode
         await diarizer.initialize()
         segments = await diarizer.diarize(audio_file)
         for seg in segments:
-            click.echo(f"[{seg.start:.2f}s -> {seg.end:.2f}s] {seg.speaker_id}  {seg.text}")
+            click.echo(
+                f"[{seg.start:.2f}s -> {seg.end:.2f}s] {seg.speaker_id}  {seg.text}"
+            )
         await diarizer.shutdown()
 
     asyncio.run(_run())
