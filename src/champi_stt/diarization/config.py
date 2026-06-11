@@ -29,4 +29,6 @@ class DiarizationConfig:
     def from_env(cls) -> DiarizationConfig:
         import os
 
-        return cls(hf_token=os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN"))
+        return cls(
+            hf_token=os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+        )

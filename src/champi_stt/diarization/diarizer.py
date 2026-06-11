@@ -153,7 +153,9 @@ class Diarizer:
         import soundfile as sf  # type: ignore[import-untyped]
 
         if isinstance(audio, bytes):
-            arr: np.ndarray = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+            arr: np.ndarray = (
+                np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+            )
         else:
             arr = audio
 

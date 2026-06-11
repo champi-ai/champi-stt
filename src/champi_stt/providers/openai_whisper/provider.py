@@ -115,7 +115,9 @@ class OpenAIWhisperProvider:
                 file_obj,
                 language=language or self.config.language,
                 prompt=prompt,
-                temperature=temperature if temperature is not None else self.config.temperature,
+                temperature=temperature
+                if temperature is not None
+                else self.config.temperature,
             )
         finally:
             if temp_path and os.path.exists(temp_path):

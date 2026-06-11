@@ -112,11 +112,6 @@ diarization = [
     "soundfile>=0.12.0",
 ]
 
-# MCP (Model Context Protocol) server
-mcp = [
-    "mcp[cli]>=1.0,<2.0",
-]
-
 # All optional extras
 all = [
     "champi-stt[torch,imgui,nlp,wakeword,vosk,assemblyai,diarization,webui,mcp]",

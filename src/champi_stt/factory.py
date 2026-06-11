@@ -34,7 +34,11 @@ def get_provider(
         )
 
         if config is None:
-            config = WhisperLiveConfig(**config_kwargs) if config_kwargs else WhisperLiveConfig.from_env()
+            config = (
+                WhisperLiveConfig(**config_kwargs)
+                if config_kwargs
+                else WhisperLiveConfig.from_env()
+            )
         return WhisperLiveSTTProvider(config=config)
 
     if provider_type == "openai_whisper":
@@ -44,21 +48,33 @@ def get_provider(
         )
 
         if config is None:
-            config = OpenAIWhisperConfig(**config_kwargs) if config_kwargs else OpenAIWhisperConfig.from_env()
+            config = (
+                OpenAIWhisperConfig(**config_kwargs)
+                if config_kwargs
+                else OpenAIWhisperConfig.from_env()
+            )
         return OpenAIWhisperProvider(config=config)
 
     if provider_type == "deepgram":
         from champi_stt.providers.deepgram import DeepgramConfig, DeepgramProvider
 
         if config is None:
-            config = DeepgramConfig(**config_kwargs) if config_kwargs else DeepgramConfig.from_env()
+            config = (
+                DeepgramConfig(**config_kwargs)
+                if config_kwargs
+                else DeepgramConfig.from_env()
+            )
         return DeepgramProvider(config=config)
 
     if provider_type == "assemblyai":
         from champi_stt.providers.assemblyai import AssemblyAIConfig, AssemblyAIProvider
 
         if config is None:
-            config = AssemblyAIConfig(**config_kwargs) if config_kwargs else AssemblyAIConfig.from_env()
+            config = (
+                AssemblyAIConfig(**config_kwargs)
+                if config_kwargs
+                else AssemblyAIConfig.from_env()
+            )
         return AssemblyAIProvider(config=config)
 
     raise ValueError(
