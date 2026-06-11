@@ -639,10 +639,31 @@ def mcp_group() -> None:
 
 
 @mcp_group.command("serve")
-def mcp_serve() -> None:
-    """Start the MCP server on the stdio transport.
+@click.option(
+    "--transport",
+    default="stdio",
+    show_default=True,
+    type=click.Choice(["stdio", "sse"]),
+    help="Transport protocol: stdio (default) or sse.",
+)
+@click.option(
+    "--host",
+    default="localhost",
+    show_default=True,
+    help="Bind address (SSE transport only).",
+)
+@click.option(
+    "--port",
+    default=8765,
+    show_default=True,
+    type=int,
+    help="Port to listen on (SSE transport only).",
+)
+def mcp_serve(transport: str, host: str, port: int) -> None:
+    """Start the MCP server.
 
-    Blocks waiting for JSON-RPC input from an MCP host.
+    Blocks waiting for JSON-RPC input from an MCP host (stdio) or serves
+    over HTTP with Server-Sent Events (sse).
     Requires the 'mcp' extra: pip install 'champi-stt[mcp]'
     """
     try:
@@ -664,7 +685,7 @@ def mcp_serve() -> None:
         )
         raise SystemExit(1)
 
-    _main()
+    _main(transport=transport, host=host, port=port)
 
 
 @cli.command("diarize")
