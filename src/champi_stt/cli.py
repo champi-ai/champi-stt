@@ -4,6 +4,7 @@ CLI for champi-stt voice assistant
 
 import asyncio
 import sys
+from importlib.metadata import version as _pkg_version
 
 import click
 
@@ -11,7 +12,7 @@ from champi_stt.core.logging import configure_logging
 
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version=_pkg_version("champi-stt"))
 def cli():
     """Champi STT - Multi-Provider Speech-to-Text Voice Assistant"""
     pass

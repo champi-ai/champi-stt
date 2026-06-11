@@ -474,9 +474,9 @@ class WhisperLiveSTTProvider:
         home = Path.home()
         if os.name == "nt":  # Windows
             app_data = os.environ.get("APPDATA", home)
-            return str(Path(app_data) / "mcp_champi" / "whisper" / "cache")
+            return str(Path(app_data) / "champi-stt" / "whisper" / "cache")
         else:  # Unix-like
-            return str(home / ".mcp_champi" / "whisper" / "cache")
+            return str(home / ".cache" / "champi-stt" / "whisper" / "cache")
 
     def get_default_transcriptions_dir(self) -> str:
         """Get platform-appropriate transcriptions directory"""
@@ -485,9 +485,9 @@ class WhisperLiveSTTProvider:
         home = Path.home()
         if os.name == "nt":  # Windows
             app_data = os.environ.get("APPDATA", home)
-            return str(Path(app_data) / "mcp_champi" / "whisper" / "transcriptions")
+            return str(Path(app_data) / "champi-stt" / "whisper" / "transcriptions")
         else:  # Unix-like
-            return str(home / ".mcp_champi" / "whisper" / "transcriptions")
+            return str(home / ".cache" / "champi-stt" / "whisper" / "transcriptions")
 
     def get_audio_device(self, device_name: str) -> AudioDevice:
         """Initialize audio device settings

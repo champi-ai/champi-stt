@@ -27,11 +27,13 @@ class TestCLIBasics:
 
     def test_cli_version(self):
         """Test CLI version command."""
+        from importlib.metadata import version
+
         runner = CliRunner()
         result = runner.invoke(cli, ["--version"])
 
         assert result.exit_code == 0
-        assert "0.1.0" in result.output
+        assert version("champi-stt") in result.output
 
     def test_list_providers(self):
         """Test list-providers command."""
