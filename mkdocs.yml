@@ -60,6 +60,8 @@ nav:
   - Features:
       - IPC System: features/ipc.md
       - ImGui Integration: features/imgui.md
+  - Integrations:
+      - MCP (Claude Desktop): mcp-integration.md
   - Development:
       - Contributing: contributing.md
       - Changelog: changelog.md
