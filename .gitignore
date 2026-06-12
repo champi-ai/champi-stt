@@ -111,6 +111,7 @@ workflow.db
 # Runtime files
 *.pid
 *.lock
+!uv.lock
 
 # ImGui state files
 imgui.ini
