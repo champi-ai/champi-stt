@@ -1,11 +1,8 @@
 """Tests for IPC signal processor."""
 
-import pytest
-
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 import time
 
+import pytest
 from blinker import Signal
 
 from champi_stt.assistant.ipc import (
@@ -14,6 +11,10 @@ from champi_stt.assistant.ipc import (
     AssistantSignalType,
 )
 from champi_stt.assistant.ipc.structs import unpack_state_change, unpack_wake_detected
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
+)
 
 
 class TestSignalProcessor:

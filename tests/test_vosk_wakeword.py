@@ -24,30 +24,35 @@ def mock_vosk():
     mock_model = MagicMock()
     mock_recognizer = MagicMock()
 
-    with patch("champi_stt.assistant.wakeword.vosk.VOSK_AVAILABLE", True):
-        with patch("champi_stt.assistant.wakeword.vosk.Model", return_value=mock_model):
-            with patch(
-                "champi_stt.assistant.wakeword.vosk.KaldiRecognizer",
-                return_value=mock_recognizer,
-            ):
-                yield mock_model, mock_recognizer
+    with (
+        patch("champi_stt.assistant.wakeword.vosk.VOSK_AVAILABLE", True),
+        patch("champi_stt.assistant.wakeword.vosk.Model", return_value=mock_model),
+        patch(
+            "champi_stt.assistant.wakeword.vosk.KaldiRecognizer",
+            return_value=mock_recognizer,
+        ),
+    ):
+        yield mock_model, mock_recognizer
 
 
 class TestVoskWakeWordInit:
     def test_raises_without_vosk(self):
         with patch("champi_stt.assistant.wakeword.vosk.VOSK_AVAILABLE", False):
             from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
             with pytest.raises(ImportError, match="vosk"):
                 VoskWakeWord(_make_config())
 
     def test_not_initialized_by_default(self, mock_vosk):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         assert not engine.is_initialized
 
     @pytest.mark.asyncio
     async def test_initialize_success(self, mock_vosk):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
         assert engine.is_initialized
@@ -55,6 +60,7 @@ class TestVoskWakeWordInit:
     @pytest.mark.asyncio
     async def test_initialize_requires_model_path(self, mock_vosk):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         config = _make_config(model_path=None)
         engine = VoskWakeWord(config)
         with pytest.raises(ValueError, match="model_path"):
@@ -62,8 +68,9 @@ class TestVoskWakeWordInit:
 
     @pytest.mark.asyncio
     async def test_initialize_idempotent(self, mock_vosk):
-        _, mock_recognizer = mock_vosk
+        _, _mock_recognizer = mock_vosk
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
         await engine.initialize()
@@ -72,15 +79,18 @@ class TestVoskWakeWordInit:
 
     @pytest.mark.asyncio
     async def test_initialize_failure_raises(self):
-        with patch("champi_stt.assistant.wakeword.vosk.VOSK_AVAILABLE", True):
-            with patch(
+        with (
+            patch("champi_stt.assistant.wakeword.vosk.VOSK_AVAILABLE", True),
+            patch(
                 "champi_stt.assistant.wakeword.vosk.Model",
                 side_effect=Exception("model not found"),
-            ):
-                from champi_stt.assistant.wakeword.vosk import VoskWakeWord
-                engine = VoskWakeWord(_make_config())
-                with pytest.raises(RuntimeError, match="Vosk initialization failed"):
-                    await engine.initialize()
+            ),
+            pytest.raises(RuntimeError, match="Vosk initialization failed"),
+        ):
+            from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
+            engine = VoskWakeWord(_make_config())
+            await engine.initialize()
 
 
 class TestVoskProcessAudio:
@@ -91,6 +101,7 @@ class TestVoskProcessAudio:
         mock_recognizer.Result.return_value = json.dumps({"text": "hey champi"})
 
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
 
@@ -106,6 +117,7 @@ class TestVoskProcessAudio:
         mock_recognizer.PartialResult.return_value = json.dumps({"partial": "stop now"})
 
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
 
@@ -121,6 +133,7 @@ class TestVoskProcessAudio:
         mock_recognizer.Result.return_value = json.dumps({"text": "random other words"})
 
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
 
@@ -136,6 +149,7 @@ class TestVoskProcessAudio:
         mock_recognizer.Result.return_value = json.dumps({"text": ""})
 
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
 
@@ -150,6 +164,7 @@ class TestVoskProcessAudio:
         mock_recognizer.Result.return_value = json.dumps({"text": "[unk]"})
 
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
 
@@ -160,6 +175,7 @@ class TestVoskProcessAudio:
     @pytest.mark.asyncio
     async def test_not_initialized_raises(self, mock_vosk):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         with pytest.raises(RuntimeError, match="not initialized"):
             await engine.process_audio(np.zeros(512, dtype=np.int16))
@@ -171,11 +187,12 @@ class TestVoskProcessAudio:
         mock_recognizer.Result.return_value = json.dumps({"text": "hey champi"})
 
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
 
         audio = np.zeros(512, dtype=np.float32)
-        detected, keyword = await engine.process_audio(audio)
+        detected, _keyword = await engine.process_audio(audio)
         assert detected is True
 
 
@@ -183,6 +200,7 @@ class TestVoskShutdown:
     @pytest.mark.asyncio
     async def test_shutdown_clears_state(self, mock_vosk):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         engine = VoskWakeWord(_make_config())
         await engine.initialize()
         assert engine.is_initialized
@@ -195,6 +213,7 @@ class TestVoskShutdown:
 class TestToInt16Bytes:
     def test_int16_passthrough(self):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         audio = np.array([100, -100, 0], dtype=np.int16)
         result = VoskWakeWord._to_int16_bytes(audio)
         assert isinstance(result, bytes)
@@ -202,6 +221,7 @@ class TestToInt16Bytes:
 
     def test_float32_conversion(self):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         audio = np.array([0.5, -0.5], dtype=np.float32)
         result = VoskWakeWord._to_int16_bytes(audio)
         assert isinstance(result, bytes)
@@ -209,6 +229,7 @@ class TestToInt16Bytes:
 
     def test_other_dtype_conversion(self):
         from champi_stt.assistant.wakeword.vosk import VoskWakeWord
+
         audio = np.array([100, 200], dtype=np.int32)
         result = VoskWakeWord._to_int16_bytes(audio)
         assert isinstance(result, bytes)

@@ -1,6 +1,7 @@
 """Tests for base provider abstract class."""
 
-from unittest.mock import AsyncMock, patch
+# Concrete config for testing
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -10,9 +11,6 @@ from champi_stt.core.base_config import BaseSTTConfig
 from champi_stt.core.base_provider import BaseSTTProvider
 from champi_stt.core.response import TranscriptionResponse
 
-
-# Concrete config for testing
-from dataclasses import dataclass
 
 @dataclass
 class _TestConfig(BaseSTTConfig):
@@ -29,7 +27,9 @@ class _ConcreteProvider(BaseSTTProvider):
     async def initialize(self) -> None:
         self._initialized = True
 
-    async def transcribe(self, audio_data: bytes | np.ndarray | str, **kwargs: Any) -> TranscriptionResponse:  # type: ignore[override]
+    async def transcribe(
+        self, audio_data: bytes | np.ndarray | str, **kwargs: Any
+    ) -> TranscriptionResponse:  # type: ignore[override]
         return TranscriptionResponse(text="test")
 
     async def shutdown(self) -> None:
@@ -97,4 +97,5 @@ class TestBaseSTTProvider:
         provider.config.transcriptions_dir = str(tmp_path)
         result = await provider.save_transcription("hello world")
         assert result is not None
-        assert "hello world" in open(result).read()
+        with open(result) as fh:
+            assert "hello world" in fh.read()

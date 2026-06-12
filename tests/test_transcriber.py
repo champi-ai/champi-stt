@@ -77,9 +77,15 @@ def _make_mock_model(
     """Build a WhisperModel mock that returns deterministic transcription results."""
     mock_model = MagicMock()
     seg = _make_mock_segment(text=text)
-    info = _make_mock_info(language=language, language_probability=lang_prob, duration=duration)
+    info = _make_mock_info(
+        language=language, language_probability=lang_prob, duration=duration
+    )
     mock_model.transcribe.return_value = ([seg], info)
-    mock_model.detect_language.return_value = (language, lang_prob, [(language, lang_prob)])
+    mock_model.detect_language.return_value = (
+        language,
+        lang_prob,
+        [(language, lang_prob)],
+    )
     return mock_model
 
 
@@ -162,7 +168,9 @@ class TestWhisperLiveTranscriberInitialize:
         assert transcriber._initialized is True
 
     @pytest.mark.asyncio
-    async def test_initialize_calls_model_manager_initialize(self, tmp_path: Path) -> None:
+    async def test_initialize_calls_model_manager_initialize(
+        self, tmp_path: Path
+    ) -> None:
         transcriber = _make_transcriber(tmp_path)
         mock_init = AsyncMock()
         transcriber.model_manager.initialize = mock_init
@@ -193,7 +201,9 @@ class TestProcessSegments:
 
     def test_single_segment_without_words(self, tmp_path: Path) -> None:
         transcriber = _make_transcriber(tmp_path)
-        seg = _make_mock_segment(text="hello world", start=0.0, end=1.5, with_words=False)
+        seg = _make_mock_segment(
+            text="hello world", start=0.0, end=1.5, with_words=False
+        )
         result = transcriber._process_segments([seg])
 
         assert len(result) == 1
@@ -229,9 +239,15 @@ class TestProcessSegments:
         result = transcriber._process_segments([seg])
 
         expected_keys = {
-            "id", "start", "end", "text",
-            "avg_logprob", "no_speech_prob", "compression_ratio",
-            "temperature", "tokens",
+            "id",
+            "start",
+            "end",
+            "text",
+            "avg_logprob",
+            "no_speech_prob",
+            "compression_ratio",
+            "temperature",
+            "tokens",
         }
         assert expected_keys.issubset(result[0].keys())
 
@@ -376,9 +392,7 @@ class TestTranscribeNumpy:
         assert captured["max"] <= 1.0
 
     @pytest.mark.asyncio
-    async def test_non_16khz_audio_is_resampled(
-        self, tmp_path: Path, mocker
-    ) -> None:
+    async def test_non_16khz_audio_is_resampled(self, tmp_path: Path, mocker) -> None:
         transcriber = _make_transcriber(tmp_path, initialized=True)
         mock_transcribe = AsyncMock(return_value=_mock_result())
         mocker.patch.object(transcriber, "transcribe_audio", new=mock_transcribe)
@@ -459,9 +473,7 @@ class TestGetModelInfo:
         assert info == {"status": "not_initialized"}
 
     @pytest.mark.asyncio
-    async def test_delegates_to_model_manager_after_init(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_delegates_to_model_manager_after_init(self, tmp_path: Path) -> None:
         transcriber = _make_transcriber(tmp_path, initialized=True)
         expected = {"status": "loaded", "model_size": "base"}
         transcriber.model_manager.get_model_info = AsyncMock(return_value=expected)
@@ -481,9 +493,7 @@ class TestClearCache:
     """Tests for WhisperLiveTranscriber.clear_cache()."""
 
     @pytest.mark.asyncio
-    async def test_delegates_to_model_manager_clear_cache(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_delegates_to_model_manager_clear_cache(self, tmp_path: Path) -> None:
         transcriber = _make_transcriber(tmp_path)
         transcriber.model_manager.clear_cache = AsyncMock()
         await transcriber.clear_cache()
@@ -677,9 +687,7 @@ class TestPlayAudioData:
         self, tmp_path: Path, mocker
     ) -> None:
         transcriber = _make_transcriber(tmp_path)
-        mocker.patch(
-            "champi_stt.providers.whisperlive.transcriber.sd", None
-        )
+        mocker.patch("champi_stt.providers.whisperlive.transcriber.sd", None)
 
         audio_data = np.zeros(100, dtype=np.float32)
         with pytest.raises(WhisperAudioError):
@@ -766,8 +774,12 @@ class TestPhase1PathRegressions:
             text = py_file.read_text(encoding="utf-8")
             for token in banned:
                 if token in text:
-                    violations.append(f"{py_file.relative_to(src_root.parent.parent)}: '{token}'")
-        assert not violations, "Legacy path identifiers found:\n" + "\n".join(violations)
+                    violations.append(
+                        f"{py_file.relative_to(src_root.parent.parent)}: '{token}'"
+                    )
+        assert not violations, "Legacy path identifiers found:\n" + "\n".join(
+            violations
+        )
 
     def test_no_source_file_contains_raid_path(self) -> None:
         """No .py file under src/champi_stt may reference /mnt/raid_0_drive."""

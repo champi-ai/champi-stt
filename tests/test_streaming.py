@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -15,12 +15,14 @@ from champi_stt.core.base_transcriber import BaseTranscriber
 from champi_stt.core.response import TranscriptionChunk
 from champi_stt.core.streaming import StreamingTranscriptionConfig
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _make_source(*chunks: bytes | np.ndarray) -> AsyncIterator[bytes | np.ndarray]:
+
+async def _make_source(
+    *chunks: bytes | np.ndarray,
+) -> AsyncIterator[bytes | np.ndarray]:
     for c in chunks:
         yield c
 
@@ -35,7 +37,9 @@ class _ConcreteProvider(BaseSTTProvider):
     async def initialize(self) -> None:
         self._initialized = True
 
-    async def transcribe(self, audio_data: Any, language: Any = None, **kwargs: Any) -> str:
+    async def transcribe(
+        self, audio_data: Any, language: Any = None, **kwargs: Any
+    ) -> str:
         return "hello world"
 
     async def shutdown(self) -> None:
@@ -64,6 +68,7 @@ class _ConcreteTranscriber(BaseTranscriber):
 # ---------------------------------------------------------------------------
 # StreamingTranscriptionConfig
 # ---------------------------------------------------------------------------
+
 
 class TestStreamingTranscriptionConfig:
     def test_defaults(self) -> None:
@@ -100,6 +105,7 @@ class TestStreamingTranscriptionConfig:
 # TranscriptionChunk
 # ---------------------------------------------------------------------------
 
+
 class TestTranscriptionChunk:
     def test_defaults(self) -> None:
         chunk = TranscriptionChunk()
@@ -116,6 +122,7 @@ class TestTranscriptionChunk:
 # ---------------------------------------------------------------------------
 # BaseSTTProvider.stream_transcribe (default implementation)
 # ---------------------------------------------------------------------------
+
 
 class TestBaseProviderStreamTranscribe:
     @pytest.mark.asyncio
@@ -162,6 +169,7 @@ class TestBaseProviderStreamTranscribe:
 # BaseTranscriber.stream_transcribe (default implementation)
 # ---------------------------------------------------------------------------
 
+
 class TestBaseTranscriberStreamTranscribe:
     @pytest.mark.asyncio
     async def test_yields_chunk_with_text(self) -> None:
@@ -185,6 +193,7 @@ class TestBaseTranscriberStreamTranscribe:
 # ---------------------------------------------------------------------------
 # Helpers to drive async generators
 # ---------------------------------------------------------------------------
+
 
 async def _collect(
     provider: BaseSTTProvider,

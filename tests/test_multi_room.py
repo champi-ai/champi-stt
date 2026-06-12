@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import queue
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -52,8 +50,10 @@ class TestRoomStream:
         mock_sd = MagicMock()
         mock_sd.InputStream.return_value = mock_sd_stream
 
-        with patch("champi_stt.core.multi_room.SOUNDDEVICE_AVAILABLE", True), \
-             patch("champi_stt.core.multi_room.sd", mock_sd):
+        with (
+            patch("champi_stt.core.multi_room.SOUNDDEVICE_AVAILABLE", True),
+            patch("champi_stt.core.multi_room.sd", mock_sd),
+        ):
             stream = RoomStream(RoomConfig("room1", device=0), on_chunk=lambda c: None)
             stream.start()
             assert stream.is_active
@@ -78,8 +78,10 @@ class TestRoomStream:
 
         mock_sd = MagicMock()
         mock_sd.InputStream.side_effect = fake_input_stream
-        with patch("champi_stt.core.multi_room.SOUNDDEVICE_AVAILABLE", True), \
-             patch("champi_stt.core.multi_room.sd", mock_sd):
+        with (
+            patch("champi_stt.core.multi_room.SOUNDDEVICE_AVAILABLE", True),
+            patch("champi_stt.core.multi_room.sd", mock_sd),
+        ):
             stream = RoomStream(RoomConfig("r"), on_chunk=received.append)
             stream.start()
 
@@ -92,9 +94,6 @@ class TestRoomStream:
 class TestMultiRoomAudioManager:
     def _make_mock_streams(self, *names: str):
         """Patch RoomStream.start/stop so no real audio device is needed."""
-        mock_streams: dict[str, MagicMock] = {}
-
-        original_init = RoomStream.__init__
 
         def fake_start(self_stream) -> None:
             self_stream._stream = MagicMock()
@@ -117,8 +116,10 @@ class TestMultiRoomAudioManager:
     @pytest.mark.asyncio
     async def test_double_start_is_idempotent(self) -> None:
         mgr = MultiRoomAudioManager([RoomConfig("a")])
-        with patch.object(RoomStream, "start") as mock_start, \
-             patch.object(RoomStream, "stop"):
+        with (
+            patch.object(RoomStream, "start") as mock_start,
+            patch.object(RoomStream, "stop"),
+        ):
             await mgr.start()
             await mgr.start()
             assert mock_start.call_count == 1

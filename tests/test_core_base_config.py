@@ -2,9 +2,6 @@
 
 import os
 from dataclasses import dataclass
-from typing import ClassVar
-
-import pytest
 
 from champi_stt.core.base_config import BaseSTTConfig
 
@@ -34,7 +31,9 @@ class TestBaseSTTConfig:
         assert d["task"] == "transcribe"
 
     def test_from_dict(self):
-        cfg = ConcreteConfig.from_dict({"language": "fr", "extra": "y", "unknown_key": "ignored"})
+        cfg = ConcreteConfig.from_dict(
+            {"language": "fr", "extra": "y", "unknown_key": "ignored"}
+        )
         assert cfg.language == "fr"
         assert cfg.extra == "y"
 

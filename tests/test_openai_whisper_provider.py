@@ -53,11 +53,13 @@ class TestOpenAIWhisperProvider:
     @pytest.mark.asyncio
     async def test_initialize_missing_openai_package(self, config):
         p = OpenAIWhisperProvider(config)
-        with patch(
-            "champi_stt.providers.openai_whisper.provider.OPENAI_AVAILABLE", False
+        with (
+            patch(
+                "champi_stt.providers.openai_whisper.provider.OPENAI_AVAILABLE", False
+            ),
+            pytest.raises(ImportError),
         ):
-            with pytest.raises(ImportError):
-                await p.initialize()
+            await p.initialize()
 
     @pytest.mark.asyncio
     async def test_initialize_success(self, config):
@@ -66,9 +68,13 @@ class TestOpenAIWhisperProvider:
         mock_openai.AsyncOpenAI.return_value = mock_client
 
         p = OpenAIWhisperProvider(config)
-        with patch("champi_stt.providers.openai_whisper.provider.OPENAI_AVAILABLE", True):
-            with patch("champi_stt.providers.openai_whisper.provider.openai", mock_openai):
-                await p.initialize()
+        with (
+            patch(
+                "champi_stt.providers.openai_whisper.provider.OPENAI_AVAILABLE", True
+            ),
+            patch("champi_stt.providers.openai_whisper.provider.openai", mock_openai),
+        ):
+            await p.initialize()
 
         assert p.is_initialized
         assert p._client is mock_client
@@ -127,9 +133,8 @@ class TestOpenAIWhisperProvider:
             "champi_stt.providers.openai_whisper.provider.SOUNDFILE_AVAILABLE", True
         ):
             import soundfile as sf_mod
-            with patch(
-                "champi_stt.providers.openai_whisper.provider.sf", sf_mod
-            ):
+
+            with patch("champi_stt.providers.openai_whisper.provider.sf", sf_mod):
                 result = await p.transcribe(audio)
 
         assert isinstance(result, TranscriptionResponse)
@@ -152,8 +157,12 @@ class TestOpenAIWhisperProvider:
         mock_openai = MagicMock()
         mock_openai.AsyncOpenAI.return_value = MagicMock()
 
-        with patch("champi_stt.providers.openai_whisper.provider.OPENAI_AVAILABLE", True):
-            with patch("champi_stt.providers.openai_whisper.provider.openai", mock_openai):
-                async with OpenAIWhisperProvider(config) as p:
-                    assert p.is_initialized
+        with (
+            patch(
+                "champi_stt.providers.openai_whisper.provider.OPENAI_AVAILABLE", True
+            ),
+            patch("champi_stt.providers.openai_whisper.provider.openai", mock_openai),
+        ):
+            async with OpenAIWhisperProvider(config) as p:
+                assert p.is_initialized
         assert not p.is_initialized

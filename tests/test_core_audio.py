@@ -1,9 +1,5 @@
 """Tests for core audio functionality."""
 
-import pytest
-
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 import numpy as np
 import pytest
 
@@ -12,6 +8,10 @@ from champi_stt.core.audio import (
     AudioFormat,
     normalize_audio,
     resample_audio,
+)
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
 )
 
 

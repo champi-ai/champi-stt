@@ -1,9 +1,5 @@
 """Tests for command parsing and execution."""
 
-import pytest
-
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 from unittest.mock import AsyncMock
 
 import pytest
@@ -18,6 +14,10 @@ from champi_stt.assistant.commands.parser import CommandMatch, CommandParser
 from champi_stt.assistant.commands.registry import (
     Command,
     CommandRegistry,
+)
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
 )
 
 

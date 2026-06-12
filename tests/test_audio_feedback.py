@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -62,8 +62,13 @@ class TestGenerateChime:
 class TestPlayChimes:
     @pytest.fixture(autouse=True)
     def _mock_play(self) -> None:
-        with patch("champi_stt.assistant.audio_feedback._play_nonblocking") as m, \
-             patch("champi_stt.assistant.audio_feedback._device_sample_rate", return_value=44100):
+        with (
+            patch("champi_stt.assistant.audio_feedback._play_nonblocking") as m,
+            patch(
+                "champi_stt.assistant.audio_feedback._device_sample_rate",
+                return_value=44100,
+            ),
+        ):
             self.mock_play = m
             yield
 
@@ -101,8 +106,13 @@ class TestPlayChimes:
 class TestPlayAudioFeedback:
     @pytest.fixture(autouse=True)
     def _mock_internals(self) -> None:
-        with patch("champi_stt.assistant.audio_feedback._play_nonblocking"), \
-             patch("champi_stt.assistant.audio_feedback._device_sample_rate", return_value=44100):
+        with (
+            patch("champi_stt.assistant.audio_feedback._play_nonblocking"),
+            patch(
+                "champi_stt.assistant.audio_feedback._device_sample_rate",
+                return_value=44100,
+            ),
+        ):
             yield
 
     @pytest.mark.asyncio

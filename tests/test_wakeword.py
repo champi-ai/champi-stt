@@ -1,9 +1,5 @@
 """Tests for wake word detection."""
 
-import pytest
-
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 import numpy as np
 import pytest
 
@@ -11,6 +7,10 @@ from champi_stt.assistant.wakeword.base import (
     BaseWakeWordEngine,
     WakeWordConfig,
     WakeWordEvent,
+)
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
 )
 
 

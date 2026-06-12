@@ -14,7 +14,6 @@ from __future__ import annotations
 import tracemalloc
 
 import numpy as np
-import pytest
 
 
 def _peak_kb(fn, *args, **kwargs) -> float:
@@ -28,6 +27,7 @@ def _peak_kb(fn, *args, **kwargs) -> float:
 class TestMemoryBounds:
     def test_audio_buffer_1s_under_1mb(self) -> None:
         """1 second of float32 audio at 16 kHz should stay well under 1 MB."""
+
         def _make() -> np.ndarray:
             return np.zeros(16000, dtype=np.float32)
 
@@ -36,6 +36,7 @@ class TestMemoryBounds:
 
     def test_audio_buffer_60s_under_10mb(self) -> None:
         """60 seconds of float32 audio at 16 kHz: ~3.8 MB array."""
+
         def _make() -> np.ndarray:
             return np.zeros(16000 * 60, dtype=np.float32)
 

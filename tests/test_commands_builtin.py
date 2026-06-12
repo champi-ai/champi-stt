@@ -1,7 +1,6 @@
 """Tests for built-in voice commands."""
 
-from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -90,59 +89,73 @@ class TestVolumeControl:
 
     @pytest.mark.asyncio
     async def test_set_volume_linux(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch("subprocess.run") as mock_run:
-                result = await set_volume("50")
-                mock_run.assert_called_once()
-                assert "50" in result
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("subprocess.run") as mock_run,
+        ):
+            result = await set_volume("50")
+            mock_run.assert_called_once()
+            assert "50" in result
 
     @pytest.mark.asyncio
     async def test_set_volume_darwin(self):
-        with patch("platform.system", return_value="Darwin"):
-            with patch("subprocess.run") as mock_run:
-                result = await set_volume("75")
-                mock_run.assert_called_once()
+        with (
+            patch("platform.system", return_value="Darwin"),
+            patch("subprocess.run") as mock_run,
+        ):
+            await set_volume("75")
+            mock_run.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_set_volume_error_handling(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch("subprocess.run", side_effect=Exception("fail")):
-                result = await set_volume("50")
-                assert isinstance(result, str)
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("subprocess.run", side_effect=Exception("fail")),
+        ):
+            result = await set_volume("50")
+            assert isinstance(result, str)
 
 
 class TestApplicationCommands:
     @pytest.mark.asyncio
     async def test_open_application_linux(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch("subprocess.Popen") as mock_popen:
-                result = await open_application("firefox")
-                mock_popen.assert_called_once()
-                assert isinstance(result, str)
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("subprocess.Popen") as mock_popen,
+        ):
+            result = await open_application("firefox")
+            mock_popen.assert_called_once()
+            assert isinstance(result, str)
 
     @pytest.mark.asyncio
     async def test_open_application_error(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch("subprocess.Popen", side_effect=Exception("not found")):
-                result = await open_application("nonexistent_app")
-                assert "could not" in result.lower()
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("subprocess.Popen", side_effect=Exception("not found")),
+        ):
+            result = await open_application("nonexistent_app")
+            assert "could not" in result.lower()
 
 
 class TestMediaControl:
     @pytest.mark.asyncio
     async def test_play_pause_linux(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch("subprocess.run") as mock_run:
-                result = await play_pause_media()
-                mock_run.assert_called_once()
-                assert isinstance(result, str)
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("subprocess.run") as mock_run,
+        ):
+            result = await play_pause_media()
+            mock_run.assert_called_once()
+            assert isinstance(result, str)
 
     @pytest.mark.asyncio
     async def test_play_pause_error(self):
-        with patch("platform.system", return_value="Linux"):
-            with patch("subprocess.run", side_effect=Exception("fail")):
-                result = await play_pause_media()
-                assert isinstance(result, str)
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("subprocess.run", side_effect=Exception("fail")),
+        ):
+            result = await play_pause_media()
+            assert isinstance(result, str)
 
 
 class TestRegisterBuiltinCommands:

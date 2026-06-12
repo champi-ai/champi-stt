@@ -2,14 +2,16 @@
 
 import pytest
 
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 from champi_stt.assistant.ipc import (
     AssistantSharedMemoryManager,
     AssistantSignalType,
 )
 from champi_stt.assistant.ipc.signal_reader import AssistantSignalReader
 from champi_stt.assistant.ipc.structs import pack_state_change, pack_wake_detected
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
+)
 
 
 class TestSignalReader:

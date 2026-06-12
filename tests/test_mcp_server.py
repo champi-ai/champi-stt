@@ -11,7 +11,6 @@ from click.testing import CliRunner
 
 from champi_stt.cli import cli
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -29,8 +28,12 @@ def _make_provider(
     prov = MagicMock()
     prov.initialize = AsyncMock(side_effect=initialize_raises)
     prov.shutdown = AsyncMock()
-    prov.transcribe = AsyncMock(side_effect=transcribe_raises, return_value=transcribe_result)
-    prov.detect_language = AsyncMock(side_effect=detect_raises, return_value=detect_result)
+    prov.transcribe = AsyncMock(
+        side_effect=transcribe_raises, return_value=transcribe_result
+    )
+    prov.detect_language = AsyncMock(
+        side_effect=detect_raises, return_value=detect_result
+    )
     prov.get_model_info = AsyncMock(
         return_value=model_info or {"status": "loaded", "provider": "mock"}
     )
@@ -102,7 +105,9 @@ class TestCreateMcpServer:
         assert server._state["provider"] is None
 
     @pytest.mark.asyncio
-    async def test_lifespan_shuts_down_provider_on_exit(self, server: MagicMock) -> None:
+    async def test_lifespan_shuts_down_provider_on_exit(
+        self, server: MagicMock
+    ) -> None:
         mock_prov = _make_provider()
         server._state["provider"] = mock_prov
 
@@ -168,7 +173,9 @@ class TestToolGetProviderStatus:
         prov = _make_provider(model_info={"status": "loaded", "provider": "mock"})
         with patch("champi_stt.get_provider", return_value=prov):
             result = _raw(
-                await server.call_tool("get_provider_status", {"provider": "whisperlive"})
+                await server.call_tool(
+                    "get_provider_status", {"provider": "whisperlive"}
+                )
             )
         assert result["status"] == "loaded"
 
@@ -190,7 +197,9 @@ class TestToolTranscribeAudio:
     @pytest.mark.asyncio
     async def test_missing_file_returns_error_string(self, server: MagicMock) -> None:
         result = _raw(
-            await server.call_tool("transcribe_audio", {"audio_path": "/no/such/file.wav"})
+            await server.call_tool(
+                "transcribe_audio", {"audio_path": "/no/such/file.wav"}
+            )
         )
         assert "error" in result["result"].lower()
 
@@ -207,7 +216,9 @@ class TestToolTranscribeAudio:
         assert result["result"] == "hello world"
 
     @pytest.mark.asyncio
-    async def test_provider_not_reinited_on_second_call(self, server: MagicMock) -> None:
+    async def test_provider_not_reinited_on_second_call(
+        self, server: MagicMock
+    ) -> None:
         prov = _make_provider(transcribe_result="ok")
         with (
             tempfile.NamedTemporaryFile(suffix=".wav") as f,
@@ -255,7 +266,9 @@ class TestToolDetectLanguage:
     @pytest.mark.asyncio
     async def test_missing_file_returns_error_dict(self, server: MagicMock) -> None:
         result = _raw(
-            await server.call_tool("detect_language", {"audio_path": "/no/such/file.wav"})
+            await server.call_tool(
+                "detect_language", {"audio_path": "/no/such/file.wav"}
+            )
         )
         assert result["error"] is True
 
@@ -369,6 +382,15 @@ class TestMCPCLI:
         with patch("champi_stt.mcp.server.main", mock_main):
             CliRunner().invoke(
                 cli,
-                ["mcp", "serve", "--transport", "sse", "--host", "0.0.0.0", "--port", "9999"],
+                [
+                    "mcp",
+                    "serve",
+                    "--transport",
+                    "sse",
+                    "--host",
+                    "0.0.0.0",
+                    "--port",
+                    "9999",
+                ],
             )
         mock_main.assert_called_once_with(transport="sse", host="0.0.0.0", port=9999)

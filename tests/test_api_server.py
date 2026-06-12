@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import io
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -29,6 +28,7 @@ class TestCreateApiApp:
     def test_status_no_provider(self) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         client = TestClient(create_api_app())
@@ -42,6 +42,7 @@ class TestCreateApiApp:
     def test_status_with_provider(self, mock_provider) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         client = TestClient(create_api_app(provider=mock_provider))
@@ -54,19 +55,25 @@ class TestCreateApiApp:
     def test_transcribe_no_provider(self) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         client = TestClient(create_api_app())
-        r = client.post("/transcribe", files={"file": ("audio.wav", b"\x00" * 100, "audio/wav")})
+        r = client.post(
+            "/transcribe", files={"file": ("audio.wav", b"\x00" * 100, "audio/wav")}
+        )
         assert r.status_code == 503
 
     def test_transcribe_with_provider(self, mock_provider) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         client = TestClient(create_api_app(provider=mock_provider))
-        r = client.post("/transcribe", files={"file": ("audio.wav", b"\x00" * 100, "audio/wav")})
+        r = client.post(
+            "/transcribe", files={"file": ("audio.wav", b"\x00" * 100, "audio/wav")}
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["text"] == "hello world"
@@ -75,16 +82,20 @@ class TestCreateApiApp:
     def test_transcribe_provider_error(self, mock_provider) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         mock_provider.transcribe.side_effect = RuntimeError("model exploded")
         client = TestClient(create_api_app(provider=mock_provider))
-        r = client.post("/transcribe", files={"file": ("a.wav", b"\x00" * 10, "audio/wav")})
+        r = client.post(
+            "/transcribe", files={"file": ("a.wav", b"\x00" * 10, "audio/wav")}
+        )
         assert r.status_code == 500
 
     def test_command_no_queue(self) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         client = TestClient(create_api_app())
@@ -94,6 +105,7 @@ class TestCreateApiApp:
     def test_command_queued(self) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         q: asyncio.Queue[str] = asyncio.Queue()
@@ -106,6 +118,7 @@ class TestCreateApiApp:
     def test_command_empty_text(self) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         q: asyncio.Queue[str] = asyncio.Queue()
@@ -116,6 +129,7 @@ class TestCreateApiApp:
     def test_docs_endpoint_available(self) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.api.server import create_api_app
 
         client = TestClient(create_api_app())

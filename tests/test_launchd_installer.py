@@ -1,6 +1,5 @@
 """Tests for launchd plist installer."""
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,7 +9,6 @@ from champi_stt.assistant.service.launchd.installer import (
     _PLIST_LABEL,
     _champi_exec,
     _default_config_path,
-    _launch_agents_dir,
     install,
     is_installed,
     is_loaded,
@@ -25,12 +23,25 @@ def fake_launchd(tmp_path):
     agents_dir.mkdir(parents=True)
     log_dir = tmp_path / "Library" / "Logs" / "champi-stt"
 
-    with patch("champi_stt.assistant.service.launchd.installer.shutil.which", return_value="/usr/bin/launchctl"):
-        with patch("champi_stt.assistant.service.launchd.installer._launch_agents_dir", return_value=agents_dir):
-            with patch("champi_stt.assistant.service.launchd.installer._log_dir", return_value=str(log_dir)):
-                with patch("champi_stt.assistant.service.launchd.installer.subprocess.run") as mock_run:
-                    mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-                    yield agents_dir, mock_run
+    with (
+        patch(
+            "champi_stt.assistant.service.launchd.installer.shutil.which",
+            return_value="/usr/bin/launchctl",
+        ),
+        patch(
+            "champi_stt.assistant.service.launchd.installer._launch_agents_dir",
+            return_value=agents_dir,
+        ),
+        patch(
+            "champi_stt.assistant.service.launchd.installer._log_dir",
+            return_value=str(log_dir),
+        ),
+        patch(
+            "champi_stt.assistant.service.launchd.installer.subprocess.run"
+        ) as mock_run,
+    ):
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        yield agents_dir, mock_run
 
 
 class TestInstall:
@@ -63,14 +74,22 @@ class TestInstall:
         assert not any("'load'" in c for c in calls)
 
     def test_raises_without_launchctl(self, tmp_path):
-        with patch("champi_stt.assistant.service.launchd.installer.shutil.which", return_value=None):
-            with pytest.raises(RuntimeError, match="launchctl not found"):
-                install()
+        with (
+            patch(
+                "champi_stt.assistant.service.launchd.installer.shutil.which",
+                return_value=None,
+            ),
+            pytest.raises(RuntimeError, match="launchctl not found"),
+        ):
+            install()
 
     def test_creates_log_dir(self, fake_launchd, tmp_path):
-        agents_dir, _ = fake_launchd
+        _agents_dir, _ = fake_launchd
         log_path = tmp_path / "new_logs"
-        with patch("champi_stt.assistant.service.launchd.installer._log_dir", return_value=str(log_path)):
+        with patch(
+            "champi_stt.assistant.service.launchd.installer._log_dir",
+            return_value=str(log_path),
+        ):
             install(config="/cfg.yaml", load=False)
         assert log_path.exists()
 
@@ -101,7 +120,10 @@ class TestStatus:
         assert isinstance(result, str)
 
     def test_no_launchctl(self):
-        with patch("champi_stt.assistant.service.launchd.installer.shutil.which", return_value=None):
+        with patch(
+            "champi_stt.assistant.service.launchd.installer.shutil.which",
+            return_value=None,
+        ):
             result = status()
             assert "not available" in result
 
@@ -128,7 +150,10 @@ class TestIsLoaded:
         assert is_loaded() is False
 
     def test_no_launchctl(self):
-        with patch("champi_stt.assistant.service.launchd.installer.shutil.which", return_value=None):
+        with patch(
+            "champi_stt.assistant.service.launchd.installer.shutil.which",
+            return_value=None,
+        ):
             assert is_loaded() is False
 
 

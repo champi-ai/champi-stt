@@ -1,11 +1,9 @@
 """Tests for core response formatting utilities."""
 
-import pytest
-
 from champi_stt.core.response import (
+    STTResponse,
     TranscriptionResponse,
     TranscriptionSegment,
-    STTResponse,
     create_error_response,
     format_response,
     format_segment,
@@ -51,7 +49,9 @@ class TestFormatResponse:
         assert result == "hello world"
 
     def test_verbose_json_format(self):
-        result = format_response({"text": "hi", "language": "en", "duration": 1.0}, "verbose_json")
+        result = format_response(
+            {"text": "hi", "language": "en", "duration": 1.0}, "verbose_json"
+        )
         assert isinstance(result, dict)
         assert result["text"] == "hi"
         assert result["language"] == "en"
@@ -74,27 +74,31 @@ class TestFormatVerboseJson:
         assert result["duration"] == 2.0
 
     def test_optional_fields(self):
-        result = format_verbose_json({
-            "text": "hi",
-            "language": "en",
-            "duration": 1.0,
-            "task": "transcribe",
-            "language_probability": 0.95,
-            "duration_after_vad": 0.8,
-            "processing_time": 0.5,
-        })
+        result = format_verbose_json(
+            {
+                "text": "hi",
+                "language": "en",
+                "duration": 1.0,
+                "task": "transcribe",
+                "language_probability": 0.95,
+                "duration_after_vad": 0.8,
+                "processing_time": 0.5,
+            }
+        )
         assert result["task"] == "transcribe"
         assert result["language_probability"] == 0.95
         assert result["duration_after_vad"] == 0.8
         assert result["processing_time"] == 0.5
 
     def test_with_segments(self):
-        result = format_verbose_json({
-            "text": "hi",
-            "language": "en",
-            "duration": 1.0,
-            "segments": [{"id": 0, "start": 0.0, "end": 0.5, "text": "hi"}],
-        })
+        result = format_verbose_json(
+            {
+                "text": "hi",
+                "language": "en",
+                "duration": 1.0,
+                "segments": [{"id": 0, "start": 0.0, "end": 0.5, "text": "hi"}],
+            }
+        )
         assert len(result["segments"]) == 1
         assert result["segments"][0]["text"] == "hi"
 
@@ -108,9 +112,18 @@ class TestFormatSegment:
         assert result["text"] == "world"
 
     def test_optional_fields(self):
-        seg = {"id": 0, "start": 0.0, "end": 0.5, "text": "hi",
-               "tokens": [1, 2], "temperature": 0.0, "avg_logprob": -0.1,
-               "compression_ratio": 1.2, "no_speech_prob": 0.01, "seek": 0}
+        seg = {
+            "id": 0,
+            "start": 0.0,
+            "end": 0.5,
+            "text": "hi",
+            "tokens": [1, 2],
+            "temperature": 0.0,
+            "avg_logprob": -0.1,
+            "compression_ratio": 1.2,
+            "no_speech_prob": 0.01,
+            "seek": 0,
+        }
         result = format_segment(seg)
         assert result["tokens"] == [1, 2]
         assert result["no_speech_prob"] == 0.01

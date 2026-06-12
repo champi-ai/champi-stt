@@ -1,10 +1,14 @@
 """Tests for command executor."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from champi_stt.assistant.commands.executor import ActionType, CommandAction, CommandExecutor
+from champi_stt.assistant.commands.executor import (
+    ActionType,
+    CommandAction,
+    CommandExecutor,
+)
 
 
 @pytest.fixture
@@ -69,13 +73,12 @@ class TestExecutePython:
 
     @pytest.mark.asyncio
     async def test_sync_function(self, executor):
-        import os
         result = await executor.execute_python("os.getcwd")
         assert isinstance(result, str)
 
     @pytest.mark.asyncio
     async def test_invalid_path_raises(self, executor):
-        with pytest.raises(Exception):
+        with pytest.raises((ImportError, AttributeError, ModuleNotFoundError)):
             await executor.execute_python("nonexistent.module.function")
 
 

@@ -49,4 +49,6 @@ class TestPublicApiSymbols:
 
     def test_all_is_sorted_within_sections(self) -> None:
         # Ensure __all__ has no duplicates
-        assert len(champi_stt.__all__) == len(set(champi_stt.__all__)), "Duplicate entries in __all__"
+        assert len(champi_stt.__all__) == len(set(champi_stt.__all__)), (
+            "Duplicate entries in __all__"
+        )

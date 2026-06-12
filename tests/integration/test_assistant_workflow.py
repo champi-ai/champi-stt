@@ -1,9 +1,5 @@
 """Integration tests for full assistant workflow."""
 
-import pytest
-
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 import asyncio
 import time
 from unittest.mock import AsyncMock, MagicMock
@@ -14,6 +10,10 @@ from champi_stt.assistant.commands import CommandRegistry
 from champi_stt.assistant.service import AssistantConfig, AssistantService
 from champi_stt.assistant.wakeword import WakeWordEvent
 from champi_stt.core.response import STTResponse
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
+)
 
 
 @pytest.mark.integration
