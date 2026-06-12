@@ -11,19 +11,18 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        with:
-          python-version: "3.12"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install uv
-        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Set up Python
+        run: uv python install 3.12
 
       - name: Install docs dependencies
-        run: uv pip install --system mkdocs>=1.5.0 mkdocs-material>=9.0.0
+        run: uv sync --extra docs
 
       - name: Deploy to GitHub Pages
-        run: mkdocs gh-deploy --force
+        run: uv run mkdocs gh-deploy --force
