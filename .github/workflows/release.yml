@@ -18,13 +18,13 @@ jobs:
     if: "github.ref_type == 'branch' && !startsWith(github.event.head_commit.message, 'bump:')"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86
 
       - name: Set up Python
         run: uv python install
@@ -55,7 +55,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.cz.outputs.NO_BUMP != 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
         with:
           tag_name: v${{ steps.cz.outputs.VERSION }}
           name: v${{ steps.cz.outputs.VERSION }}
@@ -70,12 +70,12 @@ jobs:
     if: github.ref_type == 'tag'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86
 
       - name: Set up Python
         run: uv python install
@@ -84,7 +84,7 @@ jobs:
         run: uv build
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
