@@ -26,6 +26,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
+from loguru import logger as _logger
+
 try:
     from mcp.server.fastmcp import FastMCP as _FastMCP
 
@@ -45,7 +47,7 @@ def _require_mcp() -> None:
         )
 
 
-def create_mcp_server() -> "Any":
+def create_mcp_server() -> Any:
     """Build and return a configured FastMCP server instance.
 
     All tool functions are registered here as closures over a shared
@@ -65,10 +67,9 @@ def create_mcp_server() -> "Any":
             state["lock"] = asyncio.Lock()
         async with state["lock"]:
             if state["provider"] is None:
-                print(
-                    f"[champi-stt] Initializing provider '{provider_name}'..."
-                    " (first call may be slow)",
-                    file=sys.stderr,
+                _logger.info(
+                    "[champi-stt] Initializing provider '{}'... (first call may be slow)",
+                    provider_name,
                 )
                 p = champi_stt.get_provider(provider_name)
                 await p.initialize()

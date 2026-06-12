@@ -644,27 +644,35 @@ def mcp_group() -> None:
     default="stdio",
     show_default=True,
     type=click.Choice(["stdio", "sse"]),
-    help="Transport protocol: stdio (default) or sse.",
+    help="Transport protocol: stdio for MCP hosts (Claude Desktop) or sse for HTTP clients.",
 )
 @click.option(
     "--host",
     default="localhost",
     show_default=True,
-    help="Bind address (SSE transport only).",
+    help="Bind address for the SSE HTTP server (SSE transport only).",
 )
 @click.option(
     "--port",
     default=8765,
     show_default=True,
     type=int,
-    help="Port to listen on (SSE transport only).",
+    help="TCP port for the SSE HTTP server (SSE transport only).",
 )
 def mcp_serve(transport: str, host: str, port: int) -> None:
     """Start the MCP server.
 
-    Blocks waiting for JSON-RPC input from an MCP host (stdio) or serves
-    over HTTP with Server-Sent Events (sse).
+    In stdio mode (default) the server reads JSON-RPC messages from stdin and
+    writes responses to stdout — the format expected by Claude Desktop and other
+    MCP hosts.  In sse mode it starts an HTTP server; connect your MCP client
+    to http://<host>:<port>/sse.
+
     Requires the 'mcp' extra: pip install 'champi-stt[mcp]'
+
+    \b
+    Environment variables:
+      CHAMPI_STT_PROVIDER   STT provider used by transcription tools
+                            (default: whisperlive)
     """
     try:
         from champi_stt.mcp.server import MCP_AVAILABLE
