@@ -153,6 +153,73 @@ export CHAMPI_LOG_LEVEL="INFO"                            # Logging level
 
 ---
 
+## 🤖 MCP Server
+
+Champi STT exposes its transcription tools over the
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/), letting
+LLM hosts such as Claude Desktop call them directly.
+
+### Install
+
+```bash
+pip install 'champi-stt[mcp]'
+```
+
+### Start
+
+```bash
+champi-stt mcp serve
+```
+
+Run `champi-stt mcp serve --help` to see all options including SSE transport.
+
+### Claude Desktop configuration
+
+Add a server entry to your `claude_desktop_config.json`:
+
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "champi-stt": {
+      "command": "champi-stt-mcp"
+    }
+  }
+}
+```
+
+To select a non-default STT provider, pass the `CHAMPI_STT_PROVIDER` environment variable:
+
+```json
+{
+  "mcpServers": {
+    "champi-stt": {
+      "command": "champi-stt-mcp",
+      "env": {
+        "CHAMPI_STT_PROVIDER": "whisperlive"
+      }
+    }
+  }
+}
+```
+
+After editing the file, restart Claude Desktop for the change to take effect.
+
+For development use from a source checkout, see [docs/mcp-integration.md](docs/mcp-integration.md).
+
+### Available tools
+
+| Tool | Description |
+|---|---|
+| `list_providers` | Return the names of all registered STT providers |
+| `get_provider_status` | Return health and model information for a named provider |
+| `transcribe_audio` | Transcribe a local audio file and return the transcript text |
+| `detect_language` | Detect the spoken language in a local audio file |
+
+---
+
 ## 📖 Documentation
 
 ### Architecture

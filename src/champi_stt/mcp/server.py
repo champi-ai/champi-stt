@@ -132,7 +132,9 @@ def create_mcp_server() -> Any:
         if not path.exists():
             return f"error: audio file not found: {audio_path}"
 
-        effective = provider or os.environ.get("CHAMPI_STT_PROVIDER") or _DEFAULT_PROVIDER
+        effective = (
+            provider or os.environ.get("CHAMPI_STT_PROVIDER") or _DEFAULT_PROVIDER
+        )
         try:
             p = await _get_provider(effective)
             result = await p.transcribe(str(path), language=language)
@@ -164,7 +166,9 @@ def create_mcp_server() -> Any:
                 "error_message": f"audio file not found: {audio_path}",
             }
 
-        effective = provider or os.environ.get("CHAMPI_STT_PROVIDER") or _DEFAULT_PROVIDER
+        effective = (
+            provider or os.environ.get("CHAMPI_STT_PROVIDER") or _DEFAULT_PROVIDER
+        )
         try:
             p = await _get_provider(effective)
             lang_code, probability, _all = await p.detect_language(str(path))
