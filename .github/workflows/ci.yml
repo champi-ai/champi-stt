@@ -83,7 +83,7 @@ jobs:
 
       - name: Run tests with coverage (ubuntu only)
         if: matrix.os == 'ubuntu-latest'
-        run: uv run pytest -q --cov-report=xml
+        run: uv run pytest -q --cov-report=xml --cov-fail-under=55
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest'
