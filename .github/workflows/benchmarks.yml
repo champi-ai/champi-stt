@@ -27,10 +27,11 @@ jobs:
           uv run pytest benchmarks/ \
             --benchmark-only \
             --benchmark-json=benchmark-results.json \
+            --no-cov \
             -v
 
       - name: Run memory tests
-        run: uv run pytest benchmarks/bench_memory.py -v
+        run: uv run pytest benchmarks/bench_memory.py --no-cov -v
 
       - name: Post benchmark summary
         if: github.event_name == 'pull_request'

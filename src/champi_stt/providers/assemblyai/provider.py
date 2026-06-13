@@ -264,7 +264,7 @@ class AssemblyAIProvider(BaseSTTProvider):
     async def _to_bytes(self, audio: bytes | np.ndarray | str) -> bytes:
         if isinstance(audio, bytes):
             return audio
-        if isinstance(audio, (str, Path)):
+        if isinstance(audio, str | Path):
             return Path(audio).read_bytes()
         if isinstance(audio, np.ndarray):
             if not SOUNDFILE_AVAILABLE:

@@ -147,7 +147,7 @@ class Diarizer:
         sample_rate: int,
     ) -> str:
         """Convert audio to a temporary WAV file and return its path."""
-        if isinstance(audio, (str, Path)):
+        if isinstance(audio, str | Path):
             return str(audio)
 
         import soundfile as sf  # type: ignore[import-untyped]
