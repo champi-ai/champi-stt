@@ -56,6 +56,8 @@ jobs:
       run: |
         mkdir -p badges
         uv run genbadge coverage -i coverage.xml -o badges/coverage.svg
+        # ensure trailing newline so pre-commit end-of-file-fixer does not fail
+        [ -n "$(tail -c1 badges/coverage.svg)" ] && echo "" >> badges/coverage.svg
 
         COVERAGE=$(uv run coverage report | tail -1 | awk '{gsub(/%/,""); print int($NF) - 1}')
         THRESHOLD=$(grep -oP '(?<=--cov-fail-under=)\d+' pyproject.toml)
