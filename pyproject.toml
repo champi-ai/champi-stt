@@ -291,7 +291,6 @@ module = [
     "OpenGL.*",
     "glfw.*",
     "champi_signals.*",
-    "awaitlet.*",
     "mcp.*",
 ]
 ignore_missing_imports = true
@@ -310,7 +309,15 @@ module = "champi_stt.core.audio"
 warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
-module = "champi_stt.assistant.ipc.*"
+module = [
+    "champi_stt.assistant.*",
+    "champi_stt.diarization.*",
+    "champi_stt.providers.*",
+    "champi_stt.api.*",
+    "champi_stt.core.multi_room",
+    "champi_stt.factory",
+    "champi_stt.mcp.*",
+]
 ignore_errors = true
 
 [tool.pytest.ini_options]
