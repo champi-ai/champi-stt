@@ -1,6 +1,6 @@
 [project]
 name = "champi-stt"
-version = "1.0.2"
+version = "1.1.0"
 description = "Multi-provider speech-to-text library with voice assistant features"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -395,12 +395,12 @@ explicit = true
 # champi-stt distribution settings
 [tool.champi-stt]
 # GitHub Releases wheel URL — updated automatically on every version bump
-release_url = "https://github.com/champi-ai/champi-stt/releases/download/v1.0.2/champi_stt-1.0.2-py3-none-any.whl"
+release_url = "https://github.com/champi-ai/champi-stt/releases/download/v1.1.0/champi_stt-1.1.0-py3-none-any.whl"
 
 # Commitizen configuration for semantic versioning
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.0.2"
+version = "1.1.0"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
