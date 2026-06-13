@@ -392,6 +392,11 @@ name = "pytorch-cu129"
 url = "https://download.pytorch.org/whl/cu129"
 explicit = true
 
+# champi-stt distribution settings
+[tool.champi-stt]
+# GitHub Releases wheel URL — updated automatically on every version bump
+release_url = "https://github.com/champi-ai/champi-stt/releases/download/v1.0.2/champi_stt-1.0.2-py3-none-any.whl"
+
 # Commitizen configuration for semantic versioning
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -399,7 +404,9 @@ version = "1.0.2"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
-    "src/champi_stt/__init__.py:__version__"
+    "src/champi_stt/__init__.py:__version__",
+    "pyproject.toml:release_url",
+    "README.md:releases/download"
 ]
 changelog_file = "CHANGELOG.md"
 changelog_incremental = true

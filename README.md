@@ -67,7 +67,22 @@ A modular, extensible Python library for speech-to-text processing with support 
 
 ## 📦 Installation
 
-### Basic Installation
+### Install via GitHub Releases (recommended)
+
+Run directly without a project, always pinned to a specific release:
+
+```bash
+uvx --from https://github.com/champi-ai/champi-stt/releases/download/v1.0.2/champi_stt-1.0.2-py3-none-any.whl champi-stt --help
+```
+
+Or add as a dependency in another project using uv sources:
+
+```toml
+[tool.uv.sources]
+champi-stt = { url = "https://github.com/champi-ai/champi-stt/releases/download/v1.0.2/champi_stt-1.0.2-py3-none-any.whl" }
+```
+
+### Install from PyPI mirror / source
 
 ```bash
 uv pip install champi-stt
