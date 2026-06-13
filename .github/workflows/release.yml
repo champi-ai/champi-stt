@@ -143,21 +143,6 @@ jobs:
     - name: Print Version
       run: echo "Bumped to version ${{ steps.cz.outputs.version }}"
 
-    - name: Update README version references
-      if: steps.cz.outputs.version_changed == 'true' && github.event.inputs.dry_run != 'true'
-      run: |
-        REV="${{ steps.cz.outputs.version }}"
-        # Replace all versioned wheel URLs in README.md
-        sed -i -E \
-          "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/champi_stt-[0-9]+\.[0-9]+\.[0-9]+-py3-none-any\.whl|releases/download/v${REV}/champi_stt-${REV}-py3-none-any.whl|g" \
-          README.md
-        # Stage and commit if changed
-        if ! git diff --quiet README.md; then
-          git add README.md
-          git commit -m "chore: update README install URLs to v${REV}"
-          git push origin HEAD:main
-        fi
-
     - name: Set up Python for build
       run: uv python install 3.12
 
