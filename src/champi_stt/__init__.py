@@ -84,14 +84,9 @@ from champi_stt.core.response import (
 # Streaming
 from champi_stt.core.streaming import StreamingTranscriptionConfig
 
-# Diarization — optional; requires pyannote.audio (install with [diarization] extra)
-try:
-    from champi_stt.diarization.config import DiarizationConfig
-    from champi_stt.diarization.diarizer import DiarizationSegment, Diarizer
-except Exception:
-    DiarizationConfig = None  # type: ignore[assignment, misc]
-    DiarizationSegment = None  # type: ignore[assignment, misc]
-    Diarizer = None  # type: ignore[assignment, misc]
+# Diarization
+from champi_stt.diarization.config import DiarizationConfig
+from champi_stt.diarization.diarizer import DiarizationSegment, Diarizer
 
 # Factory (primary entry points)
 from champi_stt.factory import get_default_provider, get_provider, list_providers

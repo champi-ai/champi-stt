@@ -14,7 +14,7 @@ try:
     from pyannote.audio import Pipeline  # type: ignore[import-untyped]
 
     PYANNOTE_AVAILABLE = True
-except ImportError:
+except Exception:  # also catches AttributeError from torchaudio version mismatches
     PYANNOTE_AVAILABLE = False
 
     class Pipeline:  # type: ignore[no-redef]
