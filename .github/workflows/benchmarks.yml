@@ -28,10 +28,11 @@ jobs:
             --benchmark-only \
             --benchmark-json=benchmark-results.json \
             --no-cov \
+            --override-ini="python_files=test_*.py bench_*.py" \
             -v
 
       - name: Run memory tests
-        run: uv run pytest benchmarks/bench_memory.py --no-cov -v
+        run: uv run pytest benchmarks/bench_memory.py --no-cov --override-ini="python_files=test_*.py bench_*.py" -v
 
       - name: Post benchmark summary
         if: github.event_name == 'pull_request'
