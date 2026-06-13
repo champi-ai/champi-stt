@@ -21,8 +21,18 @@ _SAMPLE_RESPONSE = {
                         "transcript": "hello deepgram",
                         "confidence": 0.98,
                         "words": [
-                            {"word": "hello", "start": 0.0, "end": 0.5, "confidence": 0.99},
-                            {"word": "deepgram", "start": 0.6, "end": 1.2, "confidence": 0.97},
+                            {
+                                "word": "hello",
+                                "start": 0.0,
+                                "end": 0.5,
+                                "confidence": 0.99,
+                            },
+                            {
+                                "word": "deepgram",
+                                "start": 0.6,
+                                "end": 1.2,
+                                "confidence": 0.97,
+                            },
                         ],
                     }
                 ],
@@ -71,9 +81,11 @@ class TestDeepgramProvider:
     @pytest.mark.asyncio
     async def test_initialize_missing_httpx(self, config):
         p = DeepgramProvider(config)
-        with patch("champi_stt.providers.deepgram.provider.HTTPX_AVAILABLE", False):
-            with pytest.raises(ImportError):
-                await p.initialize()
+        with (
+            patch("champi_stt.providers.deepgram.provider.HTTPX_AVAILABLE", False),
+            pytest.raises(ImportError),
+        ):
+            await p.initialize()
 
     @pytest.mark.asyncio
     async def test_initialize_success(self, config):
@@ -82,9 +94,11 @@ class TestDeepgramProvider:
         mock_httpx.AsyncClient.return_value = mock_client
 
         p = DeepgramProvider(config)
-        with patch("champi_stt.providers.deepgram.provider.HTTPX_AVAILABLE", True):
-            with patch("champi_stt.providers.deepgram.provider.httpx", mock_httpx):
-                await p.initialize()
+        with (
+            patch("champi_stt.providers.deepgram.provider.HTTPX_AVAILABLE", True),
+            patch("champi_stt.providers.deepgram.provider.httpx", mock_httpx),
+        ):
+            await p.initialize()
 
         assert p.is_initialized
 
@@ -155,9 +169,12 @@ class TestDeepgramProvider:
         p._http = mock_client
 
         import soundfile as sf_mod
-        with patch("champi_stt.providers.deepgram.provider.SOUNDFILE_AVAILABLE", True):
-            with patch("champi_stt.providers.deepgram.provider.sf", sf_mod):
-                result = await p.transcribe(audio)
+
+        with (
+            patch("champi_stt.providers.deepgram.provider.SOUNDFILE_AVAILABLE", True),
+            patch("champi_stt.providers.deepgram.provider.sf", sf_mod),
+        ):
+            result = await p.transcribe(audio)
 
         assert isinstance(result, TranscriptionResponse)
 
@@ -174,8 +191,10 @@ class TestDeepgramProvider:
         mock_client = AsyncMock()
         mock_httpx.AsyncClient.return_value = mock_client
 
-        with patch("champi_stt.providers.deepgram.provider.HTTPX_AVAILABLE", True):
-            with patch("champi_stt.providers.deepgram.provider.httpx", mock_httpx):
-                async with DeepgramProvider(config) as p:
-                    assert p.is_initialized
+        with (
+            patch("champi_stt.providers.deepgram.provider.HTTPX_AVAILABLE", True),
+            patch("champi_stt.providers.deepgram.provider.httpx", mock_httpx),
+        ):
+            async with DeepgramProvider(config) as p:
+                assert p.is_initialized
         assert not p.is_initialized

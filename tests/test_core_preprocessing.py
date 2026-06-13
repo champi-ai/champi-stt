@@ -84,9 +84,9 @@ class TestResampleAudio:
 
     @pytest.mark.asyncio
     async def test_downsample(self):
-        try:
-            from scipy import signal as _
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("scipy") is None:
             pytest.skip("scipy not available")
 
         audio = np.zeros(16000, dtype=np.float32)

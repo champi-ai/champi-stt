@@ -1,9 +1,5 @@
 """Tests for core provider functionality."""
 
-import pytest
-
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 from pathlib import Path
 
 import pytest
@@ -11,6 +7,10 @@ import pytest
 from champi_stt.core.base_config import BaseProviderConfig
 from champi_stt.core.base_provider import BaseSTTProvider
 from champi_stt.core.response import TranscriptionResponse, TranscriptionSegment
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
+)
 
 
 class TestTranscriptionSegment:

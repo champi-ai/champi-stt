@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -26,7 +25,9 @@ class TestDiarizationConfig:
         cfg = DiarizationConfig.from_env()
         assert cfg.hf_token == "tok123"
 
-    def test_from_env_huggingface_token_fallback(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_from_env_huggingface_token_fallback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.delenv("HF_TOKEN", raising=False)
         monkeypatch.setenv("HUGGINGFACE_TOKEN", "tok456")
         cfg = DiarizationConfig.from_env()
@@ -41,7 +42,9 @@ class TestDiarizationConfig:
 
 class TestDiarizationSegment:
     def test_fields(self) -> None:
-        seg = DiarizationSegment(speaker_id="SPEAKER_00", start=0.5, end=2.0, text="hello")
+        seg = DiarizationSegment(
+            speaker_id="SPEAKER_00", start=0.5, end=2.0, text="hello"
+        )
         assert seg.speaker_id == "SPEAKER_00"
         assert seg.start == 0.5
         assert seg.end == 2.0
@@ -89,9 +92,14 @@ class TestDiarizer:
         mock_pipeline_cls = MagicMock()
         mock_pipeline_cls.from_pretrained.return_value = mock_pipeline
 
-        with patch("champi_stt.diarization.diarizer.PYANNOTE_AVAILABLE", True), \
-             patch("champi_stt.diarization.diarizer.Pipeline", mock_pipeline_cls), \
-             patch("champi_stt.diarization.diarizer.Diarizer._to_wav_path", return_value="/tmp/x.wav"):
+        with (
+            patch("champi_stt.diarization.diarizer.PYANNOTE_AVAILABLE", True),
+            patch("champi_stt.diarization.diarizer.Pipeline", mock_pipeline_cls),
+            patch(
+                "champi_stt.diarization.diarizer.Diarizer._to_wav_path",
+                return_value="/tmp/x.wav",
+            ),
+        ):
             d = Diarizer(DiarizationConfig(hf_token="tok"))
             await d.initialize()
             audio = np.zeros(16000, dtype=np.float32)

@@ -4,91 +4,173 @@ on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+        default: 'auto'
+      dry_run:
+        description: 'Dry run (skip release creation)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  bump:
-    runs-on: ubuntu-latest
-    # Runs on main branch pushes only; skips commits that are themselves version bumps
-    if: "github.ref_type == 'branch' && !startsWith(github.event.head_commit.message, 'bump:')"
+  release:
+    name: Bump version and create release
+    if: "!startsWith(github.event.head_commit.message, 'bump:')"
+    runs-on: self-hosted
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Check out
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        fetch-depth: 1
+        persist-credentials: false
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86
+    - name: Authenticate git and fetch full history
+      run: |
+        git remote set-url origin https://Divagnz:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }}.git
+        git fetch --unshallow --tags
 
-      - name: Set up Python
-        run: uv python install
+    - name: Install uv for commitizen
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
-        run: uv sync --frozen --all-extras
+    - name: Install commitizen
+      run: uv tool install commitizen
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    - name: Configure Git
+      run: |
+        git config --local user.name "Divagnz"
+        git config --local user.email "oscar.liguori.bagnis@gmail.com"
+        git config --local pull.rebase true
+        # Disable hooks so the bump commit is not blocked by commit-msg validation
+        git config --local core.hooksPath /dev/null
 
-      - name: Bump version and update changelog
-        id: cz
-        run: |
-          uv run cz bump --yes --changelog --changelog-to-stdout > RELEASE_NOTES.md || echo "NO_BUMP=true" >> $GITHUB_OUTPUT
-          echo "VERSION=$(uv run cz version --project)" >> $GITHUB_OUTPUT
+    - name: Run commitizen bump
+      id: cz
+      env:
+        GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      run: |
+        # Get previous version
+        PREV_REV=$(cz version --project)
+        echo "Previous version: $PREV_REV"
 
-      - name: Push changes
-        if: steps.cz.outputs.NO_BUMP != 'true'
-        run: |
-          git push
-          git push --tags
+        # Check if there are any tags (for first release handling)
+        TAG_COUNT=$(git tag | wc -l)
+        echo "Existing tags: $TAG_COUNT"
 
-      - name: Build package
-        if: steps.cz.outputs.NO_BUMP != 'true'
-        run: uv build
+        # Determine bump command based on trigger type and tag existence
+        # --no-raise 21: no commitizen-formatted commits found (nothing to bump, clean skip)
+        # --no-raise 16: no increment detected (also clean skip)
+        BUMP_CMD="cz --no-raise 21,16 bump --yes"
 
-      - name: Create GitHub Release
-        if: steps.cz.outputs.NO_BUMP != 'true'
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
-        with:
-          tag_name: v${{ steps.cz.outputs.VERSION }}
-          name: v${{ steps.cz.outputs.VERSION }}
-          body_path: RELEASE_NOTES.md
-          files: dist/*
-          draft: false
-          prerelease: false
+        # If manually triggered with specific bump type, use it
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          BUMP_TYPE="${{ github.event.inputs.bump_type }}"
+          if [[ "$BUMP_TYPE" != "auto" ]]; then
+            BUMP_CMD="cz --no-raise 21,16 bump --yes --increment $BUMP_TYPE"
+          fi
+          echo "Manual trigger with bump_type: $BUMP_TYPE"
+        fi
 
-  publish:
-    runs-on: ubuntu-latest
-    # Triggered when a v* tag is pushed directly (e.g. manual hotfix tags)
-    if: github.ref_type == 'tag'
+        eval $BUMP_CMD
 
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          fetch-depth: 0
+        # Read new version directly from pyproject.toml (reliable after bump rewrites the file)
+        REV=$(grep -oP '(?<=^version = ")[^"]+' pyproject.toml | head -1)
+        echo "New version: $REV"
+        echo "version=${REV}" >> $GITHUB_OUTPUT
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86
+        # Store whether version changed for later steps
+        if [[ "$REV" != "$PREV_REV" ]]; then
+          echo "version_changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "version_changed=false" >> $GITHUB_OUTPUT
+        fi
 
-      - name: Set up Python
-        run: uv python install
+        # Extract incremental changelog for this version
+        if [[ "$REV" != "$PREV_REV" ]]; then
+          # Special handling for v0.0.0 (no previous version exists)
+          if [[ "$PREV_REV" == "0.0.0" ]]; then
+            echo "## v${REV}" > body.md
+            echo "" >> body.md
+            echo "Initial release" >> body.md
+            echo "" >> body.md
+            echo "See [CHANGELOG.md](CHANGELOG.md) for full details." >> body.md
+          else
+            # Extract changelog between versions
+            sed -n "/## v${REV}/,/## v${PREV_REV}/p" CHANGELOG.md | sed '$d' > body.md
 
-      - name: Build package
-        run: uv build
+            # If body.md is empty, fall back to using the entire new version section
+            if [[ ! -s body.md ]]; then
+              sed -n "/## v${REV}/,/## /p" CHANGELOG.md | sed '$d' > body.md
+            fi
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: dist/*
-          draft: false
-          prerelease: false
+            # If still empty, use a default message
+            if [[ ! -s body.md ]]; then
+              echo "Release v${REV}" > body.md
+              echo "" >> body.md
+              echo "See [CHANGELOG.md](CHANGELOG.md) for details." >> body.md
+            fi
+          fi
+
+          echo "Incremental changelog:"
+          cat body.md
+
+          if [[ "${{ github.event.inputs.dry_run }}" != "true" ]]; then
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main --tags
+          else
+            echo "Dry run mode: skipping push"
+          fi
+        else
+          echo "No version change, skipping release"
+          echo "No changes" > body.md
+        fi
+
+    - name: Print Version
+      run: echo "Bumped to version ${{ steps.cz.outputs.version }}"
+
+    - name: Update README version references
+      if: steps.cz.outputs.version_changed == 'true' && github.event.inputs.dry_run != 'true'
+      run: |
+        REV="${{ steps.cz.outputs.version }}"
+        # Replace all versioned wheel URLs in README.md
+        sed -i -E \
+          "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/champi_stt-[0-9]+\.[0-9]+\.[0-9]+-py3-none-any\.whl|releases/download/v${REV}/champi_stt-${REV}-py3-none-any.whl|g" \
+          README.md
+        # Stage and commit if changed
+        if ! git diff --quiet README.md; then
+          git add README.md
+          git commit -m "chore: update README install URLs to v${REV}"
+          git push origin HEAD:main
+        fi
+
+    - name: Set up Python for build
+      run: uv python install 3.12
+
+    - name: Build package
+      if: steps.cz.outputs.version_changed == 'true' && github.event.inputs.dry_run != 'true'
+      run: uv build
+
+    - name: Create GitHub Release
+      if: steps.cz.outputs.version_changed == 'true' && github.event.inputs.dry_run != 'true'
+      uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
+      with:
+        tag_name: v${{ steps.cz.outputs.version }}
+        name: v${{ steps.cz.outputs.version }}
+        body_path: body.md
+        files: dist/*
+        token: ${{ secrets.RELEASE_TOKEN }}

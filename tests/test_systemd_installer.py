@@ -1,7 +1,6 @@
 """Tests for systemd service installer."""
 
-from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -9,7 +8,6 @@ from champi_stt.assistant.service.systemd.installer import (
     _SERVICE_NAME,
     _champi_exec,
     _default_config_path,
-    _systemd_user_dir,
     install,
     is_active,
     is_installed,
@@ -24,11 +22,21 @@ def fake_systemd(tmp_path):
     service_dir = tmp_path / ".config" / "systemd" / "user"
     service_dir.mkdir(parents=True)
 
-    with patch("champi_stt.assistant.service.systemd.installer.shutil.which", return_value="/bin/systemctl"):
-        with patch("champi_stt.assistant.service.systemd.installer._systemd_user_dir", return_value=service_dir):
-            with patch("champi_stt.assistant.service.systemd.installer.subprocess.run") as mock_run:
-                mock_run.return_value = MagicMock(returncode=0, stdout="active\n", stderr="")
-                yield service_dir, mock_run
+    with (
+        patch(
+            "champi_stt.assistant.service.systemd.installer.shutil.which",
+            return_value="/bin/systemctl",
+        ),
+        patch(
+            "champi_stt.assistant.service.systemd.installer._systemd_user_dir",
+            return_value=service_dir,
+        ),
+        patch(
+            "champi_stt.assistant.service.systemd.installer.subprocess.run"
+        ) as mock_run,
+    ):
+        mock_run.return_value = MagicMock(returncode=0, stdout="active\n", stderr="")
+        yield service_dir, mock_run
 
 
 class TestInstall:
@@ -74,9 +82,14 @@ class TestInstall:
         assert not any('"start"' in c for c in calls)
 
     def test_raises_without_systemctl(self, tmp_path):
-        with patch("champi_stt.assistant.service.systemd.installer.shutil.which", return_value=None):
-            with pytest.raises(RuntimeError, match="systemctl not found"):
-                install()
+        with (
+            patch(
+                "champi_stt.assistant.service.systemd.installer.shutil.which",
+                return_value=None,
+            ),
+            pytest.raises(RuntimeError, match="systemctl not found"),
+        ):
+            install()
 
 
 class TestUninstall:
@@ -108,7 +121,10 @@ class TestStatus:
         assert isinstance(result, str)
 
     def test_no_systemctl(self):
-        with patch("champi_stt.assistant.service.systemd.installer.shutil.which", return_value=None):
+        with patch(
+            "champi_stt.assistant.service.systemd.installer.shutil.which",
+            return_value=None,
+        ):
             result = status()
             assert "not available" in result
 
@@ -135,7 +151,10 @@ class TestIsActive:
         assert is_active() is False
 
     def test_no_systemctl(self):
-        with patch("champi_stt.assistant.service.systemd.installer.shutil.which", return_value=None):
+        with patch(
+            "champi_stt.assistant.service.systemd.installer.shutil.which",
+            return_value=None,
+        ):
             assert is_active() is False
 
 

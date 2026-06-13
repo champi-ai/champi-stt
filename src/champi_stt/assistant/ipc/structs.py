@@ -283,7 +283,7 @@ def unpack_ack(data: bytes) -> int:
     Returns:
         Sequence number
     """
-    return ACK_STRUCT.unpack(data)[0]
+    return int(ACK_STRUCT.unpack(data)[0])
 
 
 def get_ack_size() -> int:

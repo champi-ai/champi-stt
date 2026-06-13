@@ -11,13 +11,14 @@ import pytest
 from champi_stt.core.response import TranscriptionResponse
 from champi_stt.providers.whisperlive.config import WhisperLiveConfig, WhisperPresets
 from champi_stt.providers.whisperlive.enums import ComputeType, ModelSize
-from champi_stt.providers.whisperlive.exceptions import WhisperInitializationError
+from champi_stt.providers.whisperlive.exceptions import (
+    WhisperInitializationError,
+    WhisperTranscriptionError,
+)
 from champi_stt.providers.whisperlive.models import (
     ModelCacheManager,
     TranscriptionOptions,
 )
-from champi_stt.providers.whisperlive.exceptions import WhisperTranscriptionError
-from champi_stt.providers.whisperlive.models import TranscriptionOptions
 from champi_stt.providers.whisperlive.provider import WhisperLiveProvider
 from champi_stt.providers.whisperlive.transcriber import WhisperLiveTranscriber
 
@@ -200,9 +201,7 @@ class TestWhisperLiveConfig:
 
     def test_from_file_invalid_json_returns_default(self):
         """Test that from_file() returns a default config when the JSON is malformed."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             tmp.write("{ not valid json }")
             tmp_path = tmp.name
 
@@ -216,9 +215,7 @@ class TestWhisperLiveConfig:
     def test_from_file_valid_json(self):
         """Test that from_file() correctly loads a valid JSON config file."""
         data = {"model_size": "small", "language": "pt", "beam_size": 4}
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             json.dump(data, tmp)
             tmp_path = tmp.name
 
@@ -1067,9 +1064,7 @@ class TestModelCacheManager:
     def test_cache_key_is_deterministic(self, tmp_path):
         """The same config always produces the same cache key."""
         mgr = ModelCacheManager(tmp_path)
-        config = WhisperLiveConfig(
-            model_size="tiny", device="cpu", compute_type="int8"
-        )
+        config = WhisperLiveConfig(model_size="tiny", device="cpu", compute_type="int8")
         key1 = mgr._get_cache_key(config)
         key2 = mgr._get_cache_key(config)
         assert key1 == key2
@@ -1180,7 +1175,9 @@ class TestWhisperLiveIntegration:
 
     @pytest.mark.asyncio
     @pytest.mark.integration
-    @pytest.mark.skip(reason="Requires model download - run manually with internet access")
+    @pytest.mark.skip(
+        reason="Requires model download - run manually with internet access"
+    )
     async def test_full_transcription_workflow(self, sample_audio_file: Path):
         """Test complete transcription workflow (requires model download)."""
         config = WhisperLiveConfig(model_size=ModelSize.TINY)
@@ -1377,7 +1374,10 @@ class TestTranscriberTranscribeAudio:
     ):
         """Text from multiple segments is joined with a single space."""
         transcriber, mock_model = initialized_transcriber
-        segs = [_make_segment(seg_id=0, text="Hello"), _make_segment(seg_id=1, text="world")]
+        segs = [
+            _make_segment(seg_id=0, text="Hello"),
+            _make_segment(seg_id=1, text="world"),
+        ]
         mock_model.transcribe.return_value = (iter(segs), _make_info(duration=2.0))
 
         result = await transcriber.transcribe_audio(np.zeros(32000, dtype=np.float32))
@@ -1450,7 +1450,9 @@ class TestTranscriberLifecycle:
         assert result == {"status": "not_initialized"}
 
     @pytest.mark.asyncio
-    async def test_clear_cache_delegates_to_model_manager(self, initialized_transcriber):
+    async def test_clear_cache_delegates_to_model_manager(
+        self, initialized_transcriber
+    ):
         """clear_cache() forwards the call to model_manager.clear_cache()."""
         transcriber, _ = initialized_transcriber
         transcriber.model_manager.clear_cache = AsyncMock()

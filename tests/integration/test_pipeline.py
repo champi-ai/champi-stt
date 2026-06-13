@@ -1,18 +1,15 @@
 """Integration tests for wake-word → STT → command pipeline."""
 
-import asyncio
 import time
 from dataclasses import dataclass
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
 
 from champi_stt.assistant.commands.builtin import register_builtin_commands
-from champi_stt.assistant.commands.executor import CommandExecutor
 from champi_stt.assistant.commands.registry import CommandRegistry
-from champi_stt.assistant.wakeword.base import WakeWordConfig, WakeWordEvent
+from champi_stt.assistant.wakeword.base import WakeWordEvent
 from champi_stt.core.response import TranscriptionResponse
 
 
@@ -165,11 +162,11 @@ class TestMultipleWakeWordPipeline:
             confidence=0.9,
         )
 
-        CONFIDENCE_THRESHOLD = 0.5
+        confidence_threshold = 0.5
         stt_calls = [0]
 
         async def handle_if_confident(event: WakeWordEvent) -> bool:
-            if event.confidence >= CONFIDENCE_THRESHOLD:
+            if event.confidence >= confidence_threshold:
                 stt_calls[0] += 1
                 return True
             return False

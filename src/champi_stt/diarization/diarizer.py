@@ -14,7 +14,7 @@ try:
     from pyannote.audio import Pipeline  # type: ignore[import-untyped]
 
     PYANNOTE_AVAILABLE = True
-except ImportError:
+except Exception:  # also catches AttributeError from torchaudio version mismatches
     PYANNOTE_AVAILABLE = False
 
     class Pipeline:  # type: ignore[no-redef]
@@ -147,7 +147,7 @@ class Diarizer:
         sample_rate: int,
     ) -> str:
         """Convert audio to a temporary WAV file and return its path."""
-        if isinstance(audio, (str, Path)):
+        if isinstance(audio, str | Path):
             return str(audio)
 
         import soundfile as sf  # type: ignore[import-untyped]

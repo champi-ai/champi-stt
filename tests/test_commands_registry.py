@@ -2,7 +2,7 @@
 
 import pytest
 
-from champi_stt.assistant.commands.registry import Command, CommandRegistry
+from champi_stt.assistant.commands.registry import CommandRegistry
 
 
 @pytest.fixture
@@ -43,6 +43,7 @@ class TestCommandRegistry:
     async def test_execute_exact_match(self, registry):
         async def handler():
             return "lights on"
+
         registry.register_exact("turn on lights", handler)
         result = await registry.execute("turn on lights")
         assert result == "lights on"
@@ -51,6 +52,7 @@ class TestCommandRegistry:
     async def test_execute_case_insensitive(self, registry):
         async def handler():
             return "ok"
+
         registry.register_exact("hello", handler)
         result = await registry.execute("HELLO")
         assert result == "ok"
@@ -59,6 +61,7 @@ class TestCommandRegistry:
     async def test_execute_pattern_match(self, registry):
         async def set_vol(level: str):
             return f"volume={level}"
+
         registry.register_pattern(r"set volume to (?P<level>\d+)", set_vol)
         result = await registry.execute("set volume to 50")
         assert result == "volume=50"
@@ -72,6 +75,7 @@ class TestCommandRegistry:
     async def test_execute_sync_handler(self, registry):
         def sync_handler():
             return "sync result"
+
         registry.register_exact("sync cmd", sync_handler)
         result = await registry.execute("sync cmd")
         assert result == "sync result"
@@ -106,6 +110,7 @@ class TestCommandRegistry:
     async def test_handler_exception_propagates(self, registry):
         async def bad_handler():
             raise RuntimeError("boom")
+
         registry.register_exact("fail", bad_handler)
         with pytest.raises(RuntimeError, match="boom"):
             await registry.execute("fail")

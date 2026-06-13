@@ -32,7 +32,7 @@ class SignalQueue:
             maxsize: Maximum queue size
         """
         self.maxsize = maxsize
-        self._queue = deque(maxlen=maxsize)
+        self._queue: deque[SignalQueueItem] = deque(maxlen=maxsize)
         self._lock = threading.Lock()
         self._not_empty = threading.Condition(self._lock)
         self._sequence_counter = 0

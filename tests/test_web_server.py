@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +12,9 @@ import yaml
 @pytest.fixture
 def config_file(tmp_path: Path) -> Path:
     cfg = tmp_path / "assistant_config.yaml"
-    cfg.write_text(yaml.dump({"llm": {"model": "gpt-4o"}, "stt": {"provider": "whisperlive"}}))
+    cfg.write_text(
+        yaml.dump({"llm": {"model": "gpt-4o"}, "stt": {"provider": "whisperlive"}})
+    )
     return cfg
 
 
@@ -44,7 +45,7 @@ class TestLoadSaveYaml:
         assert loaded["key"] == "value"
 
     def test_save_overwrites(self, config_file: Path) -> None:
-        from champi_stt.assistant.web.server import _save_yaml, _load_yaml
+        from champi_stt.assistant.web.server import _load_yaml, _save_yaml
 
         _save_yaml(config_file, {"new": "data"})
         assert _load_yaml(config_file) == {"new": "data"}
@@ -83,6 +84,7 @@ class TestCreateApp:
     def test_get_index(self, config_file: Path) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.assistant.web.server import create_app
 
         client = TestClient(create_app(config_file))
@@ -93,6 +95,7 @@ class TestCreateApp:
     def test_get_config(self, config_file: Path) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.assistant.web.server import create_app
 
         client = TestClient(create_app(config_file))
@@ -104,6 +107,7 @@ class TestCreateApp:
     def test_post_config_saves(self, config_file: Path) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.assistant.web.server import create_app
 
         client = TestClient(create_app(config_file))
@@ -116,6 +120,7 @@ class TestCreateApp:
     def test_post_config_reload_triggers_callback(self, config_file: Path) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.assistant.web.server import create_app
 
         callback = MagicMock()
@@ -128,6 +133,7 @@ class TestCreateApp:
     def test_post_config_reload_no_callback(self, config_file: Path) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.assistant.web.server import create_app
 
         client = TestClient(create_app(config_file))
@@ -138,6 +144,7 @@ class TestCreateApp:
     def test_get_index_missing_config(self, empty_config_file: Path) -> None:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
+
         from champi_stt.assistant.web.server import create_app
 
         client = TestClient(create_app(empty_config_file))

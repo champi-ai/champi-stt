@@ -1,9 +1,5 @@
 """Tests for IPC shared memory manager."""
 
-import pytest
-
-pytestmark = pytest.mark.skip(reason="API mismatch with current implementation - pending update")
-
 from multiprocessing import shared_memory
 
 import pytest
@@ -26,6 +22,10 @@ from champi_stt.assistant.ipc.structs import (
     unpack_state_change,
     unpack_transcribing,
     unpack_wake_detected,
+)
+
+pytestmark = pytest.mark.skip(
+    reason="API mismatch with current implementation - pending update"
 )
 
 

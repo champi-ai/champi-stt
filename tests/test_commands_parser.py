@@ -94,11 +94,7 @@ class TestLoadFromDict:
 class TestLoadFromFile:
     @pytest.mark.asyncio
     async def test_load_yaml_file(self, tmp_path, parser, registry):
-        config = {
-            "exact": {
-                "yaml cmd": {"type": "shell", "command": "echo yaml"}
-            }
-        }
+        config = {"exact": {"yaml cmd": {"type": "shell", "command": "echo yaml"}}}
         config_file = tmp_path / "commands.yaml"
         config_file.write_text(yaml.dump(config))
 
@@ -107,11 +103,7 @@ class TestLoadFromFile:
 
     @pytest.mark.asyncio
     async def test_load_json_file(self, tmp_path, parser, registry):
-        config = {
-            "exact": {
-                "json cmd": {"type": "shell", "command": "echo json"}
-            }
-        }
+        config = {"exact": {"json cmd": {"type": "shell", "command": "echo json"}}}
         config_file = tmp_path / "commands.json"
         config_file.write_text(json.dumps(config))
 
@@ -137,18 +129,22 @@ class TestCreateHandler:
         assert callable(handler)
 
     def test_api_handler_created(self, parser):
-        handler = parser._create_handler({
-            "type": "api",
-            "url": "https://example.com",
-            "method": "GET",
-        })
+        handler = parser._create_handler(
+            {
+                "type": "api",
+                "url": "https://example.com",
+                "method": "GET",
+            }
+        )
         assert callable(handler)
 
     def test_python_handler_created(self, parser):
-        handler = parser._create_handler({
-            "type": "python",
-            "function": "asyncio.sleep",
-        })
+        handler = parser._create_handler(
+            {
+                "type": "python",
+                "function": "asyncio.sleep",
+            }
+        )
         assert callable(handler)
 
     def test_unknown_type_raises(self, parser):

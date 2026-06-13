@@ -1,6 +1,5 @@
 """Tests for the AssemblyAI STT provider."""
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
@@ -63,9 +62,11 @@ class TestAssemblyAIProvider:
     @pytest.mark.asyncio
     async def test_initialize_missing_httpx(self, config):
         p = AssemblyAIProvider(config)
-        with patch("champi_stt.providers.assemblyai.provider.HTTPX_AVAILABLE", False):
-            with pytest.raises(ImportError):
-                await p.initialize()
+        with (
+            patch("champi_stt.providers.assemblyai.provider.HTTPX_AVAILABLE", False),
+            pytest.raises(ImportError),
+        ):
+            await p.initialize()
 
     @pytest.mark.asyncio
     async def test_initialize_success(self, config):
@@ -74,9 +75,11 @@ class TestAssemblyAIProvider:
         mock_httpx.AsyncClient.return_value = mock_client
 
         p = AssemblyAIProvider(config)
-        with patch("champi_stt.providers.assemblyai.provider.HTTPX_AVAILABLE", True):
-            with patch("champi_stt.providers.assemblyai.provider.httpx", mock_httpx):
-                await p.initialize()
+        with (
+            patch("champi_stt.providers.assemblyai.provider.HTTPX_AVAILABLE", True),
+            patch("champi_stt.providers.assemblyai.provider.httpx", mock_httpx),
+        ):
+            await p.initialize()
         assert p.is_initialized
 
     @pytest.mark.asyncio
@@ -94,7 +97,9 @@ class TestAssemblyAIProvider:
     async def test_transcribe_bytes(self, config):
         upload_resp = MagicMock()
         upload_resp.raise_for_status = MagicMock()
-        upload_resp.json.return_value = {"upload_url": "https://cdn.assemblyai.com/upload/test"}
+        upload_resp.json.return_value = {
+            "upload_url": "https://cdn.assemblyai.com/upload/test"
+        }
 
         submit_resp = MagicMock()
         submit_resp.raise_for_status = MagicMock()
@@ -125,7 +130,9 @@ class TestAssemblyAIProvider:
 
         upload_resp = MagicMock()
         upload_resp.raise_for_status = MagicMock()
-        upload_resp.json.return_value = {"upload_url": "https://cdn.assemblyai.com/upload/test"}
+        upload_resp.json.return_value = {
+            "upload_url": "https://cdn.assemblyai.com/upload/test"
+        }
 
         submit_resp = MagicMock()
         submit_resp.raise_for_status = MagicMock()
@@ -176,10 +183,12 @@ class TestAssemblyAIProvider:
         mock_httpx = MagicMock()
         mock_httpx.AsyncClient.return_value = AsyncMock()
 
-        with patch("champi_stt.providers.assemblyai.provider.HTTPX_AVAILABLE", True):
-            with patch("champi_stt.providers.assemblyai.provider.httpx", mock_httpx):
-                async with AssemblyAIProvider(config) as p:
-                    assert p.is_initialized
+        with (
+            patch("champi_stt.providers.assemblyai.provider.HTTPX_AVAILABLE", True),
+            patch("champi_stt.providers.assemblyai.provider.httpx", mock_httpx),
+        ):
+            async with AssemblyAIProvider(config) as p:
+                assert p.is_initialized
         assert not p.is_initialized
 
     @pytest.mark.asyncio
@@ -207,9 +216,12 @@ class TestAssemblyAIProvider:
         p._http = mock_client
 
         import soundfile as sf_mod
-        with patch("champi_stt.providers.assemblyai.provider.SOUNDFILE_AVAILABLE", True):
-            with patch("champi_stt.providers.assemblyai.provider.sf", sf_mod):
-                result = await p.transcribe(audio)
+
+        with (
+            patch("champi_stt.providers.assemblyai.provider.SOUNDFILE_AVAILABLE", True),
+            patch("champi_stt.providers.assemblyai.provider.sf", sf_mod),
+        ):
+            result = await p.transcribe(audio)
         assert isinstance(result, TranscriptionResponse)
 
 
@@ -222,12 +234,16 @@ class TestParseResponse:
         assert len(result.segments) == 2
 
     def test_empty_words(self, provider):
-        result = provider._parse_response({"status": "completed", "text": "hi", "words": []})
+        result = provider._parse_response(
+            {"status": "completed", "text": "hi", "words": []}
+        )
         assert result.text == "hi"
         assert result.segments == []
 
     def test_none_text(self, provider):
-        result = provider._parse_response({"status": "completed", "text": None, "words": None})
+        result = provider._parse_response(
+            {"status": "completed", "text": None, "words": None}
+        )
         assert result.text == ""
 
 
