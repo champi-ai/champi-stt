@@ -74,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `wake_indicator_position` config field - UI position now configured via `ipc_ui_window_x` and `ipc_ui_window_y`
 
+## v1.0.2 (2026-06-13)
+
+### Fix
+
+- **deps**: update vulnerable transitive dependencies (pillow, requests, urllib3, setuptools, idna) (#91)
+
 ## v1.0.1 (2026-06-13)
 
 ### Fix
