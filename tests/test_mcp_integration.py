@@ -44,7 +44,10 @@ INIT_REQUEST = (
 
 
 @pytest.mark.integration
-@pytest.mark.xfail(reason="MCP server subprocess may not be available in all CI environments", strict=False)
+@pytest.mark.xfail(
+    reason="MCP server subprocess may not be available in all CI environments",
+    strict=False,
+)
 def test_mcp_stdio_handshake() -> None:
     """Spawn the MCP server, send initialize, assert valid response within 10 s.
 
