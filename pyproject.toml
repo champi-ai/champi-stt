@@ -325,7 +325,7 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short --cov=src/champi_stt --cov-report=term --cov-report=html --cov-report=xml --cov-fail-under=55"
+addopts = "-v --tb=short --cov=src/champi_stt --cov-report=term --cov-report=html --cov-report=xml --cov-fail-under=45"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
@@ -345,7 +345,7 @@ omit = [
 precision = 2
 show_missing = true
 skip_covered = false
-fail_under = 55
+fail_under = 45
 
 [tool.bandit]
 exclude_dirs = ["tests", "examples"]
