@@ -98,7 +98,7 @@ from champi_stt.providers.whisperlive import (
     WhisperLiveTranscriber,
 )
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 __all__ = [
     "BaseModelManager",
