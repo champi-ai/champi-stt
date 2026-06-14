@@ -82,12 +82,6 @@ Or add as a dependency in another project using uv sources:
 champi-stt = { url = "https://github.com/champi-ai/champi-stt/releases/download/v1.1.1/champi_stt-1.1.1-py3-none-any.whl" }
 ```
 
-### Install from PyPI mirror / source
-
-```bash
-uv pip install champi-stt
-```
-
 ### Development Installation
 
 Clone repository:
@@ -174,15 +168,16 @@ Champi STT exposes its transcription tools over the
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), letting
 LLM hosts such as Claude Desktop call them directly.
 
-### Install
+### Install and run (one-shot)
 
 ```bash
-pip install 'champi-stt[mcp]'
+uvx --from https://github.com/champi-ai/champi-stt/releases/download/v1.1.1/champi_stt-1.1.1-py3-none-any.whl champi-stt mcp serve
 ```
 
-### Start
+Or install permanently with the `mcp` extra:
 
 ```bash
+uv pip install "https://github.com/champi-ai/champi-stt/releases/download/v1.1.1/champi_stt-1.1.1-py3-none-any.whl[mcp]"
 champi-stt mcp serve
 ```
 
