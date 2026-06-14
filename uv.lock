@@ -595,7 +595,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "champi-stt"
-version = "1.0.2"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },

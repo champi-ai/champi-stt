@@ -50,7 +50,7 @@ dependencies = [
     # Event system
     "blinker>=1.9.0",
     "awaitlet>=0.0.1",
-    "champi-signals",
+    "champi-signals @ https://github.com/champi-ai/champi-signals/releases/download/v0.1.0/champi_signals-0.1.0-py3-none-any.whl",
     # Logging
     "loguru",
 ]
