@@ -74,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `wake_indicator_position` config field - UI position now configured via `ipc_ui_window_x` and `ipc_ui_window_y`
 
+## v1.1.2 (2026-06-14)
+
+### Fix
+
+- **mcp**: add [mcp] extra to uvx command and uvx Claude Desktop config (#95)
+
 ## v1.1.1 (2026-06-14)
 
 ### Fix
