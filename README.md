@@ -171,7 +171,7 @@ LLM hosts such as Claude Desktop call them directly.
 ### Install and run (one-shot)
 
 ```bash
-uvx --from https://github.com/champi-ai/champi-stt/releases/download/v1.1.1/champi_stt-1.1.1-py3-none-any.whl champi-stt mcp serve
+uvx --from "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.1.1/champi_stt-1.1.1-py3-none-any.whl" champi-stt mcp serve
 ```
 
 Or install permanently with the `mcp` extra:
@@ -190,26 +190,54 @@ Add a server entry to your `claude_desktop_config.json`:
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
+**Using uvx (no permanent install required):**
+
 ```json
 {
   "mcpServers": {
     "champi-stt": {
-      "command": "champi-stt-mcp"
+      "command": "uvx",
+      "args": [
+        "--from",
+        "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.1.1/champi_stt-1.1.1-py3-none-any.whl",
+        "champi-stt",
+        "mcp",
+        "serve"
+      ]
     }
   }
 }
 ```
 
-To select a non-default STT provider, pass the `CHAMPI_STT_PROVIDER` environment variable:
+To select a non-default STT provider, add `CHAMPI_STT_PROVIDER` to the `env` block:
 
 ```json
 {
   "mcpServers": {
     "champi-stt": {
-      "command": "champi-stt-mcp",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.1.1/champi_stt-1.1.1-py3-none-any.whl",
+        "champi-stt",
+        "mcp",
+        "serve"
+      ],
       "env": {
         "CHAMPI_STT_PROVIDER": "whisperlive"
       }
+    }
+  }
+}
+```
+
+**Using a permanent install** (after `uv pip install "...[mcp]"`):
+
+```json
+{
+  "mcpServers": {
+    "champi-stt": {
+      "command": "champi-stt-mcp"
     }
   }
 }
