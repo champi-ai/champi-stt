@@ -191,6 +191,20 @@ def create_mcp_server() -> Any:
         """Record audio from the default microphone for a fixed duration and return the transcription."""
         return await _listen_once(duration_seconds, language, provider)
 
+    from champi_stt.mcp.mic_tools import listen_until_silence as _listen_until_silence
+
+    @mcp.tool()
+    async def listen_until_silence_tool(
+        max_duration_seconds: float = 30.0,
+        silence_threshold_ms: int = 800,
+        language: str | None = None,
+        provider: str | None = None,
+    ) -> str:
+        """Record from the microphone until silence is detected (VAD), then return the transcription."""
+        return await _listen_until_silence(
+            max_duration_seconds, silence_threshold_ms, language, provider
+        )
+
     return mcp
 
 

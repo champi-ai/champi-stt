@@ -123,3 +123,72 @@ async def listen_once(
         return await _audio_to_text(audio.squeeze(), 16000, language, provider)
     except Exception as e:
         return f"error: {type(e).__name__}: {e}"
+
+
+async def listen_until_silence(
+    max_duration_seconds: float = 30.0,
+    silence_threshold_ms: int = 800,
+    language: str | None = None,
+    provider: str | None = None,
+) -> str:
+    """Record from the microphone until silence is detected, then return the transcription.
+
+    Uses WebRTC VAD (aggressiveness level 2) to detect speech/silence boundaries.
+    Recording stops when consecutive silence exceeds ``silence_threshold_ms`` or
+    the total duration reaches ``max_duration_seconds``.
+
+    Falls back to :func:`listen_once` if ``webrtcvad`` is not installed.
+
+    Args:
+        max_duration_seconds: Hard upper limit on recording length in seconds.
+        silence_threshold_ms: Consecutive silence in milliseconds that triggers stop.
+        language: BCP-47 language code hint, or None for auto-detect.
+        provider: Provider key (e.g. ``"whisperlive"``), or None to use the default.
+
+    Returns:
+        Transcription text on success, or ``"error: <ExcType>: <message>"`` on failure.
+    """
+    try:
+        _check_sounddevice()
+
+        try:
+            import webrtcvad  # noqa: F401
+        except ImportError:
+            return await listen_once(max_duration_seconds, language, provider)
+
+        import sounddevice as sd
+
+        def _record_with_vad() -> np.ndarray:
+            import webrtcvad as _webrtcvad
+
+            vad = _webrtcvad.Vad(2)
+            frame_samples = int(16000 * 0.03)  # 480
+            frames: list[np.ndarray] = []
+            silent_ms = 0
+            total_ms = 0
+            with sd.InputStream(
+                samplerate=16000, channels=1, dtype="int16", blocksize=frame_samples
+            ) as stream:
+                while total_ms < max_duration_seconds * 1000:
+                    chunk, _ = stream.read(frame_samples)
+                    frame = chunk.squeeze()
+                    frames.append(frame)
+                    total_ms += 30
+                    is_speech = vad.is_speech(frame.tobytes(), 16000)
+                    if is_speech:
+                        silent_ms = 0
+                    else:
+                        silent_ms += 30
+                        if silent_ms >= silence_threshold_ms:
+                            break
+            return (
+                np.concatenate(frames)
+                if frames
+                else np.zeros(frame_samples, dtype=np.int16)
+            )
+
+        loop = asyncio.get_event_loop()
+        audio = await loop.run_in_executor(None, _record_with_vad)
+        return await _audio_to_text(audio, 16000, language, provider)
+    except Exception as e:
+        return f"error: {type(e).__name__}: {e}"
