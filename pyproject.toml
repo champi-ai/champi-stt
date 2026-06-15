@@ -328,7 +328,7 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short --cov=src/champi_stt --cov-report=term --cov-report=html --cov-report=xml --cov-fail-under=47"
+addopts = "-v --tb=short --cov=src/champi_stt --cov-report=term --cov-report=html --cov-report=xml --cov-fail-under=48"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
