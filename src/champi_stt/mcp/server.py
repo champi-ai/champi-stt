@@ -205,6 +205,13 @@ def create_mcp_server() -> Any:
             max_duration_seconds, silence_threshold_ms, language, provider
         )
 
+    from champi_stt.mcp.mic_tools import list_audio_devices as _list_audio_devices
+
+    @mcp.tool()
+    def list_audio_devices_tool() -> list[dict[str, object]]:
+        """List available audio input devices."""
+        return _list_audio_devices()
+
     return mcp
 
 

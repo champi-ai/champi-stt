@@ -34,6 +34,32 @@ def _check_sounddevice() -> None:
         ) from exc
 
 
+def list_audio_devices() -> list[dict[str, object]]:
+    """Return available audio input devices.
+
+    Returns:
+        List of dicts with keys ``index``, ``name``, ``max_input_channels``,
+        ``default_samplerate``, and ``is_default`` for each input-capable device.
+    """
+    _check_sounddevice()
+    import sounddevice as sd
+
+    devices = sd.query_devices()
+    result = []
+    for i, dev in enumerate(devices):
+        if dev["max_input_channels"] > 0:
+            result.append(
+                {
+                    "index": i,
+                    "name": dev["name"],
+                    "max_input_channels": dev["max_input_channels"],
+                    "default_samplerate": dev["default_samplerate"],
+                    "is_default": i == sd.default.device[0],
+                }
+            )
+    return result
+
+
 async def _audio_to_text(
     audio_array: np.ndarray,
     sample_rate: int,
