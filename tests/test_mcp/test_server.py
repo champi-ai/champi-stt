@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 from mcp.client.session import ClientSession
@@ -54,6 +55,38 @@ class _SharedData:
 
 
 _data = _SharedData()
+
+
+def _run_list_tools_once() -> None:
+    """Populate ``_data.tools_result`` by spawning the server if not already set."""
+    if _data.tools_result is not None:
+        return
+    import asyncio
+
+    async def _connect() -> ListToolsResult:
+        async with (
+            stdio_client(_server_params()) as (rs, ws),
+            ClientSession(rs, ws) as session,
+        ):
+            await session.initialize()
+            return await session.list_tools()
+
+    loop = asyncio.new_event_loop()
+    try:
+        _data.tools_result = loop.run_until_complete(
+            asyncio.wait_for(_connect(), timeout=_TIMEOUT)
+        )
+    finally:
+        loop.close()
+
+
+def _input_schema(tool_name: str) -> dict[str, Any]:
+    """Return the ``inputSchema`` dict for a named tool from the list_tools result."""
+    assert _data.tools_result is not None
+    for tool in _data.tools_result.tools:
+        if tool.name == tool_name:
+            return tool.inputSchema
+    raise KeyError(f"Tool '{tool_name}' not found in list_tools result")
 
 
 # ---------------------------------------------------------------------------
@@ -121,28 +154,12 @@ class TestMCPServerHandshake:
 
 @pytest.mark.integration
 class TestMCPServerTools:
-    """Verify the four tools are registered and visible after initialization."""
+    """Verify the seven tools are registered and visible after initialization."""
 
     @pytest.fixture(autouse=True, scope="class")
     def _run_list_tools(self) -> None:
         """Spawn the server once for all tool tests and capture the tools list."""
-        import asyncio
-
-        async def _connect() -> ListToolsResult:
-            async with (
-                stdio_client(_server_params()) as (rs, ws),
-                ClientSession(rs, ws) as session,
-            ):
-                await session.initialize()
-                return await session.list_tools()
-
-        loop = asyncio.new_event_loop()
-        try:
-            _data.tools_result = loop.run_until_complete(
-                asyncio.wait_for(_connect(), timeout=_TIMEOUT)
-            )
-        finally:
-            loop.close()
+        _run_list_tools_once()
 
     def _tool_names(self) -> set[str]:
         assert _data.tools_result is not None
@@ -169,11 +186,165 @@ class TestMCPServerTools:
         """The ``get_provider_status`` tool is registered on the server."""
         assert "get_provider_status" in self._tool_names()
 
-    def test_exactly_four_tools_registered(self) -> None:
-        """Exactly the four expected tools are registered (no extras, no missing)."""
+    def test_listen_once_tool_registered(self) -> None:
+        """The ``listen_once_tool`` tool is registered on the server."""
+        assert "listen_once_tool" in self._tool_names()
+
+    def test_listen_until_silence_tool_registered(self) -> None:
+        """The ``listen_until_silence_tool`` tool is registered on the server."""
+        assert "listen_until_silence_tool" in self._tool_names()
+
+    def test_list_audio_devices_tool_registered(self) -> None:
+        """The ``list_audio_devices_tool`` tool is registered on the server."""
+        assert "list_audio_devices_tool" in self._tool_names()
+
+    def test_exactly_seven_tools_registered(self) -> None:
+        """Exactly the seven expected tools are registered (no extras, no missing)."""
         assert self._tool_names() == {
             "list_providers",
             "get_provider_status",
             "transcribe_audio",
             "detect_language",
+            "listen_once_tool",
+            "listen_until_silence_tool",
+            "list_audio_devices_tool",
         }
+
+
+# ---------------------------------------------------------------------------
+# Mic tool schema tests — reuse the list_tools result, no extra subprocess.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestMCPServerMicToolSchemas:
+    """Verify JSON schemas of the three mic tools via ``mcp.list_tools()``.
+
+    These tests assert that the MCP protocol exposes the correct
+    ``inputSchema`` for each mic tool — parameter names, types, defaults, and
+    required fields — exactly as the issue specifies.
+    """
+
+    @pytest.fixture(autouse=True, scope="class")
+    def _ensure_tools_result(self) -> None:
+        """Populate ``_data.tools_result`` if not already set by a sibling class."""
+        _run_list_tools_once()
+
+    # --- listen_once_tool ---
+
+    def test_listen_once_tool_duration_seconds_type_is_number(self) -> None:
+        """``listen_once_tool`` exposes ``duration_seconds`` as JSON Schema type ``number``."""
+        schema = _input_schema("listen_once_tool")
+        assert schema["properties"]["duration_seconds"]["type"] == "number"
+
+    def test_listen_once_tool_duration_seconds_default_is_5(self) -> None:
+        """``listen_once_tool`` ``duration_seconds`` has default ``5.0``."""
+        schema = _input_schema("listen_once_tool")
+        assert schema["properties"]["duration_seconds"]["default"] == pytest.approx(5.0)
+
+    def test_listen_once_tool_language_accepts_string(self) -> None:
+        """``listen_once_tool`` ``language`` accepts ``string``."""
+        schema = _input_schema("listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["language"].get("anyOf", [])
+        }
+        assert "string" in any_of_types
+
+    def test_listen_once_tool_language_accepts_null(self) -> None:
+        """``listen_once_tool`` ``language`` accepts ``null``."""
+        schema = _input_schema("listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["language"].get("anyOf", [])
+        }
+        assert "null" in any_of_types
+
+    def test_listen_once_tool_provider_accepts_string(self) -> None:
+        """``listen_once_tool`` ``provider`` accepts ``string``."""
+        schema = _input_schema("listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["provider"].get("anyOf", [])
+        }
+        assert "string" in any_of_types
+
+    def test_listen_once_tool_provider_accepts_null(self) -> None:
+        """``listen_once_tool`` ``provider`` accepts ``null``."""
+        schema = _input_schema("listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["provider"].get("anyOf", [])
+        }
+        assert "null" in any_of_types
+
+    def test_listen_once_tool_has_no_required_params(self) -> None:
+        """``listen_once_tool`` has no required parameters (all have defaults)."""
+        schema = _input_schema("listen_once_tool")
+        assert schema.get("required", []) == []
+
+    # --- listen_until_silence_tool ---
+
+    def test_listen_until_silence_tool_max_duration_seconds_type_is_number(
+        self,
+    ) -> None:
+        """``listen_until_silence_tool`` ``max_duration_seconds`` is JSON Schema type ``number``."""
+        schema = _input_schema("listen_until_silence_tool")
+        assert schema["properties"]["max_duration_seconds"]["type"] == "number"
+
+    def test_listen_until_silence_tool_silence_threshold_ms_type_is_integer(
+        self,
+    ) -> None:
+        """``listen_until_silence_tool`` ``silence_threshold_ms`` is JSON Schema type ``integer``."""
+        schema = _input_schema("listen_until_silence_tool")
+        assert schema["properties"]["silence_threshold_ms"]["type"] == "integer"
+
+    def test_listen_until_silence_tool_max_duration_seconds_param_exists(self) -> None:
+        """``listen_until_silence_tool`` has a ``max_duration_seconds`` parameter."""
+        schema = _input_schema("listen_until_silence_tool")
+        assert "max_duration_seconds" in schema.get("properties", {})
+
+    def test_listen_until_silence_tool_silence_threshold_ms_param_exists(self) -> None:
+        """``listen_until_silence_tool`` has a ``silence_threshold_ms`` parameter."""
+        schema = _input_schema("listen_until_silence_tool")
+        assert "silence_threshold_ms" in schema.get("properties", {})
+
+    def test_listen_until_silence_tool_language_accepts_string(self) -> None:
+        """``listen_until_silence_tool`` ``language`` accepts ``string``."""
+        schema = _input_schema("listen_until_silence_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["language"].get("anyOf", [])
+        }
+        assert "string" in any_of_types
+
+    def test_listen_until_silence_tool_language_accepts_null(self) -> None:
+        """``listen_until_silence_tool`` ``language`` accepts ``null``."""
+        schema = _input_schema("listen_until_silence_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["language"].get("anyOf", [])
+        }
+        assert "null" in any_of_types
+
+    def test_listen_until_silence_tool_provider_accepts_string(self) -> None:
+        """``listen_until_silence_tool`` ``provider`` accepts ``string``."""
+        schema = _input_schema("listen_until_silence_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["provider"].get("anyOf", [])
+        }
+        assert "string" in any_of_types
+
+    def test_listen_until_silence_tool_provider_accepts_null(self) -> None:
+        """``listen_until_silence_tool`` ``provider`` accepts ``null``."""
+        schema = _input_schema("listen_until_silence_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["provider"].get("anyOf", [])
+        }
+        assert "null" in any_of_types
+
+    # --- list_audio_devices_tool ---
+
+    def test_list_audio_devices_tool_has_no_required_params(self) -> None:
+        """``list_audio_devices_tool`` has no required parameters."""
+        schema = _input_schema("list_audio_devices_tool")
+        assert schema.get("required", []) == []
+
+    def test_list_audio_devices_tool_properties_is_empty(self) -> None:
+        """``list_audio_devices_tool`` takes no input parameters."""
+        schema = _input_schema("list_audio_devices_tool")
+        assert schema.get("properties", {}) == {}
