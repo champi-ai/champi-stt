@@ -169,11 +169,16 @@ class TestMCPServerTools:
         """The ``get_provider_status`` tool is registered on the server."""
         assert "get_provider_status" in self._tool_names()
 
-    def test_exactly_four_tools_registered(self) -> None:
-        """Exactly the four expected tools are registered (no extras, no missing)."""
+    def test_listen_once_tool_registered(self) -> None:
+        """The ``listen_once_tool`` tool is registered on the server."""
+        assert "listen_once_tool" in self._tool_names()
+
+    def test_exactly_five_tools_registered(self) -> None:
+        """Exactly the five expected tools are registered (no extras, no missing)."""
         assert self._tool_names() == {
             "list_providers",
             "get_provider_status",
             "transcribe_audio",
             "detect_language",
+            "listen_once_tool",
         }

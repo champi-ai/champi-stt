@@ -1,10 +1,11 @@
-"""Unit tests and JSON schema validation for the four MCP tools.
+"""Unit tests and JSON schema validation for the five MCP tools.
 
-Covers all four tools registered by ``create_mcp_server()``:
+Covers all five tools registered by ``create_mcp_server()``:
 - ``list_providers``
 - ``get_provider_status``
 - ``transcribe_audio``
 - ``detect_language``
+- ``listen_once_tool``
 
 All tests mock the underlying provider so no audio hardware is required.
 Tests that would need real GPU or microphone access are skipped explicitly.
@@ -16,6 +17,7 @@ import tempfile
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import numpy as np
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -48,7 +50,7 @@ def _make_provider(
     return prov
 
 
-def _raw(call_tool_result: tuple) -> dict:
+def _raw(call_tool_result: tuple) -> Any:
     """Extract the structured result dict from a FastMCP ``call_tool`` response."""
     return call_tool_result[1]
 
@@ -61,7 +63,7 @@ def server() -> Any:
     return create_mcp_server()
 
 
-def _schema(server: Any, tool_name: str) -> dict:
+def _schema(server: Any, tool_name: str) -> Any:
     """Return the JSON Schema parameters dict for a named tool."""
     return server._tool_manager._tools[tool_name].parameters
 
@@ -512,3 +514,143 @@ class TestDetectLanguageTool:
                 {"audio_path": f.name, "provider": "whisperlive"},
             )
         mock_get.assert_called_with("whisperlive")
+
+
+# ---------------------------------------------------------------------------
+# JSON Schema: listen_once_tool
+# ---------------------------------------------------------------------------
+
+
+class TestListenOnceToolSchema:
+    """listen_once_tool: no required params; optional duration_seconds (number), language and provider (string | null)."""
+
+    def test_schema_type_is_object(self, server: Any) -> None:
+        assert _schema(server, "listen_once_tool")["type"] == "object"
+
+    def test_no_required_params(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        assert schema.get("required", []) == []
+
+    def test_duration_seconds_type_is_number(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        assert schema["properties"]["duration_seconds"]["type"] == "number"
+
+    def test_duration_seconds_default_is_five(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        assert schema["properties"]["duration_seconds"]["default"] == pytest.approx(5.0)
+
+    def test_language_accepts_string(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["language"].get("anyOf", [])
+        }
+        assert "string" in any_of_types
+
+    def test_language_accepts_null(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["language"].get("anyOf", [])
+        }
+        assert "null" in any_of_types
+
+    def test_language_default_is_none(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        assert schema["properties"]["language"]["default"] is None
+
+    def test_provider_accepts_string(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["provider"].get("anyOf", [])
+        }
+        assert "string" in any_of_types
+
+    def test_provider_accepts_null(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        any_of_types = {
+            e["type"] for e in schema["properties"]["provider"].get("anyOf", [])
+        }
+        assert "null" in any_of_types
+
+    def test_provider_default_is_none(self, server: Any) -> None:
+        schema = _schema(server, "listen_once_tool")
+        assert schema["properties"]["provider"]["default"] is None
+
+
+# ---------------------------------------------------------------------------
+# Tool: listen_once_tool
+# ---------------------------------------------------------------------------
+
+
+def _make_sd_mock(*, duration_seconds: float = 5.0) -> MagicMock:
+    """Return a mock sounddevice module with rec() and wait() stubs."""
+    sd = MagicMock()
+    num_frames = int(duration_seconds * 16000)
+    audio = np.zeros((num_frames, 1), dtype=np.int16)
+    sd.rec.return_value = audio
+    sd.wait.return_value = None
+    return sd
+
+
+class TestListenOnceTool:
+    @pytest.mark.asyncio
+    async def test_returns_transcription_text(self, server: Any) -> None:
+        sd = _make_sd_mock()
+        prov = _make_provider(transcribe_result="mic text")
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            result = _raw(await server.call_tool("listen_once_tool", {}))
+        assert result["result"] == "mic text"
+
+    @pytest.mark.asyncio
+    async def test_sounddevice_missing_returns_error_string(self, server: Any) -> None:
+        with patch.dict("sys.modules", {"sounddevice": None}):
+            result = _raw(await server.call_tool("listen_once_tool", {}))
+        assert "error" in result["result"].lower()
+        assert "ImportError" in result["result"]
+
+    @pytest.mark.asyncio
+    async def test_duration_seconds_forwarded(self, server: Any) -> None:
+        sd = _make_sd_mock(duration_seconds=3.0)
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await server.call_tool("listen_once_tool", {"duration_seconds": 3.0})
+        call_args = sd.rec.call_args
+        assert call_args[0][0] == int(3.0 * 16000)
+
+    @pytest.mark.asyncio
+    async def test_language_forwarded(self, server: Any) -> None:
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await server.call_tool("listen_once_tool", {"language": "de"})
+        _, kwargs = prov.transcribe.call_args
+        assert kwargs.get("language") == "de"
+
+    @pytest.mark.asyncio
+    async def test_provider_forwarded(self, server: Any) -> None:
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch(
+                "champi_stt.mcp.mic_tools.get_provider", return_value=prov
+            ) as mock_get,
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await server.call_tool("listen_once_tool", {"provider": "openai_whisper"})
+        mock_get.assert_called_once_with("openai_whisper")

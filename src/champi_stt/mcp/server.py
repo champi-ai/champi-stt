@@ -180,6 +180,17 @@ def create_mcp_server() -> Any:
                 "error_message": str(exc),
             }
 
+    from champi_stt.mcp.mic_tools import listen_once as _listen_once
+
+    @mcp.tool()
+    async def listen_once_tool(
+        duration_seconds: float = 5.0,
+        language: str | None = None,
+        provider: str | None = None,
+    ) -> str:
+        """Record audio from the default microphone for a fixed duration and return the transcription."""
+        return await _listen_once(duration_seconds, language, provider)
+
     return mcp
 
 

@@ -271,7 +271,7 @@ class TestAudioToText:
         write_args: list[tuple] = []
 
         def _capture_write(*args: object, **kwargs: object) -> None:
-            write_args.append(args)  # type: ignore[arg-type]
+            write_args.append(args)
 
         with (
             patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
@@ -280,3 +280,175 @@ class TestAudioToText:
         ):
             await mic._audio_to_text(self._make_audio(), 44100, None, "whisperlive")
         assert write_args[0][2] == 44100
+
+
+# ---------------------------------------------------------------------------
+# listen_once
+# ---------------------------------------------------------------------------
+
+
+def _make_sd_mock(*, num_frames: int = 16000) -> MagicMock:
+    """Return a mock sounddevice module with rec() and wait() stubs."""
+    sd = MagicMock()
+    audio = np.zeros((num_frames, 1), dtype=np.int16)
+    sd.rec.return_value = audio
+    sd.wait.return_value = None
+    return sd
+
+
+class TestListenOnce:
+    """Tests for the async listen_once public function."""
+
+    @pytest.mark.asyncio
+    async def test_returns_transcription_text(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider(transcribe_result=TranscriptionResponse(text="hello mic"))
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            result = await mic.listen_once()
+        assert result == "hello mic"
+
+    @pytest.mark.asyncio
+    async def test_rec_called_with_correct_frame_count(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock(num_frames=int(3.0 * 16000))
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once(duration_seconds=3.0)
+        sd.rec.assert_called_once()
+        call_args = sd.rec.call_args
+        assert call_args[0][0] == int(3.0 * 16000)
+
+    @pytest.mark.asyncio
+    async def test_rec_uses_16000_samplerate(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once()
+        _, kwargs = sd.rec.call_args
+        assert kwargs["samplerate"] == 16000
+
+    @pytest.mark.asyncio
+    async def test_rec_uses_mono_channel(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once()
+        _, kwargs = sd.rec.call_args
+        assert kwargs["channels"] == 1
+
+    @pytest.mark.asyncio
+    async def test_rec_uses_int16_dtype(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once()
+        _, kwargs = sd.rec.call_args
+        assert kwargs["dtype"] == "int16"
+
+    @pytest.mark.asyncio
+    async def test_wait_is_called_after_rec(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once()
+        sd.wait.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_missing_sounddevice_returns_error_string(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        with patch.dict("sys.modules", {"sounddevice": None}):
+            result = await mic.listen_once()
+        assert result.startswith("error:")
+        assert "ImportError" in result
+
+    @pytest.mark.asyncio
+    async def test_transcription_error_returns_error_string(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider(transcribe_raises=RuntimeError("model crash"))
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            result = await mic.listen_once()
+        assert result.startswith("error:")
+        assert "RuntimeError" in result
+        assert "model crash" in result
+
+    @pytest.mark.asyncio
+    async def test_language_forwarded_to_audio_to_text(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once(language="es")
+        _, kwargs = prov.transcribe.call_args
+        assert kwargs.get("language") == "es"
+
+    @pytest.mark.asyncio
+    async def test_provider_forwarded_to_audio_to_text(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch(
+                "champi_stt.mcp.mic_tools.get_provider", return_value=prov
+            ) as mock_get,
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once(provider="openai_whisper")
+        mock_get.assert_called_once_with("openai_whisper")
