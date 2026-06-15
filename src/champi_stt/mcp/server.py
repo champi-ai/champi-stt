@@ -23,6 +23,7 @@ import contextlib
 import os
 import sys
 from contextlib import asynccontextmanager
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 from typing import Any
 
@@ -41,9 +42,12 @@ _DEFAULT_PROVIDER = "whisperlive"
 
 def _require_mcp() -> None:
     if not MCP_AVAILABLE:
+        _v = _pkg_version("champi-stt")
+        _whl = f"champi_stt-{_v}-py3-none-any.whl"
+        _url = f"https://github.com/champi-ai/champi-stt/releases/download/v{_v}/{_whl}"
         raise ImportError(
             "mcp is required for the MCP server. "
-            "Install with: pip install 'champi-stt[mcp]'"
+            f'Install with: uvx --from "champi-stt[mcp] @ {_url}" champi-stt mcp serve'
         )
 
 
