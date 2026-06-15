@@ -210,7 +210,10 @@ def create_mcp_server() -> Any:
     @mcp.tool()
     def list_audio_devices_tool() -> list[dict[str, object]]:
         """List available audio input devices."""
-        return _list_audio_devices()
+        try:
+            return _list_audio_devices()
+        except ImportError as exc:
+            return [{"error": str(exc)}]
 
     return mcp
 

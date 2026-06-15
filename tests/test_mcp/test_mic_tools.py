@@ -3,6 +3,9 @@
 Tests cover:
 - ``_check_sounddevice`` availability guard
 - ``_audio_to_text`` WAV write, provider pipeline, text extraction, and cleanup
+- ``listen_once`` fixed-duration recording
+- ``listen_until_silence`` silence-detection recording
+- ``list_audio_devices`` device enumeration
 """
 
 from __future__ import annotations
@@ -288,11 +291,21 @@ class TestAudioToText:
 
 
 def _make_sd_mock(*, num_frames: int = 16000) -> MagicMock:
-    """Return a mock sounddevice module with rec() and wait() stubs."""
+    """Return a mock sounddevice module with rec(), wait(), and InputStream stubs."""
     sd = MagicMock()
     audio = np.zeros((num_frames, 1), dtype=np.int16)
     sd.rec.return_value = audio
     sd.wait.return_value = None
+
+    # InputStream context manager: stream.read() returns (frame, False)
+    frame = np.zeros((480, 1), dtype=np.int16)
+    mock_stream = MagicMock()
+    mock_stream.read.return_value = (frame, False)
+    mock_stream.__enter__ = MagicMock(return_value=mock_stream)
+    mock_stream.__exit__ = MagicMock(return_value=False)
+    sd.InputStream.return_value = mock_stream
+    sd.default = MagicMock()
+    sd.default.device = [0, 0]
     return sd
 
 
@@ -452,3 +465,187 @@ class TestListenOnce:
         ):
             await mic.listen_once(provider="openai_whisper")
         mock_get.assert_called_once_with("openai_whisper")
+
+
+# ---------------------------------------------------------------------------
+# listen_until_silence
+# ---------------------------------------------------------------------------
+
+
+class TestListenUntilSilence:
+    """Tests for the async listen_until_silence public function."""
+
+    @pytest.mark.asyncio
+    async def test_returns_transcription_text(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider(
+            transcribe_result=TranscriptionResponse(text="silence mic")
+        )
+        # Mock webrtcvad so all frames are silent → loop exits on silence_threshold
+        mock_vad = MagicMock()
+        mock_vad.is_speech.return_value = False
+        mock_vad_cls = MagicMock(return_value=mock_vad)
+        mock_webrtcvad = MagicMock()
+        mock_webrtcvad.Vad = mock_vad_cls
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd, "webrtcvad": mock_webrtcvad}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            result = await mic.listen_until_silence(
+                max_duration_seconds=10.0, silence_threshold_ms=500
+            )
+        assert result == "silence mic"
+
+    def _silence_vad_mock(self) -> MagicMock:
+        """Return a webrtcvad module mock where all frames are silent."""
+        mock_vad = MagicMock()
+        mock_vad.is_speech.return_value = False
+        mock_webrtcvad = MagicMock()
+        mock_webrtcvad.Vad.return_value = mock_vad
+        return mock_webrtcvad
+
+    @pytest.mark.asyncio
+    async def test_inputstream_opened_with_correct_params(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        wvad = self._silence_vad_mock()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd, "webrtcvad": wvad}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_until_silence(
+                max_duration_seconds=10.0, silence_threshold_ms=500
+            )
+        sd.InputStream.assert_called_once()
+        _, kwargs = sd.InputStream.call_args
+        assert kwargs.get("samplerate") == 16000
+        assert kwargs.get("channels") == 1
+        assert kwargs.get("dtype") == "int16"
+
+    @pytest.mark.asyncio
+    async def test_missing_sounddevice_returns_error_string(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        with patch.dict("sys.modules", {"sounddevice": None}):
+            result = await mic.listen_until_silence(
+                max_duration_seconds=10.0, silence_threshold_ms=500
+            )
+        assert result.startswith("error:")
+        assert "ImportError" in result
+
+    @pytest.mark.asyncio
+    async def test_language_forwarded(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        wvad = self._silence_vad_mock()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd, "webrtcvad": wvad}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_until_silence(
+                max_duration_seconds=5.0, silence_threshold_ms=300, language="it"
+            )
+        _, kwargs = prov.transcribe.call_args
+        assert kwargs.get("language") == "it"
+
+    @pytest.mark.asyncio
+    async def test_provider_forwarded(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        wvad = self._silence_vad_mock()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd, "webrtcvad": wvad}),
+            patch(
+                "champi_stt.mcp.mic_tools.get_provider", return_value=prov
+            ) as mock_get,
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_until_silence(
+                max_duration_seconds=5.0,
+                silence_threshold_ms=300,
+                provider="openai_whisper",
+            )
+        mock_get.assert_called_once_with("openai_whisper")
+
+
+# ---------------------------------------------------------------------------
+# list_audio_devices
+# ---------------------------------------------------------------------------
+
+
+class TestListAudioDevices:
+    """Tests for the list_audio_devices function."""
+
+    def test_returns_list_of_dicts(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = MagicMock()
+        sd.query_devices.return_value = [
+            {
+                "name": "Built-in Mic",
+                "max_input_channels": 1,
+                "default_samplerate": 44100.0,
+            },
+        ]
+        with patch.dict("sys.modules", {"sounddevice": sd}):
+            result = mic.list_audio_devices()
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+    def test_device_entry_has_expected_keys(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = MagicMock()
+        sd.query_devices.return_value = [
+            {
+                "name": "Built-in Mic",
+                "max_input_channels": 2,
+                "default_samplerate": 48000.0,
+            },
+        ]
+        with patch.dict("sys.modules", {"sounddevice": sd}):
+            result = mic.list_audio_devices()
+        device = result[0]
+        assert "index" in device
+        assert "name" in device
+        assert "max_input_channels" in device
+        assert "default_samplerate" in device
+
+    def test_output_only_devices_are_excluded(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = MagicMock()
+        sd.query_devices.return_value = [
+            {
+                "name": "Speakers",
+                "max_input_channels": 0,
+                "default_samplerate": 44100.0,
+            },
+        ]
+        with patch.dict("sys.modules", {"sounddevice": sd}):
+            result = mic.list_audio_devices()
+        assert result == []
+
+    def test_missing_sounddevice_raises_import_error(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        with (
+            patch.dict("sys.modules", {"sounddevice": None}),
+            pytest.raises(ImportError, match="sounddevice"),
+        ):
+            mic.list_audio_devices()
