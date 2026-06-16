@@ -8,7 +8,13 @@ from typing import Any
 
 from champi_stt.core.base_provider import BaseSTTProvider
 
-_SUPPORTED_PROVIDERS = ["whisperlive", "openai_whisper", "deepgram", "assemblyai"]
+_SUPPORTED_PROVIDERS = [
+    "whisperlive",
+    "openai_whisper",
+    "deepgram",
+    "assemblyai",
+    "kokoro",
+]
 
 
 def get_provider(
@@ -20,7 +26,7 @@ def get_provider(
     Factory function to create STT providers.
 
     Args:
-        provider_type: Provider key — "whisperlive", "openai_whisper", or "deepgram"
+        provider_type: Provider key — "whisperlive", "openai_whisper", "deepgram", "assemblyai", or "kokoro"
         config: Pre-built provider config object (optional)
         **config_kwargs: Config fields forwarded to the config constructor
 
@@ -76,6 +82,17 @@ def get_provider(
                 else AssemblyAIConfig.from_env()
             )
         return AssemblyAIProvider(config=config)
+
+    if provider_type == "kokoro":
+        from champi_stt.providers.kokoro import KokoroConfig, KokoroSTTProvider
+
+        if config is None:
+            config = (
+                KokoroConfig(**config_kwargs)
+                if config_kwargs
+                else KokoroConfig.from_env()
+            )
+        return KokoroSTTProvider(config=config)
 
     raise ValueError(
         f"Unknown provider type: {provider_type!r}. "
