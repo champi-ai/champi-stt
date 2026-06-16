@@ -74,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `wake_indicator_position` config field - UI position now configured via `ipc_ui_window_x` and `ipc_ui_window_y`
 
+## v1.3.0 (2026-06-15)
+
+### Feat
+
+- **mcp**: Phase 5 mic tools — listen_once, listen_until_silence, list_audio_devices (#107)
+
 ## v1.2.0 (2026-06-15)
 
 ### Feat
