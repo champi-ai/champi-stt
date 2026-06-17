@@ -151,6 +151,38 @@ class TestAudioToText:
         mock_get.assert_called_once_with("whisperlive")
 
     @pytest.mark.asyncio
+    async def test_uses_champi_stt_provider_env_var_when_provider_name_is_none(
+        self,
+    ) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        prov = _make_provider()
+        with (
+            patch(
+                "champi_stt.mcp.mic_tools.get_provider", return_value=prov
+            ) as mock_get,
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch.dict(os.environ, {"CHAMPI_STT_PROVIDER": "openai_whisper"}),
+        ):
+            await mic._audio_to_text(self._make_audio(), 16000, None, None)
+        mock_get.assert_called_once_with("openai_whisper")
+
+    @pytest.mark.asyncio
+    async def test_explicit_provider_name_overrides_env_var(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        prov = _make_provider()
+        with (
+            patch(
+                "champi_stt.mcp.mic_tools.get_provider", return_value=prov
+            ) as mock_get,
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch.dict(os.environ, {"CHAMPI_STT_PROVIDER": "openai_whisper"}),
+        ):
+            await mic._audio_to_text(self._make_audio(), 16000, None, "whisperlive")
+        mock_get.assert_called_once_with("whisperlive")
+
+    @pytest.mark.asyncio
     async def test_uses_specified_provider_name(self) -> None:
         import champi_stt.mcp.mic_tools as mic
 

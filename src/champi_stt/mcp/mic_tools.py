@@ -17,6 +17,8 @@ import soundfile as sf
 from champi_stt.core.response import TranscriptionResponse
 from champi_stt.factory import get_provider
 
+_DEFAULT_PROVIDER = "whisperlive"
+
 
 def _check_sounddevice() -> None:
     """Verify that sounddevice and its PortAudio backend are available.
@@ -75,13 +77,15 @@ async def _audio_to_text(
         audio_array: Captured audio samples as a numpy int16 array.
         sample_rate: Sample rate of the audio in Hz.
         language: BCP-47 language code hint, or None for auto-detect.
-        provider_name: Provider key (e.g. ``"whisperlive"``), or None to use
-            the default (``"whisperlive"``).
+        provider_name: Provider key (e.g. ``"whisperlive"``), or None to fall
+            back to the ``CHAMPI_STT_PROVIDER`` env var, then ``"whisperlive"``.
 
     Returns:
         Transcription text string.
     """
-    effective_provider = provider_name or "whisperlive"
+    effective_provider = (
+        provider_name or os.environ.get("CHAMPI_STT_PROVIDER") or _DEFAULT_PROVIDER
+    )
     loop = asyncio.get_event_loop()
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
