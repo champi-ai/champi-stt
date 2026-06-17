@@ -20,6 +20,39 @@ import pytest
 from champi_stt.core.response import TranscriptionResponse
 
 # ---------------------------------------------------------------------------
+# _resolve_device
+# ---------------------------------------------------------------------------
+
+
+class TestResolveDevice:
+    """Tests for the _resolve_device helper."""
+
+    def test_returns_explicit_device_index_when_provided(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        assert mic._resolve_device(2) == 2
+
+    def test_falls_back_to_env_var_when_device_index_is_none(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        with patch.dict(os.environ, {"CHAMPI_INPUT_DEVICE_INDEX": "3"}):
+            assert mic._resolve_device(None) == 3
+
+    def test_returns_none_when_neither_argument_nor_env_var_set(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        env = {k: v for k, v in os.environ.items() if k != "CHAMPI_INPUT_DEVICE_INDEX"}
+        with patch.dict(os.environ, env, clear=True):
+            assert mic._resolve_device(None) is None
+
+    def test_explicit_index_overrides_env_var(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        with patch.dict(os.environ, {"CHAMPI_INPUT_DEVICE_INDEX": "5"}):
+            assert mic._resolve_device(1) == 1
+
+
+# ---------------------------------------------------------------------------
 # _check_sounddevice
 # ---------------------------------------------------------------------------
 
@@ -466,6 +499,57 @@ class TestListenOnce:
             await mic.listen_once(provider="openai_whisper")
         mock_get.assert_called_once_with("openai_whisper")
 
+    @pytest.mark.asyncio
+    async def test_device_index_passed_to_sd_rec(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_once(device_index=2)
+        _, kwargs = sd.rec.call_args
+        assert kwargs.get("device") == 2
+
+    @pytest.mark.asyncio
+    async def test_no_device_index_passes_none_to_sd_rec(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        env = {k: v for k, v in os.environ.items() if k != "CHAMPI_INPUT_DEVICE_INDEX"}
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+            patch.dict(os.environ, env, clear=True),
+        ):
+            await mic.listen_once()
+        _, kwargs = sd.rec.call_args
+        assert kwargs.get("device") is None
+
+    @pytest.mark.asyncio
+    async def test_device_index_from_env_var_passed_to_sd_rec(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+            patch.dict(os.environ, {"CHAMPI_INPUT_DEVICE_INDEX": "4"}),
+        ):
+            await mic.listen_once()
+        _, kwargs = sd.rec.call_args
+        assert kwargs.get("device") == 4
+
 
 # ---------------------------------------------------------------------------
 # listen_until_silence
@@ -581,6 +665,66 @@ class TestListenUntilSilence:
                 provider="openai_whisper",
             )
         mock_get.assert_called_once_with("openai_whisper")
+
+    @pytest.mark.asyncio
+    async def test_device_index_passed_to_inputstream(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        wvad = self._silence_vad_mock()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd, "webrtcvad": wvad}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+        ):
+            await mic.listen_until_silence(
+                max_duration_seconds=5.0, silence_threshold_ms=300, device_index=1
+            )
+        _, kwargs = sd.InputStream.call_args
+        assert kwargs.get("device") == 1
+
+    @pytest.mark.asyncio
+    async def test_no_device_index_passes_none_to_inputstream(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        wvad = self._silence_vad_mock()
+        env = {k: v for k, v in os.environ.items() if k != "CHAMPI_INPUT_DEVICE_INDEX"}
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd, "webrtcvad": wvad}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+            patch.dict(os.environ, env, clear=True),
+        ):
+            await mic.listen_until_silence(
+                max_duration_seconds=5.0, silence_threshold_ms=300
+            )
+        _, kwargs = sd.InputStream.call_args
+        assert kwargs.get("device") is None
+
+    @pytest.mark.asyncio
+    async def test_device_index_from_env_var_passed_to_inputstream(self) -> None:
+        import champi_stt.mcp.mic_tools as mic
+
+        sd = _make_sd_mock()
+        prov = _make_provider()
+        wvad = self._silence_vad_mock()
+        with (
+            patch.dict("sys.modules", {"sounddevice": sd, "webrtcvad": wvad}),
+            patch("champi_stt.mcp.mic_tools.get_provider", return_value=prov),
+            patch("champi_stt.mcp.mic_tools.sf.write"),
+            patch("champi_stt.mcp.mic_tools.os.remove"),
+            patch.dict(os.environ, {"CHAMPI_INPUT_DEVICE_INDEX": "7"}),
+        ):
+            await mic.listen_until_silence(
+                max_duration_seconds=5.0, silence_threshold_ms=300
+            )
+        _, kwargs = sd.InputStream.call_args
+        assert kwargs.get("device") == 7
 
 
 # ---------------------------------------------------------------------------
