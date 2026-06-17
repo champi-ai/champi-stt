@@ -74,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `wake_indicator_position` config field - UI position now configured via `ipc_ui_window_x` and `ipc_ui_window_y`
 
+## v1.3.1 (2026-06-17)
+
+### Fix
+
+- **mcp**: respect CHAMPI_STT_PROVIDER in mic tools (#108)
+
 ## v1.3.0 (2026-06-15)
 
 ### Feat
