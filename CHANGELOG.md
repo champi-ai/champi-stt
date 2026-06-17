@@ -74,6 +74,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `wake_indicator_position` config field - UI position now configured via `ipc_ui_window_x` and `ipc_ui_window_y`
 
+## v1.5.0 (2026-06-17)
+
+### Feat
+
+- **providers**: add Kokoro STT provider (#111)
+
+### Fix
+
+- **whisperlive**: detect broken model cache symlinks with actionable error (#110)
+
 ## v1.4.0 (2026-06-17)
 
 ### Feat

@@ -72,14 +72,14 @@ A modular, extensible Python library for speech-to-text processing with support 
 Run directly without a project, always pinned to a specific release:
 
 ```bash
-uvx --from https://github.com/champi-ai/champi-stt/releases/download/v1.4.0/champi_stt-1.4.0-py3-none-any.whl champi-stt --help
+uvx --from https://github.com/champi-ai/champi-stt/releases/download/v1.5.0/champi_stt-1.5.0-py3-none-any.whl champi-stt --help
 ```
 
 Or add as a dependency in another project using uv sources:
 
 ```toml
 [tool.uv.sources]
-champi-stt = { url = "https://github.com/champi-ai/champi-stt/releases/download/v1.4.0/champi_stt-1.4.0-py3-none-any.whl" }
+champi-stt = { url = "https://github.com/champi-ai/champi-stt/releases/download/v1.5.0/champi_stt-1.5.0-py3-none-any.whl" }
 ```
 
 ### Development Installation
@@ -171,13 +171,13 @@ LLM hosts such as Claude Desktop call them directly.
 ### Install and run (one-shot)
 
 ```bash
-uvx --from "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.4.0/champi_stt-1.4.0-py3-none-any.whl" champi-stt mcp serve
+uvx --from "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.5.0/champi_stt-1.5.0-py3-none-any.whl" champi-stt mcp serve
 ```
 
 Or install permanently with the `mcp` extra:
 
 ```bash
-uv pip install "https://github.com/champi-ai/champi-stt/releases/download/v1.4.0/champi_stt-1.4.0-py3-none-any.whl[mcp]"
+uv pip install "https://github.com/champi-ai/champi-stt/releases/download/v1.5.0/champi_stt-1.5.0-py3-none-any.whl[mcp]"
 champi-stt mcp serve
 ```
 
@@ -199,7 +199,7 @@ Add a server entry to your `claude_desktop_config.json`:
       "command": "uvx",
       "args": [
         "--from",
-        "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.4.0/champi_stt-1.4.0-py3-none-any.whl",
+        "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.5.0/champi_stt-1.5.0-py3-none-any.whl",
         "champi-stt",
         "mcp",
         "serve"
@@ -218,7 +218,7 @@ To select a non-default STT provider, add `CHAMPI_STT_PROVIDER` to the `env` blo
       "command": "uvx",
       "args": [
         "--from",
-        "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.4.0/champi_stt-1.4.0-py3-none-any.whl",
+        "champi-stt[mcp] @ https://github.com/champi-ai/champi-stt/releases/download/v1.5.0/champi_stt-1.5.0-py3-none-any.whl",
         "champi-stt",
         "mcp",
         "serve"
