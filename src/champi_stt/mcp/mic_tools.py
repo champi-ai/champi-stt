@@ -20,6 +20,24 @@ from champi_stt.factory import get_provider
 _DEFAULT_PROVIDER = "whisperlive"
 
 
+def _resolve_device(device_index: int | None) -> int | None:
+    """Return the audio input device index to use.
+
+    Resolves in priority order: explicit argument → ``CHAMPI_INPUT_DEVICE_INDEX``
+    environment variable → ``None`` (sounddevice system default).
+
+    Args:
+        device_index: Caller-supplied device index, or ``None`` to use fallbacks.
+
+    Returns:
+        Integer device index, or ``None`` to let sounddevice pick the default.
+    """
+    if device_index is not None:
+        return device_index
+    env = os.environ.get("CHAMPI_INPUT_DEVICE_INDEX")
+    return int(env) if env else None
+
+
 def _check_sounddevice() -> None:
     """Verify that sounddevice and its PortAudio backend are available.
 
@@ -120,8 +138,9 @@ async def listen_once(
     duration_seconds: float = 5.0,
     language: str | None = None,
     provider: str | None = None,
+    device_index: int | None = None,
 ) -> str:
-    """Record audio from the default microphone and return the transcription.
+    """Record audio from a microphone and return the transcription.
 
     Captures ``duration_seconds`` of audio at 16 kHz mono int16 via
     sounddevice, then passes the raw array to the provider transcription
@@ -132,6 +151,8 @@ async def listen_once(
         language: BCP-47 language code hint, or None for auto-detect.
         provider: Provider key (e.g. ``"whisperlive"``), or None to use
             the default.
+        device_index: Input device index to record from. Falls back to
+            ``CHAMPI_INPUT_DEVICE_INDEX`` env var, then the system default.
 
     Returns:
         Transcription text on success, or ``"error: <ExcType>: <message>"``
@@ -143,10 +164,13 @@ async def listen_once(
 
         loop = asyncio.get_event_loop()
         num_frames = int(duration_seconds * 16000)
+        device = _resolve_device(device_index)
 
         audio = await loop.run_in_executor(
             None,
-            lambda: sd.rec(num_frames, samplerate=16000, channels=1, dtype="int16"),
+            lambda: sd.rec(
+                num_frames, samplerate=16000, channels=1, dtype="int16", device=device
+            ),
         )
         await loop.run_in_executor(None, sd.wait)
 
@@ -160,8 +184,9 @@ async def listen_until_silence(
     silence_threshold_ms: int = 800,
     language: str | None = None,
     provider: str | None = None,
+    device_index: int | None = None,
 ) -> str:
-    """Record from the microphone until silence is detected, then return the transcription.
+    """Record from a microphone until silence is detected, then return the transcription.
 
     Uses WebRTC VAD (aggressiveness level 2) to detect speech/silence boundaries.
     Recording stops when consecutive silence exceeds ``silence_threshold_ms`` or
@@ -174,6 +199,8 @@ async def listen_until_silence(
         silence_threshold_ms: Consecutive silence in milliseconds that triggers stop.
         language: BCP-47 language code hint, or None for auto-detect.
         provider: Provider key (e.g. ``"whisperlive"``), or None to use the default.
+        device_index: Input device index to record from. Falls back to
+            ``CHAMPI_INPUT_DEVICE_INDEX`` env var, then the system default.
 
     Returns:
         Transcription text on success, or ``"error: <ExcType>: <message>"`` on failure.
@@ -184,9 +211,13 @@ async def listen_until_silence(
         try:
             import webrtcvad  # noqa: F401
         except ImportError:
-            return await listen_once(max_duration_seconds, language, provider)
+            return await listen_once(
+                max_duration_seconds, language, provider, device_index
+            )
 
         import sounddevice as sd
+
+        device = _resolve_device(device_index)
 
         def _record_with_vad() -> np.ndarray:
             import webrtcvad as _webrtcvad
@@ -197,7 +228,11 @@ async def listen_until_silence(
             silent_ms = 0
             total_ms = 0
             with sd.InputStream(
-                samplerate=16000, channels=1, dtype="int16", blocksize=frame_samples
+                samplerate=16000,
+                channels=1,
+                dtype="int16",
+                blocksize=frame_samples,
+                device=device,
             ) as stream:
                 while total_ms < max_duration_seconds * 1000:
                     chunk, _ = stream.read(frame_samples)

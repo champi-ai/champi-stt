@@ -191,9 +191,19 @@ def create_mcp_server() -> Any:
         duration_seconds: float = 5.0,
         language: str | None = None,
         provider: str | None = None,
+        device_index: int | None = None,
     ) -> str:
-        """Record audio from the default microphone for a fixed duration and return the transcription."""
-        return await _listen_once(duration_seconds, language, provider)
+        """Record audio from a microphone for a fixed duration and return the transcription.
+
+        Args:
+            duration_seconds: Recording length in seconds.
+            language: BCP-47 language code hint (``None`` = auto-detect).
+            provider: Provider key. Falls back to ``CHAMPI_STT_PROVIDER`` env var,
+                then ``"whisperlive"``.
+            device_index: Input device index. Falls back to
+                ``CHAMPI_INPUT_DEVICE_INDEX`` env var, then the system default.
+        """
+        return await _listen_once(duration_seconds, language, provider, device_index)
 
     from champi_stt.mcp.mic_tools import listen_until_silence as _listen_until_silence
 
@@ -203,10 +213,21 @@ def create_mcp_server() -> Any:
         silence_threshold_ms: int = 800,
         language: str | None = None,
         provider: str | None = None,
+        device_index: int | None = None,
     ) -> str:
-        """Record from the microphone until silence is detected (VAD), then return the transcription."""
+        """Record from a microphone until silence is detected (VAD), then return the transcription.
+
+        Args:
+            max_duration_seconds: Hard upper limit on recording length in seconds.
+            silence_threshold_ms: Consecutive silence in milliseconds that triggers stop.
+            language: BCP-47 language code hint (``None`` = auto-detect).
+            provider: Provider key. Falls back to ``CHAMPI_STT_PROVIDER`` env var,
+                then ``"whisperlive"``.
+            device_index: Input device index. Falls back to
+                ``CHAMPI_INPUT_DEVICE_INDEX`` env var, then the system default.
+        """
         return await _listen_until_silence(
-            max_duration_seconds, silence_threshold_ms, language, provider
+            max_duration_seconds, silence_threshold_ms, language, provider, device_index
         )
 
     from champi_stt.mcp.mic_tools import list_audio_devices as _list_audio_devices
