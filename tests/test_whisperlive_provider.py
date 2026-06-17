@@ -1511,3 +1511,58 @@ class TestTranscriberNumpyPath:
         )
 
         assert result["text"] == ""
+
+
+class TestCheckModelCache:
+    """Tests for WhisperLiveProvider._check_model_cache()."""
+
+    @pytest.fixture(autouse=True)
+    def reset_singleton(self):
+        WhisperLiveProvider._instance = None
+        yield
+        WhisperLiveProvider._instance = None
+
+    def _make_provider(self, tmp_path):
+        config = WhisperLiveConfig(cache_dir=str(tmp_path))
+        return WhisperLiveProvider(config=config)
+
+    def test_missing_model_dir_does_not_raise(self, tmp_path):
+        """No error when the model has never been downloaded."""
+        provider = self._make_provider(tmp_path)
+        # model dir does not exist — should be a silent no-op
+        provider._check_model_cache("base", str(tmp_path))
+
+    def test_valid_cache_without_broken_symlinks_does_not_raise(self, tmp_path):
+        """A complete cache with intact symlinks passes the check."""
+        model_dir = tmp_path / "models--Systran--faster-whisper-base"
+        blobs = model_dir / "blobs"
+        blobs.mkdir(parents=True)
+        blob_file = blobs / "abc123"
+        blob_file.write_text("fake blob")
+
+        snapshot_dir = model_dir / "snapshots" / "rev1"
+        snapshot_dir.mkdir(parents=True)
+        link = snapshot_dir / "config.json"
+        link.symlink_to(blob_file)
+
+        provider = self._make_provider(tmp_path)
+        # Valid symlink — must not raise
+        provider._check_model_cache("base", str(tmp_path))
+
+    def test_broken_symlink_raises_whisperinitializationerror(self, tmp_path):
+        """A dangling symlink causes WhisperInitializationError with a helpful message."""
+        model_dir = tmp_path / "models--Systran--faster-whisper-base"
+        snapshot_dir = model_dir / "snapshots" / "rev1"
+        snapshot_dir.mkdir(parents=True)
+        broken_link = snapshot_dir / "config.json"
+        broken_link.symlink_to("/nonexistent/target/blob_abc")
+
+        provider = self._make_provider(tmp_path)
+        with pytest.raises(WhisperInitializationError) as exc_info:
+            provider._check_model_cache("base", str(tmp_path))
+
+        message = str(exc_info.value)
+        assert "broken symlinks" in message.lower()
+        assert "base" in message
+        assert "rm -rf" in message
+        assert str(model_dir) in message

@@ -12,6 +12,7 @@ import contextlib
 import dataclasses
 
 # import logging - replaced with loguru
+import os
 import queue
 import tempfile
 from pathlib import Path
@@ -135,10 +136,13 @@ class WhisperLiveSTTProvider:
             # 1. Validate directories FIRST
             self.validate_directories()
 
-            # 2. Initialize transcriber (which initializes model manager)
+            # 2. Check model cache for broken symlinks before attempting model load
+            self._check_model_cache(self.config.model_size, self.config.cache_dir)
+
+            # 3. Initialize transcriber (which initializes model manager)
             self.transcriber = WhisperLiveTranscriber(self.config)
 
-            # 3. Emit pre-loading signal
+            # 4. Emit pre-loading signal
             self.Meta.signal_manager.model.send(
                 self,
                 event_type="model",
@@ -149,7 +153,7 @@ class WhisperLiveSTTProvider:
                 },
             )
 
-            # 4. Initialize model (with caching/device detection)
+            # 5. Initialize model (with caching/device detection)
             await self.transcriber.initialize()
 
             self._initialized = True
@@ -466,6 +470,43 @@ class WhisperLiveSTTProvider:
         except Exception as e:
             logger.error(f"Failed to create directories: {e}")
             raise WhisperFileError(f"Directory creation failed: {e}") from e
+
+    def _check_model_cache(self, model_name: str, cache_dir: str) -> None:
+        """Check the HuggingFace model cache for broken symlinks.
+
+        The faster-whisper cache follows the HuggingFace convention of storing
+        model blobs alongside relative symlinks in snapshot directories.  If the
+        cache was partially downloaded or relocated the symlinks become dangling,
+        causing a confusing FileNotFoundError deep inside the model loader.
+
+        Args:
+            model_name: The model size string (e.g. ``"base"``, ``"small"``).
+            cache_dir: Path to the cache root directory (tilde expansion is applied).
+
+        Raises:
+            WhisperInitializationError: If one or more broken symlinks are found
+                inside the model cache directory, with an actionable remediation
+                command.
+        """
+        expanded = os.path.expanduser(cache_dir)
+        model_dir = Path(expanded) / f"models--Systran--faster-whisper-{model_name}"
+
+        if not model_dir.exists():
+            return
+
+        broken = [
+            entry
+            for entry in model_dir.rglob("*")
+            if entry.is_symlink() and not entry.exists()
+        ]
+
+        if broken:
+            raise WhisperInitializationError(
+                f"Broken symlinks found in the model cache for '{model_name}'. "
+                f"The cache is corrupted or was partially downloaded. "
+                f"Remove it and let the model re-download on next run:\n"
+                f"  rm -rf {model_dir}"
+            )
 
     def get_default_cache_dir(self) -> str:
         """Get platform-appropriate cache directory"""
